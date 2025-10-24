@@ -134,6 +134,41 @@ const $ = s => document.querySelector(s);
 function showAlert(msg){ const el=$('#alert'); el.textContent=msg; el.style.display='block'; }
 function clearAlert(){ const el=$('#alert'); el.textContent=''; el.style.display='none'; }
 
+async function loadScript(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = (err) => {
+      s.remove();
+      reject(err || new Error('Impossibile caricare '+src));
+    };
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureXlsx(){
+  if(window.XLSX){ return window.XLSX; }
+  const urls = [
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+  let lastErr;
+  for(const url of urls){
+    try{
+      await loadScript(url);
+      if(window.XLSX){ break; }
+    }catch(err){
+      lastErr = err;
+    }
+  }
+  if(!window.XLSX){
+    throw lastErr || new Error('Impossibile caricare la libreria Excel (SheetJS).');
+  }
+  return window.XLSX;
+}
+
 async function ensurePdfJs(){
   if(window.pdfjsLib){ return window.pdfjsLib; }
   const urls = [
@@ -282,28 +317,99 @@ function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
 
 // =================== EXPORT EXCEL ===================
-function exportExcel(){
+async function downloadBlob(blob, filename){
+  if(window.navigator?.msSaveOrOpenBlob){
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+    return;
+  }
+  const urlFactory = window.URL || window.webkitURL;
+  if(urlFactory?.createObjectURL){
+    const url = urlFactory.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>{ try{ urlFactory.revokeObjectURL(url); }catch(e){} }, 1200);
+    return;
+  }
+  await new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const a = document.createElement('a');
+        a.href = reader.result;
+        a.download = filename;
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        resolve();
+      }catch(err){
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(reader.error || new Error('Browser non supporta download di Blob.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function rowsToCsv(rows){
+  if(!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = (val)=>{
+    if(val===null || val===undefined) return '';
+    const str = String(val).replace(/\r?\n/g,' ');
+    return /[";,]/.test(str) ? '"'+str.replace(/"/g,'""')+'"' : str;
+  };
+  const lines = [headers.join(';')];
+  for(const row of rows){
+    lines.push(headers.map(h=>esc(row[h])).join(';'));
+  }
+  return lines.join('\r\n');
+}
+
+async function exportExcel(){
+  let flatRows;
   try{
-    const rows = state.rows.map(r=>({
+    if(!state.rows.length){
+      showAlert('Nessun dato da esportare. Carica o genera prima delle righe.');
+      return;
+    }
+    const XLSX = await ensureXlsx();
+    if(!XLSX?.utils){
+      throw new Error('Libreria SheetJS caricata ma priva delle utilità attese.');
+    }
+    flatRows = state.rows.map(r=>({
       File:r.file, Nome:r.nome, Hcodes:r.hcodes.join(';'), SCORE:r.SCORE, Sistema:r.sistema,
       Quantità_kg_giorno:r.qty, Indice_D:r.D, Indice_U:r.U, Indice_C:r.C, Indice_I:r.I, Distanza_DIS:r.DIS,
       E_inal:r.Einal, Ecut:r.Ecut, R_inal:r.Rinal, R_cut:r.Rcut, R_tot:r.Rtot, Giudizio:r.Giudizio
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet(flatRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'MOVARISCH');
     // Fallback robusto via Blob per ambienti con CSP restrittive
     const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
     const blob = new Blob([wbout], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = (window.URL && URL.createObjectURL) ? URL.createObjectURL(blob) : (window.webkitURL ? webkitURL.createObjectURL(blob) : null);
-    if(!url) throw new Error('Browser non supporta URL.createObjectURL');
-    const a = document.createElement('a');
-    a.href = url; a.download = 'MOVARISCH_autoestratto.xlsx';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 1200);
+    await downloadBlob(blob, 'MOVARISCH_autoestratto.xlsx');
   } catch(err){
-    showAlert('Export Excel fallito: ' + (err && err.message ? err.message : err));
     console.error(err);
+    if(flatRows?.length){
+      try{
+        const csv = rowsToCsv(flatRows);
+        const csvBlob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+        await downloadBlob(csvBlob, 'MOVARISCH_autoestratto.csv');
+        showAlert('Export Excel non disponibile. È stato generato un CSV di fallback. Dettaglio: ' + (err && err.message ? err.message : err));
+        return;
+      }catch(csvErr){
+        console.error(csvErr);
+      }
+    }
+    showAlert('Export Excel fallito: ' + (err && err.message ? err.message : err));
   }
 }
 
