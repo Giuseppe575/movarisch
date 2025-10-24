@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MOVARISCH – SDS Parser (PDF → Tabella → Excel)</title>
+<!-- Stilizzazione minima ma pulita -->
+<style>
+  :root { --bg:#0b1220; --card:#121a2b; --muted:#9fb0cf; --ink:#e8eefc; --accent:#7aa2ff; --ok:#1fb26b; --mod:#f0ad4e; --high:#e05260; }
+  *{box-sizing:border-box}
+  body{margin:0; font:14px/1.4 system-ui,Segoe UI,Roboto,Arial; color:var(--ink); background:linear-gradient(180deg,#0b1220,#0d1627);} 
+  header{padding:24px; border-bottom:1px solid #1d2a44; background:rgba(0,0,0,.15); position:sticky; top:0; backdrop-filter: blur(8px);} 
+  h1{margin:0 0 6px; font-size:22px}
+  p.sub{margin:0; color:var(--muted)}
+  main{padding:20px; max-width:1200px; margin:0 auto}
+  .card{background:var(--card); border:1px solid #1d2a44; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  label.btn{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; background:#0e1a33; border:1px solid #1d2a44; border-radius:10px; cursor:pointer}
+  input[type=file]{display:none}
+  input[type=number], input[type=text]{background:#0e1a33; border:1px solid #273756; color:var(--ink); padding:8px 10px; border-radius:8px}
+  .btn{padding:10px 14px; border-radius:10px; border:1px solid #273756; background:#0e1a33; color:var(--ink); cursor:pointer}
+  .btn.primary{background:var(--accent); color:#0a1020; border-color:transparent; font-weight:600}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  table{width:100%; border-collapse:collapse; margin-top:12px}
+  th, td{border:1px solid #2a3a5a; padding:8px; vertical-align:top}
+  th{background:#0e1830; position:sticky; top:84px; z-index:2}
+  td.num, th.num{text-align:right}
+  td.edit{background:#0f1c38}
+  .badge{padding:2px 8px; border-radius:999px; font-weight:600}
+  .b-ok{background:rgba(31,178,107,.2); color:var(--ok)}
+  .b-mod{background:rgba(240,173,78,.2); color:var(--mod)}
+  .b-high{background:rgba(224,82,96,.2); color:var(--high)}
+  footer{color:var(--muted); text-align:center; padding:18px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #alert{display:none;margin-top:10px;padding:10px 12px;border:1px solid #5b1b1b;background:#2a0b0b;color:#ffd7d7;border-radius:8px}
+</style>
+<!-- Librerie: SheetJS e PDF.js (UMD). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+if(window.pdfjsLib){
+  try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }catch(e){}
+}
+</script>
+</head>
+<body>
+<header>
+  <h1>MOVARISCH – Parser SDS da PDF</h1>
+  <p class="sub">Carica le SDS/TDS in PDF → estrazione H/EUH → calcolo MOVARISCH → esporta Excel</p>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row">
+      <label class="btn">
+        <input type="file" id="pdfInput" accept="application/pdf" multiple />
+        📄 Seleziona PDF SDS/TDS
+      </label>
+      <button class="btn" id="parseBtn" disabled>🔍 Estrai & Calcola</button>
+      <button class="btn" id="clearBtn">♻️ Svuota</button>
+      <button class="btn" id="testBtn">🧪 Test libreria</button>
+      <button class="btn primary" id="exportBtn" disabled>⬇️ Esporta Excel</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <span>Soglie giudizio:</span>
+      <label>Irrilevante <input id="thrIrr" type="number" step="0.1" value="15" /></label>
+      <label>Moderato <input id="thrMod" type="number" step="0.1" value="40" /></label>
+      <span class="mono" style="margin-left:auto">Default indici → I=3, DIS=0.75, E<sub>cut</sub>=1.0</span>
+    </div>
+    <div id="alert"></div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Nome commerciale</th>
+          <th>H-codes (estratti)</th>
+          <th class="num">SCORE</th>
+          <th>Sistema</th>
+          <th class="num">Q [kg/g]</th>
+          <th class="num">D</th>
+          <th class="num">U</th>
+          <th class="num">C</th>
+          <th class="num">I</th>
+          <th class="num">DIS</th>
+          <th class="num">E<sub>inal</sub></th>
+          <th class="num">E<sub>cut</sub></th>
+          <th class="num">R<sub>inal</sub></th>
+          <th class="num">R<sub>cut</sub></th>
+          <th class="num">R<sub>tot</sub></th>
+          <th>Giudizio</th>
+          <th>—</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<footer>
+  © MOVARISCH Tool – uso interno consulenza. Tutto offline nel browser. Nessun upload a server.
+</footer>
+
+<script>
+// =================== CONFIG ===================
+const H_SCORE = {
+  "H332":4.50,"H312":3.00,"H302":2.00,"H331":6.00,"H311":4.50,"H301":2.25,
+  "H330":6.50,"H330 cat.1":6.50,"H330 cat.2":5.50,
+  "H310":3.00,"H310 cat.1":3.00,"H310 cat.2":2.50,
+  "H300":3.00,"H300 cat.1":3.00,"H300 cat.2":8.50,
+  "EUH029":3.00,"EUH031":3.50,"EUH032":6.25,
+  "H314":5.50,"H314 cat.1A":5.75,"H314 cat.1B":5.50,"H314 cat.1C":2.50,
+  "H315":4.50,"H318":3.00,"H319":3.00,"EUH066":2.50,
+  "H334":8.50,"H334 cat.1A":9.00,"H334 cat.1B":8.00,
+  "H317":4.50,"H317 cat.1A":6.00,"H317 cat.1B":4.50,
+  "H370":9.50,"H371":8.00,"H335":3.25,"H336":3.50,
+  "H372":8.00,"H373":7.00,"H304":3.50,
+  "H360":10.00,"H360D":9.50,"H360Df":9.75,"H360F":9.50,"H360FD":10.00,
+  "H341":8.00,"H351":8.00,"H361":8.00,"H361d":7.50,"H361f":7.50,"H361fd":8.00,
+  "H362":6.00,
+};
+const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
+const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
+
+const defaults = { sistema:"chiuso", qty:2, D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0 };
+
+// =================== STATE ===================
+const state = { files:[], rows:[] };
+const $ = s => document.querySelector(s);
+
+// =================== LIB LOADER + ALERT ===================
+function showAlert(msg){ const el=$('#alert'); el.textContent=msg; el.style.display='block'; }
+function clearAlert(){ const el=$('#alert'); el.textContent=''; el.style.display='none'; }
+
+async function ensurePdfJs(){
+  if(window.pdfjsLib){ return window.pdfjsLib; }
+  const urls = [
+    'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+  ];
+  for(const u of urls){
+    try{
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=u; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+      if(window.pdfjsLib){ break; }
+    }catch(e){}
+  }
+  if(!window.pdfjsLib){ throw new Error('Impossibile caricare PDF.js. Verifica la connessione o le policy di rete.'); }
+  try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }catch(e){}
+  return window.pdfjsLib;
+}
+
+// =================== PDF TEXT EXTRACTION ===================
+function readAsArrayBuffer(file){
+  return new Promise((resolve, reject)=>{
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(fr.error || new Error('Impossibile leggere il file'));
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+async function pdfToText(file){
+  const pdfjs = await ensurePdfJs();
+  // Evita fetch su blob:URL (può fallire nel sandbox) passando i bytes direttamente
+  const data = await readAsArrayBuffer(file);
+  let pdf;
+  try{
+    pdf = await pdfjs.getDocument({data}).promise;
+  }catch(err){
+    // Fallback: disabilita worker e riprova
+    try{ pdfjs.disableWorker = true; }catch(e){}
+    pdf = await pdfjs.getDocument({data}).promise;
+  }
+  let full = '';
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const txt = await page.getTextContent();
+    const str = txt.items.map(it=>it.str).join(' ');
+    full += '\n'+str;
+  }
+  return full;
+}
+
+function findH(text){
+  const out=[]; const seen=new Set();
+  for(const m of text.matchAll(REGEX_H)){
+    const base=(m[1]||'').toUpperCase();
+    const cat=(m[2]||'').toUpperCase().replace(/\s+/g,'');
+    let code=base;
+    if(cat){
+      if(/^H(314|330|310|300)$/i.test(base) && /^(1A|1B|1C|1|2)$/.test(cat)) code = base+' cat.'+cat;
+      if(/^H(334|317)$/i.test(base) && /^(1A|1B)$/.test(cat)) code = base+' cat.'+cat;
+    }
+    if(!seen.has(code)){ seen.add(code); out.push(code); }
+  }
+  return out;
+}
+
+function guessUV(fileName, text){
+  const f = fileName.toUpperCase(); const t = text.toUpperCase();
+  return f.includes('UV') || f.includes('VARNISH') || f.includes('OPTIFLEX') || f.includes('FLEXO') || f.includes('SCREEN') || t.includes(' UV ');
+}
+
+function pickScore(hcodes){
+  if(!hcodes.length) return 0;
+  const scores = hcodes.map(h=> H_SCORE[h] ?? H_SCORE[h.split(' ')[0]] ).filter(v=>typeof v==='number');
+  return scores.length ? Math.max(...scores) : 0;
+}
+
+// =================== TABLE & CALC ===================
+function recalcRow(row){
+  row.Einal = round(row.I * row.DIS, 2);
+  row.Rinal = round(row.SCORE * row.Einal, 2);
+  row.Rcut  = round(row.SCORE * row.Ecut, 2);
+  row.Rtot  = round(Math.sqrt(row.Rinal*row.Rinal + row.Rcut*row.Rcut), 2);
+  const irr = parseFloat(document.querySelector('#thrIrr').value)||15; 
+  const mod = parseFloat(document.querySelector('#thrMod').value)||40;
+  row.Giudizio = row.Rtot < irr ? 'Irrilevante' : (row.Rtot < mod ? 'Moderato' : 'Rilevante');
+}
+
+function render(){
+  const tb = document.querySelector('#tbl tbody');
+  tb.innerHTML = '';
+  state.rows.forEach((r,i)=>{
+    recalcRow(r);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(r.file)}</td>
+      <td class="edit" contenteditable>${escapeHtml(r.nome)}</td>
+      <td class="edit" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
+      <td class="num edit" contenteditable>${r.SCORE}</td>
+      <td class="edit" contenteditable>${escapeHtml(r.sistema)}</td>
+      <td class="num edit" contenteditable>${r.qty}</td>
+      <td class="num edit" contenteditable>${r.D}</td>
+      <td class="num edit" contenteditable>${r.U}</td>
+      <td class="num edit" contenteditable>${r.C}</td>
+      <td class="num edit" contenteditable>${r.I}</td>
+      <td class="num edit" contenteditable>${r.DIS}</td>
+      <td class="num">${fmt(r.Einal)}</td>
+      <td class="num edit" contenteditable>${r.Ecut}</td>
+      <td class="num">${fmt(r.Rinal)}</td>
+      <td class="num">${fmt(r.Rcut)}</td>
+      <td class="num"><b>${fmt(r.Rtot)}</b></td>
+      <td>${badge(r.Giudizio)}</td>
+      <td><button class="btn" data-del="${i}">x</button></td>`;
+
+    tr.querySelectorAll('.edit').forEach((cell)=>{
+      cell.addEventListener('input', ()=>{
+        const cells = tr.querySelectorAll('td');
+        r.nome   = cells[1].innerText.trim();
+        r.hcodes = cells[2].innerText.split(';').map(s=>s.trim()).filter(Boolean);
+        r.SCORE  = toNum(cells[3].innerText, r.SCORE);
+        r.sistema= cells[4].innerText.trim();
+        r.qty    = toNum(cells[5].innerText, r.qty);
+        r.D      = toNum(cells[6].innerText, r.D);
+        r.U      = toNum(cells[7].innerText, r.U);
+        r.C      = toNum(cells[8].innerText, r.C);
+        r.I      = toNum(cells[9].innerText, r.I);
+        r.DIS    = toNum(cells[10].innerText, r.DIS);
+        r.Ecut   = toNum(cells[12].innerText, r.Ecut);
+        render();
+      });
+    });
+
+    tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
+    tb.appendChild(tr);
+  });
+  document.querySelector('#exportBtn').disabled = state.rows.length===0;
+}
+
+function badge(j){
+  if(j==='Irrilevante') return `<span class="badge b-ok">${j}</span>`;
+  if(j==='Moderato') return `<span class="badge b-mod">${j}</span>`;
+  return `<span class="badge b-high">${j}</span>`;
+}
+
+function toNum(v, def){ v = v.replace?.(',', '.') ?? v; const n=parseFloat(v); return isFinite(n)?n:def; }
+function round(n,d=2){ const p=10**d; return Math.round(n*p)/p; }
+function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
+
+// =================== EXPORT EXCEL ===================
+function exportExcel(){
+  try{
+    const rows = state.rows.map(r=>({
+      File:r.file, Nome:r.nome, Hcodes:r.hcodes.join(';'), SCORE:r.SCORE, Sistema:r.sistema,
+      Quantità_kg_giorno:r.qty, Indice_D:r.D, Indice_U:r.U, Indice_C:r.C, Indice_I:r.I, Distanza_DIS:r.DIS,
+      E_inal:r.Einal, Ecut:r.Ecut, R_inal:r.Rinal, R_cut:r.Rcut, R_tot:r.Rtot, Giudizio:r.Giudizio
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'MOVARISCH');
+    // Fallback robusto via Blob per ambienti con CSP restrittive
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    const blob = new Blob([wbout], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = (window.URL && URL.createObjectURL) ? URL.createObjectURL(blob) : (window.webkitURL ? webkitURL.createObjectURL(blob) : null);
+    if(!url) throw new Error('Browser non supporta URL.createObjectURL');
+    const a = document.createElement('a');
+    a.href = url; a.download = 'MOVARISCH_autoestratto.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 1200);
+  } catch(err){
+    showAlert('Export Excel fallito: ' + (err && err.message ? err.message : err));
+    console.error(err);
+  }
+}
+
+// =================== EVENTS ===================
+const pdfInput = document.querySelector('#pdfInput');
+const parseBtn = document.querySelector('#parseBtn');
+const exportBtn = document.querySelector('#exportBtn');
+const clearBtn = document.querySelector('#clearBtn');
+const testBtn = document.querySelector('#testBtn');
+
+pdfInput.addEventListener('change', (e)=>{
+  state.files = Array.from(e.target.files||[]);
+  parseBtn.disabled = state.files.length===0;
+});
+
+parseBtn.addEventListener('click', async ()=>{
+  if(!state.files.length) return;
+  clearAlert();
+  state.rows = [];
+  try{
+    for(const file of state.files){
+      const text = await pdfToText(file);
+      let hcodes = findH(text);
+      if(!hcodes.length && guessUV(file.name, text)) hcodes = UV_FALLBACK.slice();
+      let score = hcodes.length ? pickScore(hcodes) : 0;
+      const row = {
+        file: file.name,
+        nome: file.name.replace(/\.pdf$/i, ''),
+        hcodes,
+        SCORE: score,
+        sistema: defaults.sistema,
+        qty: defaults.qty,
+        D: defaults.D, U: defaults.U, C: defaults.C,
+        I: defaults.I, DIS: defaults.DIS, Ecut: defaults.Ecut,
+        Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: ''
+      };
+      state.rows.push(row);
+    }
+    render();
+  }catch(err){
+    showAlert('Errore durante il parsing PDF: '+ (err && err.message ? err.message : err));
+  }
+});
+
+exportBtn.addEventListener('click', exportExcel);
+clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); });
+
+document.querySelector('#thrIrr').addEventListener('input', render);
+document.querySelector('#thrMod').addEventListener('input', render);
+
+// =================== TEST CASE ===================
+const TEST_PDF_BASE64 = 'JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHMgWzIgMCBSXS9Db3VudCAxPj4KZW5kb2JqCjIgMCBvYmoKPDwvVHlwZS9QYWdlL1BhcmVudCAxIDAgUi9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUmVzb3VyY2VzPDwvUHJvY1svUERGIC9UZXh0XSA+Pi9Db250ZW50cyAzIDAgUj4+CmVuZG9iajozIDAgb2JqCjw8L0xlbmd0aCAxMTM+PgpzdHJlYW0KQlQKL0YxIDEyIFRmCjEwMCA3MDAgVGQKKC9IQzMxNyBjYXQuMUIgSDMzNSkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDA5NjMgMDAwMDAgbg0KMDAwMDAwMDEzNiAwMDAwMCBuDQowMDAwMDAwMjc0IDAwMDAwIG4NCnRyYWlsZXIKPDwvU2l6ZSA0IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjM5OQolJUVPRgo=';
+
+async function runTest(){
+  clearAlert();
+  try{
+    await ensurePdfJs();
+    const bin = atob(TEST_PDF_BASE64);
+    const bytes = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const testFile = new File([bytes], 'TEST_H317_H335.pdf', {type:'application/pdf'});
+    const text = await pdfToText(testFile);
+    const h = findH(text);
+    state.rows = [{
+      file: testFile.name,
+      nome: 'Esempio – Test Parser',
+      hcodes: h,
+      SCORE: pickScore(h),
+      sistema: defaults.sistema, qty: defaults.qty,
+      D: defaults.D, U: defaults.U, C: defaults.C, I: defaults.I, DIS: defaults.DIS, Ecut: defaults.Ecut,
+      Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:''
+    }];
+    render();
+    showAlert('Test eseguito: libreria PDF.js caricata e parsing OK. H trovate: '+h.join('; '));
+  }catch(e){
+    showAlert('Test fallito: '+(e && e.message ? e.message : e));
+  }
+}
+
+document.querySelector('#testBtn').addEventListener('click', runTest);
+</script>
+</body>
+</html>
