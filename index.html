@@ -318,6 +318,84 @@ function findH(text){
   return out;
 }
 
+const PRODUCT_LINE_PATTERNS = [
+  /nome\s+commerciale\s*(?:[:\-–]\s*)?(.+)/i,
+  /nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i,
+  /denominazione\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i,
+  /product\s+trade\s+name\s*(?:[:\-–]\s*)?(.+)/i,
+  /product\s+name\s*(?:[:\-–]\s*)?(.+)/i,
+  /trade\s+name\s*(?:[:\-–]\s*)?(.+)/i,
+  /commercial\s+name\s*(?:[:\-–]\s*)?(.+)/i,
+];
+
+const PRODUCT_LABEL_ONLY = /(nome\s+commerciale|nome\s+del\s+prodotto|denominazione\s+del\s+prodotto|product\s+trade\s+name|product\s+name|trade\s+name|commercial\s+name)\b/i;
+
+const PRODUCT_STOP_WORDS = [
+  'USO','USI','USE','USES','UTILIZZO','UTILIZATION','IDENTIFICATORE','IDENTIFIER','RELEVANT','IDENTIFIED','CAS','EC','INDEX','NUMERO','NUMBER','SUPPLIER','FORNITORE','COMPANY','MANUFACTURER','REGISTRATION','REGISTRAZIONE','EMERGENCY','TELEFONO','TELEPHONE','EMAIL','FAX'
+];
+
+function cleanProductName(raw){
+  if(!raw) return '';
+  let name = raw.replace(/^[\s:;\-–]+/, '').replace(/\s+/g, ' ').trim();
+  if(!name) return '';
+  const upper = name.toUpperCase();
+  for(const stop of PRODUCT_STOP_WORDS){
+    const idx = upper.indexOf(stop);
+    if(idx > 3){
+      name = name.slice(0, idx).trim();
+      break;
+    }
+  }
+  name = name.replace(/[\s:;\-–]+$/, '').trim();
+  if(name.length > 120){
+    name = name.slice(0, 120).trim();
+  }
+  return name;
+}
+
+function isValidProductName(name){
+  if(!name) return false;
+  if(name.length < 3) return false;
+  const upper = name.toUpperCase();
+  if(/NOME\s+COMMERCIALE|NOME\s+DEL\s+PRODOTTO|PRODUCT\s+NAME|TRADE\s+NAME|COMMERCIAL\s+NAME/.test(upper)) return false;
+  return true;
+}
+
+function extractProductName(text){
+  if(!text) return '';
+  const normalized = text.replace(/\r/g, '\n');
+  const lines = normalized.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i];
+    for(const pattern of PRODUCT_LINE_PATTERNS){
+      const match = line.match(pattern);
+      if(match){
+        const cleaned = cleanProductName(match[1]);
+        if(isValidProductName(cleaned)){
+          return cleaned;
+        }
+      }
+    }
+    if(PRODUCT_LABEL_ONLY.test(line) && i+1 < lines.length){
+      const nextClean = cleanProductName(lines[i+1]);
+      if(isValidProductName(nextClean)){
+        return nextClean;
+      }
+    }
+  }
+  const fallbackText = normalized.replace(/\s+/g, ' ');
+  for(const pattern of PRODUCT_LINE_PATTERNS){
+    const match = fallbackText.match(pattern);
+    if(match){
+      const cleaned = cleanProductName(match[1]);
+      if(isValidProductName(cleaned)){
+        return cleaned;
+      }
+    }
+  }
+  return '';
+}
+
 function guessUV(fileName, text){
   const f = fileName.toUpperCase(); const t = text.toUpperCase();
   return f.includes('UV') || f.includes('VARNISH') || f.includes('OPTIFLEX') || f.includes('FLEXO') || f.includes('SCREEN') || t.includes(' UV ');
@@ -609,9 +687,10 @@ parseBtn.addEventListener('click', async ()=>{
       let hcodes = findH(text);
       if(!hcodes.length && guessUV(file.name, text)) hcodes = UV_FALLBACK.slice();
       let score = hcodes.length ? pickScore(hcodes) : 0;
+      const productName = extractProductName(text) || file.name.replace(/\.pdf$/i, '');
       const row = {
         file: file.name,
-        nome: file.name.replace(/\.pdf$/i, ''),
+        nome: productName,
         statoFisico: defaults.statoFisico,
         hcodes,
         SCORE: score,
@@ -645,10 +724,11 @@ async function runTest(){
     const bytes = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
     const testFile = new File([bytes], 'TEST_H317_H335.pdf', {type:'application/pdf'});
     const text = await pdfToText(testFile);
+    const productName = extractProductName(text) || 'Esempio – Test Parser';
     const h = findH(text);
     state.rows = [{
       file: testFile.name,
-      nome: 'Esempio – Test Parser',
+      nome: productName,
       statoFisico: defaults.statoFisico,
       hcodes: h,
       SCORE: pickScore(h),
