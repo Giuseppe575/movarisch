@@ -319,16 +319,16 @@ function findH(text){
 }
 
 const PRODUCT_LINE_PATTERNS = [
-  /nome\s+commerciale\s*(?:[:\-–]\s*)?(.+)/i,
-  /nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i,
-  /nome\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i,
-  /denominazione\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i,
-  /denominazione\s*(?:[:\-–]\s*)?(.+)/i,
-  /product\s+trade\s+name\s*(?:[:\-–]\s*)?(.+)/i,
-  /product\s+identifier\s*(?:[:\-–]\s*)?(.+)/i,
-  /product\s+name\s*(?:[:\-–]\s*)?(.+)/i,
-  /trade\s+name\s*(?:[:\-–]\s*)?(.+)/i,
-  /commercial\s+name\s*(?:[:\-–]\s*)?(.+)/i,
+  { regex:/nome\s+commerciale\s*(?:[:\-–]\s*)?(.+)/i, priority:100, type:'name' },
+  { regex:/nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:95, type:'name' },
+  { regex:/nome\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:90, type:'name' },
+  { regex:/denominazione\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:85, type:'name' },
+  { regex:/denominazione\s*(?:[:\-–]\s*)?(.+)/i, priority:80, type:'name' },
+  { regex:/product\s+trade\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:75, type:'name' },
+  { regex:/product\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:70, type:'name' },
+  { regex:/trade\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:65, type:'name' },
+  { regex:/commercial\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:60, type:'name' },
+  { regex:/product\s+identifier\s*(?:[:\-–]\s*)?(.+)/i, priority:25, type:'identifier' },
 ];
 
 const PRODUCT_LABEL_ONLY = /(nome\s+commerciale|nome\s+del\s+prodotto|nome\s+prodotto|denominazione\s+del\s+prodotto|denominazione|product\s+trade\s+name|product\s+name|trade\s+name|commercial\s+name)\b/i;
@@ -341,6 +341,10 @@ function cleanProductName(raw){
   if(!raw) return '';
   let name = raw.replace(/^[\s:;\-–]+/, '').replace(/\s+/g, ' ').trim();
   name = name.replace(/^(?:\d+\.\d+\s*)+/, '').trim();
+  name = name.replace(/^(?:product\s+identifier|identificatore\s+del\s+prodotto)\s*/i, '').trim();
+  name = name.replace(/^(?:product\s+trade\s+name|trade\s+name|commercial\s+name|nome\s+commerciale|denominazione\s+del\s+prodotto|denominazione|nome\s+del\s+prodotto|nome\s+prodotto)\s*/i, '').trim();
+  name = name.replace(/^(?:o|or)\s+(?:designazione\s+della\s+miscela|designation\s+of\s+the\s+mixture)\s*/i, '').trim();
+  name = name.replace(/^(?:designazione\s+della\s+miscela|designation\s+of\s+the\s+mixture)\s*/i, '').trim();
   if(!name) return '';
   const upper = name.toUpperCase();
   for(const stop of PRODUCT_STOP_WORDS){
@@ -370,41 +374,83 @@ function isValidProductName(name){
   if(/^(?:\d+\.\d+|SEZIONE|SECTION)\b/i.test(trimmed)) return false;
   if(/^(?:DETAILS|FORNITORE|SUPPLIER|RELEVANT|USI|USES|UTILIZZO|EMERGENCY)\b/i.test(trimmed)) return false;
   const upper = name.toUpperCase();
-  if(/NOME\s+COMMERCIALE|NOME\s+DEL\s+PRODOTTO|PRODUCT\s+NAME|TRADE\s+NAME|COMMERCIAL\s+NAME/.test(upper)) return false;
+  if(/NOME\s+COMMERCIALE|NOME\s+DEL\s+PRODOTTO|PRODUCT\s+NAME|TRADE\s+NAME|COMMERCIAL\s+NAME|PRODUCT\s+IDENTIFIER/.test(upper)) return false;
   return true;
+}
+
+function nameQualityScore(name){
+  if(!name) return -Infinity;
+  let score = 0;
+  const letters = (name.match(/[A-ZÀ-ÖØ-Ýa-zà-öø-ý]/g) || []).length;
+  const digits = (name.match(/\d/g) || []).length;
+  const hasSpace = /\s/.test(name);
+  const hasLower = /[a-zà-öø-ý]/.test(name);
+  const tokenCount = name.trim().split(/\s+/).length;
+  score += Math.min(letters, 60);
+  if(hasSpace) score += 6;
+  if(hasLower) score += 8;
+  if(tokenCount >= 3) score += 4;
+  if(/[;,:]/.test(name)) score -= 2;
+  if(digits > letters) score -= 8;
+  if(digits && !hasLower && letters <= digits + 2) score -= 6;
+  if(/^[A-Z0-9;\-\s]+$/.test(name) && !hasLower) score -= 6;
+  score -= Math.max(0, digits - 2);
+  return score;
+}
+
+function pickBestCandidate(candidates){
+  if(!candidates.length) return '';
+  candidates.sort((a,b)=>{
+    if(b.priority !== a.priority) return b.priority - a.priority;
+    if(b.quality !== a.quality) return b.quality - a.quality;
+    return a.index - b.index;
+  });
+  return candidates[0].name;
 }
 
 function extractProductName(text){
   if(!text) return '';
   const normalized = text.replace(/\r/g, '\n');
   const lines = normalized.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  const candidates = [];
   for(let i=0;i<lines.length;i++){
     const line = lines[i];
     for(const pattern of PRODUCT_LINE_PATTERNS){
-      const match = line.match(pattern);
+      const match = line.match(pattern.regex);
       if(match){
         const cleaned = cleanProductName(match[1]);
         if(isValidProductName(cleaned)){
-          return cleaned;
+          const basePriority = pattern.priority;
+          const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
+          candidates.push({ name: cleaned, priority: basePriority, quality, index:i });
         }
       }
     }
     if(PRODUCT_LABEL_ONLY.test(line) && i+1 < lines.length){
       const nextClean = cleanProductName(lines[i+1]);
       if(isValidProductName(nextClean)){
-        return nextClean;
+        const quality = nameQualityScore(nextClean);
+        candidates.push({ name: nextClean, priority:68, quality, index:i+1 });
       }
     }
   }
+  if(candidates.length){
+    return pickBestCandidate(candidates);
+  }
   const fallbackText = normalized.replace(/\s+/g, ' ');
+  const fallbackCandidates = [];
   for(const pattern of PRODUCT_LINE_PATTERNS){
-    const match = fallbackText.match(pattern);
+    const match = fallbackText.match(pattern.regex);
     if(match){
       const cleaned = cleanProductName(match[1]);
       if(isValidProductName(cleaned)){
-        return cleaned;
+        const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
+        fallbackCandidates.push({ name: cleaned, priority: pattern.priority, quality, index: lines.length + fallbackCandidates.length });
       }
     }
+  }
+  if(fallbackCandidates.length){
+    return pickBestCandidate(fallbackCandidates);
   }
   return '';
 }
