@@ -15,6 +15,13 @@
   main{padding:20px; max-width:1200px; margin:0 auto}
   .card{background:var(--card); border:1px solid #1d2a44; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  .risk-legend{margin-top:14px; display:grid; gap:10px}
+  .risk-legend .legend-title{font-weight:600; letter-spacing:.3px; text-transform:uppercase; font-size:12px; color:var(--muted)}
+  .risk-legend .legend-grid{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .risk-legend .legend-item{background:#0e1a33; border:1px solid #273756; border-radius:12px; padding:10px; display:grid; gap:8px}
+  .risk-legend .legend-range{font-weight:600; color:var(--ink)}
+  .risk-legend .badge{height:100%; text-align:left}
+  .default-note{margin:0; font-size:12px; color:var(--muted)}
   label.btn{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; background:#0e1a33; border:1px solid #1d2a44; border-radius:10px; cursor:pointer}
   input[type=file]{display:none}
   input[type=number], input[type=text], select{background:#0e1a33; border:1px solid #273756; color:var(--ink); padding:8px 10px; border-radius:8px}
@@ -27,10 +34,12 @@
   th{background:#0e1830; position:sticky; top:84px; z-index:2}
   td.num, th.num{text-align:right}
   td.edit{background:#0f1c38}
-  .badge{padding:2px 8px; border-radius:999px; font-weight:600}
-  .b-ok{background:rgba(31,178,107,.2); color:var(--ok)}
-  .b-mod{background:rgba(240,173,78,.2); color:var(--mod)}
-  .b-high{background:rgba(224,82,96,.2); color:var(--high)}
+  .badge{padding:6px 10px; border-radius:12px; font-weight:600; display:block; line-height:1.3}
+  .b-irr{background:rgba(31,178,107,.18); color:var(--ok); border:1px solid rgba(31,178,107,.35)}
+  .b-unc{background:rgba(240,173,78,.18); color:var(--mod); border:1px solid rgba(240,173,78,.4)}
+  .b-sup{background:rgba(224,82,96,.18); color:#ff616f; border:1px solid rgba(224,82,96,.45)}
+  .b-elev{background:rgba(197,82,224,.18); color:#e89eff; border:1px solid rgba(197,82,224,.45)}
+  .b-grave{background:rgba(168,32,32,.22); color:#ff8f8f; border:1px solid rgba(168,32,32,.55)}
   footer{color:var(--muted); text-align:center; padding:18px}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
   #alert{display:none;margin-top:10px;padding:10px 12px;border:1px solid #5b1b1b;background:#2a0b0b;color:#ffd7d7;border-radius:8px}
@@ -62,11 +71,31 @@ if(window.pdfjsLib){
       <button class="btn" id="testBtn">🧪 Test libreria</button>
       <button class="btn primary" id="exportBtn" disabled>⬇️ Esporta Excel</button>
     </div>
-    <div class="row" style="margin-top:10px">
-      <span>Soglie giudizio:</span>
-      <label>Irrilevante <input id="thrIrr" type="number" step="0.1" value="15" /></label>
-      <label>Moderato <input id="thrMod" type="number" step="0.1" value="40" /></label>
-      <span class="mono" style="margin-left:auto">Default indici → I=3, DIS=0.75, E<sub>cut</sub>=1.0</span>
+    <div class="risk-legend">
+      <span class="legend-title">Classificazione del giudizio</span>
+      <div class="legend-grid">
+        <div class="legend-item">
+          <div class="legend-range">0,1 ≤ R &lt; 15</div>
+          <span class="badge b-irr">Irrilevante per la salute</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-range">15 ≤ R &lt; 21</div>
+          <span class="badge b-unc">Intervallo di incertezza<br/>E’ necessario, prima della classificazione in rischio irrilevante per la salute, rivedere con scrupolo l’assegnazione dei vari punteggi, rivedere le misure di prevenzione e protezione adottate e consultare il medico competente per la decisione finale.</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-range">21 ≤ R ≤ 40</div>
+          <span class="badge b-sup">Rischio superiore al rischio chimico irrilevante per la salute<br/>Applicare gli articoli 225, 226, 229 e 230 D. Lgs 81/08 e s.m.i.</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-range">40 &lt; R ≤ 80</div>
+          <span class="badge b-elev">Rischio elevato</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-range">R &gt; 80</div>
+          <span class="badge b-grave">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
+        </div>
+      </div>
+      <p class="mono default-note">Default indici → I=3, DIS=0.75, E<sub>cut</sub>=1.0</p>
     </div>
     <div id="alert"></div>
   </section>
@@ -153,6 +182,34 @@ const defaults = {
   statoFisico:'liquido',
   D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0
 };
+
+const RISK_CLASSES = [
+  {
+    id:'irr',
+    test:(r)=> r < 15,
+    text:'Irrilevante per la salute'
+  },
+  {
+    id:'unc',
+    test:(r)=> r >= 15 && r < 21,
+    text:'Intervallo di incertezza\nE\u2019 necessario, prima della classificazione in rischio irrilevante per la salute, rivedere con scrupolo l\u2019assegnazione dei vari punteggi, rivedere le misure di prevenzione e protezione adottate e consultare il medico competente per la decisione finale.'
+  },
+  {
+    id:'sup',
+    test:(r)=> r >= 21 && r <= 40,
+    text:'Rischio superiore al rischio chimico irrilevante per la salute\nApplicare gli articoli 225, 226, 229 e 230 D. Lgs 81/08 e s.m.i.'
+  },
+  {
+    id:'elev',
+    test:(r)=> r > 40 && r <= 80,
+    text:'Rischio elevato'
+  },
+  {
+    id:'grave',
+    test:(r)=> r > 80,
+    text:'Rischio grave\nRiconsiderare il percorso dell\u2019identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.'
+  }
+];
 
 // =================== STATE ===================
 const state = { files:[], rows:[] };
@@ -278,9 +335,9 @@ function recalcRow(row){
   row.Rinal = round(row.SCORE * row.Einal, 2);
   row.Rcut  = round(row.SCORE * row.Ecut, 2);
   row.Rtot  = round(Math.sqrt(row.Rinal*row.Rinal + row.Rcut*row.Rcut), 2);
-  const irr = parseFloat(document.querySelector('#thrIrr').value)||15; 
-  const mod = parseFloat(document.querySelector('#thrMod').value)||40;
-  row.Giudizio = row.Rtot < irr ? 'Irrilevante' : (row.Rtot < mod ? 'Moderato' : 'Rilevante');
+  const risk = classifyRisk(row.Rtot);
+  row.Giudizio = risk.text;
+  row.GiudizioClass = risk.id;
 }
 
 function render(){
@@ -320,7 +377,7 @@ function render(){
       <td class="num">${fmt(r.Rinal)}</td>
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
-      <td>${badge(r.Giudizio)}</td>
+      <td>${badge(r.Giudizio, r.GiudizioClass)}</td>
       <td><button class="btn" data-del="${i}">x</button></td>`;
 
     tr.querySelectorAll('.edit').forEach((cell)=>{
@@ -361,15 +418,28 @@ function render(){
   document.querySelector('#exportBtn').disabled = state.rows.length===0;
 }
 
-function badge(j){
-  if(j==='Irrilevante') return `<span class="badge b-ok">${j}</span>`;
-  if(j==='Moderato') return `<span class="badge b-mod">${j}</span>`;
-  return `<span class="badge b-high">${j}</span>`;
+function badge(text, cls){
+  const classes = {
+    irr:'b-irr',
+    unc:'b-unc',
+    sup:'b-sup',
+    elev:'b-elev',
+    grave:'b-grave'
+  };
+  const css = classes[cls] || classes.irr;
+  const safe = escapeHtml(text).replace(/\n/g, '<br/>');
+  return `<span class="badge ${css}">${safe}</span>`;
 }
 
 function toNum(v, def){ v = v.replace?.(',', '.') ?? v; const n=parseFloat(v); return isFinite(n)?n:def; }
 function round(n,d=2){ const p=10**d; return Math.round(n*p)/p; }
 function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+function classifyRisk(value){
+  const r = isFinite(value) ? value : 0;
+  const found = RISK_CLASSES.find(cls=>cls.test(r));
+  if(found){ return found; }
+  return RISK_CLASSES[0];
+}
 function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
 
 function buildOptions(options, selected){
@@ -551,7 +621,7 @@ parseBtn.addEventListener('click', async ()=>{
         D: defaults.D, U: defaults.U, C: defaults.C,
         I: computeDefaultI(defaults.sistema, defaults.qtyBand),
         DIS: defaults.DIS, Ecut: defaults.Ecut,
-        Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: ''
+        Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: '', GiudizioClass: ''
       };
       state.rows.push(row);
     }
@@ -563,9 +633,6 @@ parseBtn.addEventListener('click', async ()=>{
 
 exportBtn.addEventListener('click', exportExcel);
 clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); });
-
-document.querySelector('#thrIrr').addEventListener('input', render);
-document.querySelector('#thrMod').addEventListener('input', render);
 
 // =================== TEST CASE ===================
 const TEST_PDF_BASE64 = 'JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHMgWzIgMCBSXS9Db3VudCAxPj4KZW5kb2JqCjIgMCBvYmoKPDwvVHlwZS9QYWdlL1BhcmVudCAxIDAgUi9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUmVzb3VyY2VzPDwvUHJvY1svUERGIC9UZXh0XSA+Pi9Db250ZW50cyAzIDAgUj4+CmVuZG9iajozIDAgb2JqCjw8L0xlbmd0aCAxMTM+PgpzdHJlYW0KQlQKL0YxIDEyIFRmCjEwMCA3MDAgVGQKKC9IQzMxNyBjYXQuMUIgSDMzNSkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDA5NjMgMDAwMDAgbg0KMDAwMDAwMDEzNiAwMDAwMCBuDQowMDAwMDAwMjc0IDAwMDAwIG4NCnRyYWlsZXIKPDwvU2l6ZSA0IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjM5OQolJUVPRgo=';
@@ -590,7 +657,7 @@ async function runTest(){
       qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
       D: defaults.D, U: defaults.U, C: defaults.C,
       I: computeDefaultI(defaults.sistema, defaults.qtyBand), DIS: defaults.DIS, Ecut: defaults.Ecut,
-      Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:''
+      Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:'', GiudizioClass:''
     }];
     render();
     showAlert('Test eseguito: libreria PDF.js caricata e parsing OK. H trovate: '+h.join('; '));
