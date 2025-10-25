@@ -328,14 +328,18 @@ const PRODUCT_LINE_PATTERNS = [
   { regex:/product\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:70, type:'name' },
   { regex:/trade\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:65, type:'name' },
   { regex:/commercial\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:60, type:'name' },
+  { regex:/identificatore\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:58, type:'identifier' },
   { regex:/product\s+identifier\s*(?:[:\-–]\s*)?(.+)/i, priority:25, type:'identifier' },
 ];
 
-const PRODUCT_LABEL_ONLY = /(nome\s+commerciale|nome\s+del\s+prodotto|nome\s+prodotto|denominazione\s+del\s+prodotto|denominazione|product\s+trade\s+name|product\s+name|trade\s+name|commercial\s+name)\b/i;
+const PRODUCT_LABEL_ONLY = /(nome\s+commerciale|nome\s+del\s+prodotto|nome\s+prodotto|denominazione\s+del\s+prodotto|denominazione|identificatore\s+del\s+prodotto|product\s+trade\s+name|product\s+name|trade\s+name|commercial\s+name)\b/i;
 
 const PRODUCT_STOP_WORDS = [
   'USO','USI','USE','USES','UTILIZZO','UTILIZATION','IDENTIFICATORE','IDENTIFIER','RELEVANT','IDENTIFIED','CAS','EC','INDEX','NUMERO','NUMBER','SUPPLIER','FORNITORE','COMPANY','MANUFACTURER','REGISTRATION','REGISTRAZIONE','EMERGENCY','TELEFONO','TELEPHONE','EMAIL','FAX','DETAILS','SAFETY DATA SHEET','SCHEDA DI SICUREZZA','SEZIONE','SECTION','1.2','1.3','1.4','2.1','2.2'
 ];
+
+const SECTION11_START_REGEX = /^\s*1(?:\s*[\.,]\s*|\s+|[)\-–]\s*)1(?:\b|[\s:.-])/;
+const SECTION11_END_REGEX = /^\s*(?:1(?:\s*[\.,\-–]\s*|\s+)(?:2|3|4|5|6|7|8|9)|1\.(?:2|3|4|5|6|7|8|9)|1,(?:2|3|4|5|6|7|8|9)|2(?:\b|[\s.:])|(?:SEZIONE|SECTION)\s*2\b)/i;
 
 function cleanProductName(raw){
   if(!raw) return '';
@@ -398,6 +402,78 @@ function nameQualityScore(name){
   return score;
 }
 
+function collectCandidatesFromLines(lines, priorityBoost=0, indexOffset=0){
+  const candidates = [];
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i];
+    for(const pattern of PRODUCT_LINE_PATTERNS){
+      const match = line.match(pattern.regex);
+      if(match){
+        const cleaned = cleanProductName(match[1]);
+        if(isValidProductName(cleaned)){
+          const basePriority = pattern.priority + priorityBoost;
+          const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
+          candidates.push({ name: cleaned, priority: basePriority, quality, index:indexOffset + i });
+        }
+      }
+    }
+    if(PRODUCT_LABEL_ONLY.test(line) && i+1 < lines.length){
+      const nextClean = cleanProductName(lines[i+1]);
+      if(isValidProductName(nextClean)){
+        const quality = nameQualityScore(nextClean);
+        candidates.push({ name: nextClean, priority:68 + priorityBoost, quality, index:indexOffset + i + 1 });
+      }
+    }
+  }
+  return candidates;
+}
+
+function collectCandidatesFromText(text, priorityBoost=0, indexOffset=0){
+  const candidates = [];
+  if(!text) return candidates;
+  for(const pattern of PRODUCT_LINE_PATTERNS){
+    const match = text.match(pattern.regex);
+    if(match){
+      const cleaned = cleanProductName(match[1]);
+      if(isValidProductName(cleaned)){
+        const basePriority = pattern.priority + priorityBoost;
+        const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
+        candidates.push({ name: cleaned, priority: basePriority, quality, index:indexOffset + candidates.length });
+      }
+    }
+  }
+  return candidates;
+}
+
+function extractSection11Lines(lines){
+  const collected = [];
+  let startIndex = -1;
+  let capturing = false;
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i];
+    const simplified = line.replace(/\s+/g, ' ').trim();
+    const upper = simplified.toUpperCase();
+    if(!capturing){
+      if(SECTION11_START_REGEX.test(simplified) || upper.includes('1.1 IDENTIFICATORE DEL PRODOTTO') || upper.startsWith('IDENTIFICATORE DEL PRODOTTO') || upper.startsWith('PRODUCT IDENTIFIER')){
+        capturing = true;
+        if(startIndex === -1) startIndex = i;
+        collected.push(line);
+        continue;
+      }
+    }else{
+      if(!simplified){
+        collected.push(line);
+        continue;
+      }
+      if(SECTION11_END_REGEX.test(simplified)){
+        break;
+      }
+      collected.push(line);
+    }
+  }
+  return { lines: collected, offset: startIndex < 0 ? 0 : startIndex };
+}
+
 function pickBestCandidate(candidates){
   if(!candidates.length) return '';
   candidates.sort((a,b)=>{
@@ -412,45 +488,32 @@ function extractProductName(text){
   if(!text) return '';
   const normalized = text.replace(/\r/g, '\n');
   const lines = normalized.split(/\n+/).map(l=>l.trim()).filter(Boolean);
-  const candidates = [];
-  for(let i=0;i<lines.length;i++){
-    const line = lines[i];
-    for(const pattern of PRODUCT_LINE_PATTERNS){
-      const match = line.match(pattern.regex);
-      if(match){
-        const cleaned = cleanProductName(match[1]);
-        if(isValidProductName(cleaned)){
-          const basePriority = pattern.priority;
-          const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
-          candidates.push({ name: cleaned, priority: basePriority, quality, index:i });
-        }
-      }
+  const sectionInfo = extractSection11Lines(lines);
+  if(sectionInfo.lines.length){
+    const sectionCandidates = collectCandidatesFromLines(sectionInfo.lines, 40, sectionInfo.offset);
+    if(sectionCandidates.length){
+      return pickBestCandidate(sectionCandidates);
     }
-    if(PRODUCT_LABEL_ONLY.test(line) && i+1 < lines.length){
-      const nextClean = cleanProductName(lines[i+1]);
-      if(isValidProductName(nextClean)){
-        const quality = nameQualityScore(nextClean);
-        candidates.push({ name: nextClean, priority:68, quality, index:i+1 });
-      }
+    const sectionText = sectionInfo.lines.join(' ');
+    const sectionFallback = collectCandidatesFromText(sectionText, 35, sectionInfo.offset);
+    if(sectionFallback.length){
+      return pickBestCandidate(sectionFallback);
     }
   }
+  const candidates = collectCandidatesFromLines(lines);
   if(candidates.length){
     return pickBestCandidate(candidates);
   }
   const fallbackText = normalized.replace(/\s+/g, ' ');
-  const fallbackCandidates = [];
-  for(const pattern of PRODUCT_LINE_PATTERNS){
-    const match = fallbackText.match(pattern.regex);
-    if(match){
-      const cleaned = cleanProductName(match[1]);
-      if(isValidProductName(cleaned)){
-        const quality = nameQualityScore(cleaned) - (pattern.type==='identifier' ? 5 : 0);
-        fallbackCandidates.push({ name: cleaned, priority: pattern.priority, quality, index: lines.length + fallbackCandidates.length });
-      }
-    }
-  }
+  const fallbackCandidates = collectCandidatesFromText(fallbackText, 0, lines.length);
   if(fallbackCandidates.length){
     return pickBestCandidate(fallbackCandidates);
+  }
+  if(sectionInfo.lines.length){
+    const rawBlock = sectionInfo.lines.join(' ').replace(/\s+/g, ' ').trim();
+    if(isValidProductName(rawBlock)){
+      return rawBlock;
+    }
   }
   return '';
 }
