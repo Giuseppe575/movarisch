@@ -487,7 +487,7 @@ function pickBestCandidate(candidates){
 function extractProductName(text){
   if(!text) return '';
   const normalized = text.replace(/\r/g, '\n');
-  const lines = normalized.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  const lines = normalized.split(/\n+/).map(l=>l.trim());
   const sectionInfo = extractSection11Lines(lines);
   if(sectionInfo.lines.length){
     const sectionCandidates = collectCandidatesFromLines(sectionInfo.lines, 40, sectionInfo.offset);
@@ -500,12 +500,15 @@ function extractProductName(text){
       return pickBestCandidate(sectionFallback);
     }
   }
-  const candidates = collectCandidatesFromLines(lines);
-  if(candidates.length){
-    return pickBestCandidate(candidates);
+  const section2Match = normalized.match(/(?:^|\n)\s*(?:(?:SEZIONE|SECTION)\s*2\b|2(?:[\s\.:,\-]|$))/mi);
+  const beforeSection2 = section2Match ? normalized.slice(0, section2Match.index) : normalized;
+  const sectionOneLines = beforeSection2.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  const sectionOneCandidates = collectCandidatesFromLines(sectionOneLines, 12, 0);
+  if(sectionOneCandidates.length){
+    return pickBestCandidate(sectionOneCandidates);
   }
-  const fallbackText = normalized.replace(/\s+/g, ' ');
-  const fallbackCandidates = collectCandidatesFromText(fallbackText, 0, lines.length);
+  const fallbackText = beforeSection2.replace(/\s+/g, ' ');
+  const fallbackCandidates = collectCandidatesFromText(fallbackText, 10, sectionOneLines.length);
   if(fallbackCandidates.length){
     return pickBestCandidate(fallbackCandidates);
   }
