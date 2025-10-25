@@ -17,7 +17,8 @@
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   label.btn{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; background:#0e1a33; border:1px solid #1d2a44; border-radius:10px; cursor:pointer}
   input[type=file]{display:none}
-  input[type=number], input[type=text]{background:#0e1a33; border:1px solid #273756; color:var(--ink); padding:8px 10px; border-radius:8px}
+  input[type=number], input[type=text], select{background:#0e1a33; border:1px solid #273756; color:var(--ink); padding:8px 10px; border-radius:8px}
+  select{appearance:none; -webkit-appearance:none; min-width:160px}
   .btn{padding:10px 14px; border-radius:10px; border:1px solid #273756; background:#0e1a33; color:var(--ink); cursor:pointer}
   .btn.primary{background:var(--accent); color:#0a1020; border-color:transparent; font-weight:600}
   .btn:disabled{opacity:.5; cursor:not-allowed}
@@ -76,10 +77,11 @@ if(window.pdfjsLib){
         <tr>
           <th>File</th>
           <th>Nome commerciale</th>
+          <th>Stato fisico</th>
           <th>H-codes (estratti)</th>
           <th class="num">SCORE</th>
           <th>Sistema</th>
-          <th class="num">Q [kg/g]</th>
+          <th>Quantità in uso</th>
           <th class="num">D</th>
           <th class="num">U</th>
           <th class="num">C</th>
@@ -124,7 +126,33 @@ const H_SCORE = {
 const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
 const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
 
-const defaults = { sistema:"chiuso", qty:2, D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0 };
+const SISTEMA_OPTIONS = [
+  { value:'chiuso', label:'Sistema chiuso', baseIndex:1.5 },
+  { value:'controllato', label:'Sistema controllato', baseIndex:2.0 },
+  { value:'dispersivo', label:'Sistema dispersivo', baseIndex:2.5 },
+  { value:'matrice', label:'Incluso nella matrice', baseIndex:1.0 },
+];
+
+const QUANTITY_OPTIONS = [
+  { value:'lt_0_1', label:'< 0,1 Kg', increment:0.5 },
+  { value:'0_1_1', label:'tra 0,1 e 1 Kg', increment:1.0 },
+  { value:'1_10', label:'tra 1 e 10 Kg', increment:1.5 },
+  { value:'10_100', label:'tra 10 e 100 Kg', increment:2.0 },
+  { value:'gt_100', label:'> 100 Kg', increment:2.5 },
+];
+
+const STATO_FISICO_OPTIONS = [
+  { value:'solido', label:'Solido' },
+  { value:'liquido', label:'Liquido' },
+  { value:'gassoso', label:'Gassoso' },
+];
+
+const defaults = {
+  sistema:'chiuso',
+  qtyBand:'1_10',
+  statoFisico:'liquido',
+  D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0
+};
 
 // =================== STATE ===================
 const state = { files:[], rows:[] };
@@ -260,21 +288,35 @@ function render(){
   tb.innerHTML = '';
   state.rows.forEach((r,i)=>{
     recalcRow(r);
+    if(!r.statoFisico){ r.statoFisico = defaults.statoFisico; }
+    if(!r.qtyBand){
+      applyQuantity(r, undefined);
+    }else if(!r.qty){
+      r.qty = getQuantityOption(r.qtyBand)?.label ?? r.qtyBand;
+    }
+    if(!r.sistema){
+      applySistema(r, undefined);
+    }
     const tr = document.createElement('tr');
+    const sistemaOptions = buildOptions(SISTEMA_OPTIONS, r.sistema);
+    const qtyOptions = buildOptions(QUANTITY_OPTIONS, r.qtyBand);
+    const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
+
     tr.innerHTML = `
       <td>${escapeHtml(r.file)}</td>
-      <td class="edit" contenteditable>${escapeHtml(r.nome)}</td>
-      <td class="edit" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
-      <td class="num edit" contenteditable>${r.SCORE}</td>
-      <td class="edit" contenteditable>${escapeHtml(r.sistema)}</td>
-      <td class="num edit" contenteditable>${r.qty}</td>
-      <td class="num edit" contenteditable>${r.D}</td>
-      <td class="num edit" contenteditable>${r.U}</td>
-      <td class="num edit" contenteditable>${r.C}</td>
-      <td class="num edit" contenteditable>${r.I}</td>
-      <td class="num edit" contenteditable>${r.DIS}</td>
+      <td class="edit" data-field="nome" contenteditable>${escapeHtml(r.nome)}</td>
+      <td><select data-stato>${statoOptions}</select></td>
+      <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
+      <td class="num edit" data-field="SCORE" contenteditable>${r.SCORE}</td>
+      <td><select data-sistema>${sistemaOptions}</select></td>
+      <td><select data-qty>${qtyOptions}</select></td>
+      <td class="num edit" data-field="D" contenteditable>${r.D}</td>
+      <td class="num edit" data-field="U" contenteditable>${r.U}</td>
+      <td class="num edit" data-field="C" contenteditable>${r.C}</td>
+      <td class="num edit" data-field="I" contenteditable>${r.I}</td>
+      <td class="num edit" data-field="DIS" contenteditable>${r.DIS}</td>
       <td class="num">${fmt(r.Einal)}</td>
-      <td class="num edit" contenteditable>${r.Ecut}</td>
+      <td class="num edit" data-field="Ecut" contenteditable>${r.Ecut}</td>
       <td class="num">${fmt(r.Rinal)}</td>
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
@@ -283,20 +325,34 @@ function render(){
 
     tr.querySelectorAll('.edit').forEach((cell)=>{
       cell.addEventListener('input', ()=>{
-        const cells = tr.querySelectorAll('td');
-        r.nome   = cells[1].innerText.trim();
-        r.hcodes = cells[2].innerText.split(';').map(s=>s.trim()).filter(Boolean);
-        r.SCORE  = toNum(cells[3].innerText, r.SCORE);
-        r.sistema= cells[4].innerText.trim();
-        r.qty    = toNum(cells[5].innerText, r.qty);
-        r.D      = toNum(cells[6].innerText, r.D);
-        r.U      = toNum(cells[7].innerText, r.U);
-        r.C      = toNum(cells[8].innerText, r.C);
-        r.I      = toNum(cells[9].innerText, r.I);
-        r.DIS    = toNum(cells[10].innerText, r.DIS);
-        r.Ecut   = toNum(cells[12].innerText, r.Ecut);
+        const field = cell.dataset.field;
+        const value = cell.innerText.trim();
+        if(field==='nome'){ r.nome = value; }
+        else if(field==='hcodes'){ r.hcodes = value.split(';').map(s=>s.trim()).filter(Boolean); }
+        else if(field==='SCORE'){ r.SCORE = toNum(value, r.SCORE); }
+        else if(field==='D'){ r.D = toNum(value, r.D); }
+        else if(field==='U'){ r.U = toNum(value, r.U); }
+        else if(field==='C'){ r.C = toNum(value, r.C); }
+        else if(field==='I'){ r.I = toNum(value, r.I); }
+        else if(field==='DIS'){ r.DIS = toNum(value, r.DIS); }
+        else if(field==='Ecut'){ r.Ecut = toNum(value, r.Ecut); }
         render();
       });
+    });
+
+    tr.querySelector('[data-sistema]')?.addEventListener('change', (ev)=>{
+      applySistema(r, ev.target.value);
+      render();
+    });
+
+    tr.querySelector('[data-qty]')?.addEventListener('change', (ev)=>{
+      applyQuantity(r, ev.target.value);
+      render();
+    });
+
+    tr.querySelector('[data-stato]')?.addEventListener('change', (ev)=>{
+      r.statoFisico = ev.target.value;
+      render();
     });
 
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
@@ -315,6 +371,39 @@ function toNum(v, def){ v = v.replace?.(',', '.') ?? v; const n=parseFloat(v); r
 function round(n,d=2){ const p=10**d; return Math.round(n*p)/p; }
 function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
+
+function buildOptions(options, selected){
+  return options.map(opt=>`<option value="${opt.value}"${opt.value===selected?' selected':''}>${opt.label}</option>`).join('');
+}
+
+function getSistemaOption(value){ return SISTEMA_OPTIONS.find(opt=>opt.value===value); }
+function getQuantityOption(value){ return QUANTITY_OPTIONS.find(opt=>opt.value===value); }
+
+function computeDefaultI(sistema, qtyBand){
+  const base = getSistemaOption(sistema)?.baseIndex;
+  const inc = getQuantityOption(qtyBand)?.increment;
+  const fallback = defaults.I;
+  const calc = (base ?? fallback) + (inc ?? 0);
+  return round(calc, 2);
+}
+
+function applySistema(row, value){
+  row.sistema = value || defaults.sistema;
+  if(!row.qtyBand){
+    row.qtyBand = defaults.qtyBand;
+    row.qty = getQuantityOption(row.qtyBand)?.label ?? row.qtyBand;
+  }
+  row.I = computeDefaultI(row.sistema, row.qtyBand);
+}
+
+function applyQuantity(row, value){
+  row.qtyBand = value || defaults.qtyBand;
+  row.qty = getQuantityOption(row.qtyBand)?.label ?? row.qtyBand;
+  if(!row.sistema){
+    row.sistema = defaults.sistema;
+  }
+  row.I = computeDefaultI(row.sistema, row.qtyBand);
+}
 
 // =================== EXPORT EXCEL ===================
 async function downloadBlob(blob, filename){
@@ -385,9 +474,24 @@ async function exportExcel(){
       throw new Error('Libreria SheetJS caricata ma priva delle utilità attese.');
     }
     flatRows = state.rows.map(r=>({
-      File:r.file, Nome:r.nome, Hcodes:r.hcodes.join(';'), SCORE:r.SCORE, Sistema:r.sistema,
-      Quantità_kg_giorno:r.qty, Indice_D:r.D, Indice_U:r.U, Indice_C:r.C, Indice_I:r.I, Distanza_DIS:r.DIS,
-      E_inal:r.Einal, Ecut:r.Ecut, R_inal:r.Rinal, R_cut:r.Rcut, R_tot:r.Rtot, Giudizio:r.Giudizio
+      File:r.file,
+      Nome_commerciale:r.nome,
+      Stato_fisico: STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico,
+      Hcodes:r.hcodes.join(';'),
+      SCORE:r.SCORE,
+      Sistema: getSistemaOption(r.sistema)?.label ?? r.sistema,
+      Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
+      Indice_D:r.D,
+      Indice_U:r.U,
+      Indice_C:r.C,
+      Indice_I:r.I,
+      Distanza_DIS:r.DIS,
+      E_inal:r.Einal,
+      Ecut:r.Ecut,
+      R_inal:r.Rinal,
+      R_cut:r.Rcut,
+      R_tot:r.Rtot,
+      Giudizio:r.Giudizio
     }));
     const ws = XLSX.utils.json_to_sheet(flatRows);
     const wb = XLSX.utils.book_new();
@@ -438,12 +542,15 @@ parseBtn.addEventListener('click', async ()=>{
       const row = {
         file: file.name,
         nome: file.name.replace(/\.pdf$/i, ''),
+        statoFisico: defaults.statoFisico,
         hcodes,
         SCORE: score,
         sistema: defaults.sistema,
-        qty: defaults.qty,
+        qtyBand: defaults.qtyBand,
+        qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
         D: defaults.D, U: defaults.U, C: defaults.C,
-        I: defaults.I, DIS: defaults.DIS, Ecut: defaults.Ecut,
+        I: computeDefaultI(defaults.sistema, defaults.qtyBand),
+        DIS: defaults.DIS, Ecut: defaults.Ecut,
         Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: ''
       };
       state.rows.push(row);
@@ -475,10 +582,14 @@ async function runTest(){
     state.rows = [{
       file: testFile.name,
       nome: 'Esempio – Test Parser',
+      statoFisico: defaults.statoFisico,
       hcodes: h,
       SCORE: pickScore(h),
-      sistema: defaults.sistema, qty: defaults.qty,
-      D: defaults.D, U: defaults.U, C: defaults.C, I: defaults.I, DIS: defaults.DIS, Ecut: defaults.Ecut,
+      sistema: defaults.sistema,
+      qtyBand: defaults.qtyBand,
+      qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
+      D: defaults.D, U: defaults.U, C: defaults.C,
+      I: computeDefaultI(defaults.sistema, defaults.qtyBand), DIS: defaults.DIS, Ecut: defaults.Ecut,
       Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:''
     }];
     render();
