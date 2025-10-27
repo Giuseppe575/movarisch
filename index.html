@@ -95,7 +95,7 @@ if(window.pdfjsLib){
           <span class="badge b-grave">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
         </div>
       </div>
-      <p class="mono default-note">Default indici → I=3, DIS=0.75, E<sub>cut</sub>=1.0</p>
+      <p class="mono default-note">Default indici → I calcolato automaticamente, DIS=0.75, E<sub>cut</sub>=1.0</p>
     </div>
     <div id="alert"></div>
   </section>
@@ -113,10 +113,10 @@ if(window.pdfjsLib){
           <th>Tipologia di controllo</th>
           <th>Tempo di esposizione</th>
           <th>Quantità in uso</th>
-          <th class="num">D</th>
-          <th class="num">U</th>
-          <th class="num">C</th>
-          <th class="num">I</th>
+          <th class="num" title="Indice proprietà (dispersione)">D</th>
+          <th class="num" title="Indice tipologia d'uso">U</th>
+          <th class="num" title="Indice tipologia di controllo">C</th>
+          <th class="num" title="Intensità inalatoria">I</th>
           <th class="num">DIS</th>
           <th class="num">E<sub>inal</sub></th>
           <th class="num">E<sub>cut</sub></th>
@@ -158,49 +158,58 @@ const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
 const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
 
 const SISTEMA_OPTIONS = [
-  { value:'chiuso', label:'Sistema chiuso', baseIndex:1.5 },
-  { value:'controllato', label:'Uso controllato', baseIndex:2.0 },
-  { value:'dispersivo', label:'Sistema dispersivo', baseIndex:2.5 },
-  { value:'matrice', label:'Incluso nella matrice', baseIndex:1.0 },
+  { value:'chiuso', label:'Sistema chiuso', index:1, showIndex:true },
+  { value:'matrice', label:'Inclusione in matrice', index:2, showIndex:true },
+  { value:'controllato', label:'Uso controllato', index:3, showIndex:true },
+  { value:'dispersivo', label:'Uso dispersivo', index:4, showIndex:true },
 ];
 
 const CONTROL_TYPE_OPTIONS = [
   { value:'contenimento_completo', label:'Contenimento completo', index:1, showIndex:true },
-  { value:'aspirazione_localizzata', label:'Aspirazione localizzata', index:2, showIndex:true },
-  { value:'segregazione_separazione', label:'Segregazione - separazione', index:3, showIndex:true },
+  { value:'aspirazione_localizzata', label:'Ventilazione localizzata', index:2, showIndex:true },
+  { value:'segregazione_separazione', label:'Segregazione / separazione', index:3, showIndex:true },
   { value:'ventilazione_generale', label:'Ventilazione generale', index:4, showIndex:true },
   { value:'manipolazione_diretta', label:'Manipolazione diretta', index:5, showIndex:true },
 ];
 
 const EXPOSURE_TIME_OPTIONS = [
   { value:'lt_15', label:'< 15 minuti', index:1, showIndex:true },
-  { value:'15_2', label:'15 minuti e 2 ore', index:3, showIndex:true },
-  { value:'2_4', label:'2 ore - 4 ore', index:6, showIndex:true },
-  { value:'4_6', label:'4 ore - 6 ore', index:7, showIndex:true },
-  { value:'gt_6', label:'> 6 ore', index:10, showIndex:true },
+  { value:'15_120', label:'15 minuti – 2 ore', index:2, showIndex:true },
+  { value:'120_240', label:'2 – 4 ore', index:3, showIndex:true },
+  { value:'240_360', label:'4 – 6 ore', index:4, showIndex:true },
+  { value:'gt_360', label:'> 6 ore', index:5, showIndex:true },
 ];
 
 const QUANTITY_OPTIONS = [
-  { value:'lt_0_1', label:'< 0,1 Kg', increment:0.5 },
-  { value:'0_1_1', label:'tra 0,1 e 1 Kg', increment:1.0 },
-  { value:'1_10', label:'tra 1 e 10 Kg', increment:1.5 },
-  { value:'10_100', label:'tra 10 e 100 Kg', increment:2.0 },
-  { value:'gt_100', label:'> 100 Kg', increment:2.5 },
+  { value:'lt_0_1', label:'< 0,1 kg', index:1, showIndex:true },
+  { value:'0_1_1', label:'0,1 – 1 kg', index:2, showIndex:true },
+  { value:'1_10', label:'1 – 10 kg', index:3, showIndex:true },
+  { value:'10_100', label:'10 – 100 kg', index:4, showIndex:true },
+  { value:'gt_100', label:'> 100 kg', index:5, showIndex:true },
 ];
 
 const STATO_FISICO_OPTIONS = [
-  { value:'solido', label:'Solido' },
-  { value:'liquido', label:'Liquido' },
-  { value:'gassoso', label:'Gassoso' },
+  { value:'solido_nebbia', label:'Solido / nebbie grossolane', index:1 },
+  { value:'liquido_bassa', label:'Liquido a bassa volatilità', index:2 },
+  { value:'liquido_media_alta', label:'Liquido a media/alta volatilità o polveri fini', index:3 },
+  { value:'gas', label:'Stato gassoso', index:4 },
 ];
+
+const INTENSITY_MATRIX = {
+  1: { 1:1, 2:1, 3:3, 4:7 }, // Sistema chiuso
+  2: { 1:1, 2:3, 3:3, 4:7 }, // Inclusione in matrice
+  3: { 1:1, 2:3, 3:7, 4:10 }, // Uso controllato
+  4: { 1:1, 2:7, 3:7, 4:10 }, // Uso dispersivo
+};
 
 const defaults = {
   sistema:'controllato',
   controlType:'aspirazione_localizzata',
-  exposureTime:'15_2',
+  exposureTime:'15_120',
   qtyBand:'1_10',
-  statoFisico:'liquido',
-  D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0
+  statoFisico:'liquido_media_alta',
+  DIS:0.75,
+  Ecut:1.0
 };
 
 const RISK_CLASSES = [
@@ -554,6 +563,7 @@ function pickScore(hcodes){
 
 // =================== TABLE & CALC ===================
 function recalcRow(row){
+  updateExposureFactors(row);
   row.Einal = round(row.I * row.DIS, 2);
   row.Rinal = round(row.SCORE * row.Einal, 2);
   row.Rcut  = round(row.SCORE * row.Ecut, 2);
@@ -602,10 +612,10 @@ function render(){
       <td><select data-controllo title="Indice ${controlInfo?.index ?? '-'}">${controlOptions}</select></td>
       <td><select data-exposure title="Indice ${exposureInfo?.index ?? '-'}">${exposureOptions}</select></td>
       <td><select data-qty>${qtyOptions}</select></td>
-      <td class="num edit" data-field="D" contenteditable>${r.D}</td>
-      <td class="num edit" data-field="U" contenteditable>${r.U}</td>
-      <td class="num edit" data-field="C" contenteditable>${r.C}</td>
-      <td class="num edit" data-field="I" contenteditable>${r.I}</td>
+      <td class="num" title="Indice proprietà: ${r.D}\nValore matrice base: ${fmt(r.baseIntensity||0)}">${r.D}</td>
+      <td class="num" title="Indice tipologia d'uso">${r.U}</td>
+      <td class="num" title="Indice tipologia di controllo">${r.C}</td>
+      <td class="num">${fmt(r.I)}</td>
       <td class="num edit" data-field="DIS" contenteditable>${r.DIS}</td>
       <td class="num">${fmt(r.Einal)}</td>
       <td class="num edit" data-field="Ecut" contenteditable>${r.Ecut}</td>
@@ -622,10 +632,6 @@ function render(){
         if(field==='nome'){ r.nome = value; }
         else if(field==='hcodes'){ r.hcodes = value.split(';').map(s=>s.trim()).filter(Boolean); }
         else if(field==='SCORE'){ r.SCORE = toNum(value, r.SCORE); }
-        else if(field==='D'){ r.D = toNum(value, r.D); }
-        else if(field==='U'){ r.U = toNum(value, r.U); }
-        else if(field==='C'){ r.C = toNum(value, r.C); }
-        else if(field==='I'){ r.I = toNum(value, r.I); }
         else if(field==='DIS'){ r.DIS = toNum(value, r.DIS); }
         else if(field==='Ecut'){ r.Ecut = toNum(value, r.Ecut); }
         render();
@@ -700,13 +706,36 @@ function getSistemaOption(value){ return SISTEMA_OPTIONS.find(opt=>opt.value===v
 function getControlOption(value){ return CONTROL_TYPE_OPTIONS.find(opt=>opt.value===value); }
 function getExposureOption(value){ return EXPOSURE_TIME_OPTIONS.find(opt=>opt.value===value); }
 function getQuantityOption(value){ return QUANTITY_OPTIONS.find(opt=>opt.value===value); }
+function getPropertyOption(value){ return STATO_FISICO_OPTIONS.find(opt=>opt.value===value); }
 
-function computeDefaultI(sistema, qtyBand){
-  const base = getSistemaOption(sistema)?.baseIndex;
-  const inc = getQuantityOption(qtyBand)?.increment;
-  const fallback = defaults.I;
-  const calc = (base ?? fallback) + (inc ?? 0);
-  return round(calc, 2);
+function updateExposureFactors(row){
+  const sistemaInfo = getSistemaOption(row.sistema) || getSistemaOption(defaults.sistema);
+  const propInfo = getPropertyOption(row.statoFisico) || getPropertyOption(defaults.statoFisico);
+  const qtyInfo = getQuantityOption(row.qtyBand) || getQuantityOption(defaults.qtyBand);
+  const controlInfo = getControlOption(row.controlType) || getControlOption(defaults.controlType);
+  const exposureInfo = getExposureOption(row.exposureTime) || getExposureOption(defaults.exposureTime);
+
+  row.sistema = sistemaInfo?.value ?? defaults.sistema;
+  row.statoFisico = propInfo?.value ?? defaults.statoFisico;
+  row.qtyBand = qtyInfo?.value ?? defaults.qtyBand;
+  row.controlType = controlInfo?.value ?? defaults.controlType;
+  row.exposureTime = exposureInfo?.value ?? defaults.exposureTime;
+  row.qty = row.qty || qtyInfo?.label || row.qtyBand;
+
+  const usoIdx = sistemaInfo?.index ?? 0;
+  const propIdx = propInfo?.index ?? 0;
+  const qtyIdx = qtyInfo?.index ?? 0;
+  const controlIdx = controlInfo?.index ?? 0;
+  const timeIdx = exposureInfo?.index ?? 0;
+  const base = (INTENSITY_MATRIX[usoIdx] && INTENSITY_MATRIX[usoIdx][propIdx]) ?? 0;
+
+  row.D = propIdx;
+  row.U = usoIdx;
+  row.C = controlIdx;
+  row.baseIntensity = base;
+  row.qtyIndex = qtyIdx;
+  row.timeIndex = timeIdx;
+  row.I = round(base + qtyIdx + controlIdx + timeIdx, 2);
 }
 
 function applySistema(row, value){
@@ -715,7 +744,6 @@ function applySistema(row, value){
     row.qtyBand = defaults.qtyBand;
     row.qty = getQuantityOption(row.qtyBand)?.label ?? row.qtyBand;
   }
-  row.I = computeDefaultI(row.sistema, row.qtyBand);
 }
 
 function applyQuantity(row, value){
@@ -724,7 +752,6 @@ function applyQuantity(row, value){
   if(!row.sistema){
     row.sistema = defaults.sistema;
   }
-  row.I = computeDefaultI(row.sistema, row.qtyBand);
 }
 
 // =================== EXPORT EXCEL ===================
@@ -810,6 +837,8 @@ async function exportExcel(){
         Tempo_di_esposizione: exposureInfo?.label ?? r.exposureTime,
         Indice_tempo_di_esposizione: exposureInfo?.index ?? '',
         Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
+        Indice_quantità:r.qtyIndex ?? '',
+        Intensità_base_matrice:r.baseIntensity ?? '',
         Indice_D:r.D,
         Indice_U:r.U,
         Indice_C:r.C,
@@ -881,8 +910,8 @@ parseBtn.addEventListener('click', async ()=>{
         exposureTime: defaults.exposureTime,
         qtyBand: defaults.qtyBand,
         qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
-        D: defaults.D, U: defaults.U, C: defaults.C,
-        I: computeDefaultI(defaults.sistema, defaults.qtyBand),
+        D: 0, U: 0, C: 0,
+        I: 0,
         DIS: defaults.DIS, Ecut: defaults.Ecut,
         Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: '', GiudizioClass: ''
       };
@@ -921,8 +950,8 @@ async function runTest(){
       exposureTime: defaults.exposureTime,
       qtyBand: defaults.qtyBand,
       qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
-      D: defaults.D, U: defaults.U, C: defaults.C,
-      I: computeDefaultI(defaults.sistema, defaults.qtyBand), DIS: defaults.DIS, Ecut: defaults.Ecut,
+      D: 0, U: 0, C: 0,
+      I: 0, DIS: defaults.DIS, Ecut: defaults.Ecut,
       Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:'', GiudizioClass:''
     }];
     render();
