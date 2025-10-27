@@ -30,11 +30,10 @@
     return normalizeIntensity(raw);
   };
 
-  const calcEinal = (I, T, d) => {
+  const calcEinal = (I, d) => {
     const intensity = Number.isFinite(I) ? I : 0;
-    const time = Number.isFinite(T) ? T : 0;
     const distance = Number.isFinite(d) ? d : 0;
-    return intensity * time * distance;
+    return intensity * distance;
   };
 
   const calcRinal = (P, Einal) => {

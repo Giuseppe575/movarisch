@@ -460,9 +460,8 @@ function pickScore(hcodes){
 // =================== TABLE & CALC ===================
 function recalcRow(row){
   updateExposureFactors(row);
-  const timeFactor = Number.isFinite(row.T) ? row.T : 0;
   const distanceFactor = Number.isFinite(row.DIS) ? row.DIS : 0;
-  const einal = MOVARISCH.calcEinal(row.I, timeFactor, distanceFactor);
+  const einal = MOVARISCH.calcEinal(row.I, distanceFactor);
   row.Einal = round(einal, 2);
   row.Rinal = round(MOVARISCH.calcRinal(row.SCORE, row.Einal), 2);
   row.Rcut  = round(MOVARISCH.calcRcute(row.SCORE, row.Ecut), 2);
