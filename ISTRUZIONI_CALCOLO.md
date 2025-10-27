@@ -16,8 +16,12 @@ Dove **P** è l'indice di pericolosità derivato dalle frasi H e **Einal** / **E
 
 L'esposizione inalatoria è calcolata come:
 
-- **Einal** = I × d
-- **I** = D × Q × U × C × T
+```
+const Iraw = D * Q * U * C;
+const I = normalizeToScale(Iraw);   // 1–10
+const Einal = I * T * d;
+const Rinal = P * Einal;
+```
 
 con:
 
@@ -28,6 +32,8 @@ con:
 | **U** | Tipologia d'uso | 1 – 4 |
 | **C** | Tipologia di controllo | 1 – 5 |
 | **T** | Tempo di esposizione | 1 – 5 |
+
+La funzione **normalizeToScale()** applica la tabella di soglie per riportare **Iraw** alla scala 1–10.
 
 La distanza operatore-sorgente (**d**) è scelta fra i seguenti intervalli:
 
