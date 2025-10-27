@@ -18,7 +18,7 @@ L'esposizione inalatoria è calcolata come:
 
 ```
 const Iraw = D * Q * U * C;
-const I = normalizeToScale(Iraw);   // 1–10
+const I = normalizeToScale(Iraw);   // 1–10 (solo D×Q×U×C)
 const Einal = I * T * d;
 const Rinal = P * Einal;
 ```
@@ -37,16 +37,14 @@ La funzione **normalizeToScale()** applica la tabella di soglie per riportare **
 
 | Intervallo Iraw (D×Q×U×C) | I normalizzato |
 |---------------------------|----------------|
-| ≤ 5                       | 1              |
-| 5 &lt; Iraw ≤ 10            | 2              |
-| 10 &lt; Iraw ≤ 20           | 3              |
-| 20 &lt; Iraw ≤ 30           | 4              |
-| 30 &lt; Iraw ≤ 40           | 5              |
-| 40 &lt; Iraw ≤ 50           | 6              |
-| 50 &lt; Iraw ≤ 60           | 7              |
-| 60 &lt; Iraw ≤ 70           | 8              |
-| 70 &lt; Iraw ≤ 80           | 9              |
-| &gt; 80                     | 10             |
+| ≤ 10                      | 1              |
+| 10 &lt; Iraw ≤ 30           | 2              |
+| 30 &lt; Iraw ≤ 60           | 3              |
+| 60 &lt; Iraw ≤ 100          | 5              |
+| 100 &lt; Iraw ≤ 200         | 7              |
+| &gt; 200                    | 10             |
+
+Esempio: con D = 3, Q = 3, U = 3, C = 2 si ottiene Iraw = 54 ⇒ I = 3. Con T = 2 e d = 0,75 allora E<sub>inal</sub> = 3 × 2 × 0,75 = 4,50.
 
 La distanza operatore-sorgente (**d**) è scelta fra i seguenti intervalli:
 
