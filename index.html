@@ -165,19 +165,19 @@ const SISTEMA_OPTIONS = [
 ];
 
 const CONTROL_TYPE_OPTIONS = [
-  { value:'contenimento_completo', label:'Contenimento completo' },
-  { value:'aspirazione_localizzata', label:'Aspirazione localizzata' },
-  { value:'segregazione_separazione', label:'Segregazione - separazione' },
-  { value:'ventilazione_generale', label:'Ventilazione generale' },
-  { value:'manipolazione_diretta', label:'Manipolazione diretta' },
+  { value:'contenimento_completo', label:'Contenimento completo', index:1, showIndex:true },
+  { value:'aspirazione_localizzata', label:'Aspirazione localizzata', index:2, showIndex:true },
+  { value:'segregazione_separazione', label:'Segregazione - separazione', index:3, showIndex:true },
+  { value:'ventilazione_generale', label:'Ventilazione generale', index:4, showIndex:true },
+  { value:'manipolazione_diretta', label:'Manipolazione diretta', index:5, showIndex:true },
 ];
 
 const EXPOSURE_TIME_OPTIONS = [
-  { value:'lt_15', label:'< 15 minuti' },
-  { value:'15_2', label:'15 minuti e 2 ore' },
-  { value:'2_4', label:'2 ore - 4 ore' },
-  { value:'4_6', label:'4 ore - 6 ore' },
-  { value:'gt_6', label:'> 6 ore' },
+  { value:'lt_15', label:'< 15 minuti', index:1, showIndex:true },
+  { value:'15_2', label:'15 minuti e 2 ore', index:3, showIndex:true },
+  { value:'2_4', label:'2 ore - 4 ore', index:6, showIndex:true },
+  { value:'4_6', label:'4 ore - 6 ore', index:7, showIndex:true },
+  { value:'gt_6', label:'> 6 ore', index:10, showIndex:true },
 ];
 
 const QUANTITY_OPTIONS = [
@@ -587,6 +587,8 @@ function render(){
     const sistemaOptions = buildOptions(SISTEMA_OPTIONS, r.sistema);
     const controlOptions = buildOptions(CONTROL_TYPE_OPTIONS, r.controlType);
     const exposureOptions = buildOptions(EXPOSURE_TIME_OPTIONS, r.exposureTime);
+    const controlInfo = getControlOption(r.controlType);
+    const exposureInfo = getExposureOption(r.exposureTime);
     const qtyOptions = buildOptions(QUANTITY_OPTIONS, r.qtyBand);
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
 
@@ -597,8 +599,8 @@ function render(){
       <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
       <td class="num edit" data-field="SCORE" contenteditable>${r.SCORE}</td>
       <td><select data-sistema>${sistemaOptions}</select></td>
-      <td><select data-controllo>${controlOptions}</select></td>
-      <td><select data-exposure>${exposureOptions}</select></td>
+      <td><select data-controllo title="Indice ${controlInfo?.index ?? '-'}">${controlOptions}</select></td>
+      <td><select data-exposure title="Indice ${exposureInfo?.index ?? '-'}">${exposureOptions}</select></td>
       <td><select data-qty>${qtyOptions}</select></td>
       <td class="num edit" data-field="D" contenteditable>${r.D}</td>
       <td class="num edit" data-field="U" contenteditable>${r.U}</td>
@@ -686,7 +688,12 @@ function classifyRisk(value){
 function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
 
 function buildOptions(options, selected){
-  return options.map(opt=>`<option value="${opt.value}"${opt.value===selected?' selected':''}>${opt.label}</option>`).join('');
+  return options.map(opt=>{
+    const text = (opt.showIndex && typeof opt.index === 'number')
+      ? `${opt.label} (Indice ${opt.index})`
+      : opt.label;
+    return `<option value="${opt.value}"${opt.value===selected?' selected':''}>${text}</option>`;
+  }).join('');
 }
 
 function getSistemaOption(value){ return SISTEMA_OPTIONS.find(opt=>opt.value===value); }
@@ -788,28 +795,34 @@ async function exportExcel(){
     if(!XLSX?.utils){
       throw new Error('Libreria SheetJS caricata ma priva delle utilità attese.');
     }
-    flatRows = state.rows.map(r=>({
-      File:r.file,
-      Nome_commerciale:r.nome,
-      Stato_fisico: STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico,
-      Hcodes:r.hcodes.join(';'),
-      SCORE:r.SCORE,
-      Sistema: getSistemaOption(r.sistema)?.label ?? r.sistema,
-      Tipologia_di_controllo: getControlOption(r.controlType)?.label ?? r.controlType,
-      Tempo_di_esposizione: getExposureOption(r.exposureTime)?.label ?? r.exposureTime,
-      Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
-      Indice_D:r.D,
-      Indice_U:r.U,
-      Indice_C:r.C,
-      Indice_I:r.I,
-      Distanza_DIS:r.DIS,
-      E_inal:r.Einal,
-      Ecut:r.Ecut,
-      R_inal:r.Rinal,
-      R_cut:r.Rcut,
-      R_tot:r.Rtot,
-      Giudizio:r.Giudizio
-    }));
+    flatRows = state.rows.map(r=>{
+      const controlInfo = getControlOption(r.controlType);
+      const exposureInfo = getExposureOption(r.exposureTime);
+      return {
+        File:r.file,
+        Nome_commerciale:r.nome,
+        Stato_fisico: STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico,
+        Hcodes:r.hcodes.join(';'),
+        SCORE:r.SCORE,
+        Sistema: getSistemaOption(r.sistema)?.label ?? r.sistema,
+        Tipologia_di_controllo: controlInfo?.label ?? r.controlType,
+        Indice_tipologia_di_controllo: controlInfo?.index ?? '',
+        Tempo_di_esposizione: exposureInfo?.label ?? r.exposureTime,
+        Indice_tempo_di_esposizione: exposureInfo?.index ?? '',
+        Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
+        Indice_D:r.D,
+        Indice_U:r.U,
+        Indice_C:r.C,
+        Indice_I:r.I,
+        Distanza_DIS:r.DIS,
+        E_inal:r.Einal,
+        Ecut:r.Ecut,
+        R_inal:r.Rinal,
+        R_cut:r.Rcut,
+        R_tot:r.Rtot,
+        Giudizio:r.Giudizio
+      };
+    });
     const ws = XLSX.utils.json_to_sheet(flatRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'MOVARISCH');
