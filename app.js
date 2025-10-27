@@ -78,19 +78,6 @@ const ECUT_MATRIX = {
   4: { 1:1, 2:7, 3:7, 4:10 }, // Uso dispersivo
 };
 
-const I_SCALE_THRESHOLDS = [
-  { max:5, value:1 },
-  { max:10, value:2 },
-  { max:20, value:3 },
-  { max:30, value:4 },
-  { max:40, value:5 },
-  { max:50, value:6 },
-  { max:60, value:7 },
-  { max:70, value:8 },
-  { max:80, value:9 },
-  { max:Infinity, value:10 }
-];
-
 const defaults = {
   sistema:'controllato',
   controlType:'aspirazione_localizzata',
@@ -102,6 +89,24 @@ const defaults = {
   DIS:0.75,
   Ecut:1.0
 };
+
+const {
+  calcI,
+  calcEinal,
+  calcRinal,
+  calcRcute,
+  calcRcum,
+} = window.movarischLib || {};
+
+if (
+  typeof calcI !== 'function' ||
+  typeof calcEinal !== 'function' ||
+  typeof calcRinal !== 'function' ||
+  typeof calcRcute !== 'function' ||
+  typeof calcRcum !== 'function'
+) {
+  throw new Error('Libreria MOVARISCH non caricata: funzioni di calcolo mancanti.');
+}
 
 const RISK_CLASSES = [
   {
@@ -462,10 +467,12 @@ function pickScore(hcodes){
 function recalcRow(row){
   updateExposureFactors(row);
   const timeFactor = Number.isFinite(row.T) ? row.T : 0;
-  row.Einal = round(row.I * timeFactor * row.DIS, 2);
-  row.Rinal = round(row.SCORE * row.Einal, 2);
-  row.Rcut  = round(row.SCORE * row.Ecut, 2);
-  row.Rtot  = round(Math.sqrt(row.Rinal*row.Rinal + row.Rcut*row.Rcut), 2);
+  const distanceFactor = Number.isFinite(row.DIS) ? row.DIS : 0;
+  const einal = calcEinal(row.I, timeFactor, distanceFactor);
+  row.Einal = round(einal, 2);
+  row.Rinal = round(calcRinal(row.SCORE, row.Einal), 2);
+  row.Rcut  = round(calcRcute(row.SCORE, row.Ecut), 2);
+  row.Rtot  = round(calcRcum(row.Rinal, row.Rcut), 2);
   const risk = classifyRisk(row.Rtot);
   row.Giudizio = risk.text;
   row.GiudizioClass = risk.id;
@@ -611,16 +618,6 @@ function fmt(n){
   const num = Number.isFinite(n) ? n : 0;
   return (Math.round(num*100)/100).toFixed(2);
 }
-function normalizeToScale(value){
-  const v = Number.isFinite(value) ? value : 0;
-  if(v <= 0){ return 0; }
-  for(const entry of I_SCALE_THRESHOLDS){
-    if(v <= entry.max){
-      return entry.value;
-    }
-  }
-  return 10;
-}
 function classifyRisk(value){
   const r = isFinite(value) ? value : 0;
   const found = RISK_CLASSES.find(cls=>cls.test(r));
@@ -680,9 +677,8 @@ function updateExposureFactors(row){
   row.contactIndex = contactIdx;
   row.DIS = round(distance, 2);
 
-  const hasCoreFactors = propIdx && qtyIdx && usoIdx && controlIdx;
-  const intensityRaw = hasCoreFactors ? propIdx * qtyIdx * usoIdx * controlIdx : 0;
-  row.I = hasCoreFactors ? normalizeToScale(intensityRaw) : 0;
+  const intensityIndex = calcI(row.D, row.Q, row.U, row.C);
+  row.I = Number.isFinite(intensityIndex) ? intensityIndex : 0;
 
   const ecutMatrixRow = ECUT_MATRIX[usoIdx] || {};
   const ecutValue = ecutMatrixRow[contactIdx];
