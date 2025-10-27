@@ -95,7 +95,7 @@ if(window.pdfjsLib){
           <span class="badge b-grave">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
         </div>
       </div>
-      <p class="mono default-note">Default indici → I calcolato automaticamente, DIS=0.75, E<sub>cut</sub>=1.0</p>
+      <p class="mono default-note">Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto "nessun contatto", distanza 1 – 3 m (d = 0,75)</p>
     </div>
     <div id="alert"></div>
   </section>
@@ -113,11 +113,15 @@ if(window.pdfjsLib){
           <th>Tipologia di controllo</th>
           <th>Tempo di esposizione</th>
           <th>Quantità in uso</th>
-          <th class="num" title="Indice proprietà (dispersione)">D</th>
-          <th class="num" title="Indice tipologia d'uso">U</th>
-          <th class="num" title="Indice tipologia di controllo">C</th>
-          <th class="num" title="Intensità inalatoria">I</th>
-          <th class="num">DIS</th>
+          <th>Livello di contatto</th>
+          <th class="num" title="Indice proprietà chimico-fisiche (D)">D</th>
+          <th class="num" title="Indice quantità in uso (Q)">Q</th>
+          <th class="num" title="Indice tipologia d'uso (U)">U</th>
+          <th class="num" title="Indice tipologia di controllo (C)">C</th>
+          <th class="num" title="Indice tempo di esposizione (T)">T</th>
+          <th class="num" title="Indice intensità inalatoria (I)">I</th>
+          <th>Distanza operatore-sorgente</th>
+          <th class="num">d</th>
           <th class="num">E<sub>inal</sub></th>
           <th class="num">E<sub>cut</sub></th>
           <th class="num">R<sub>inal</sub></th>
@@ -195,7 +199,22 @@ const STATO_FISICO_OPTIONS = [
   { value:'gas', label:'Stato gassoso', index:4 },
 ];
 
-const INTENSITY_MATRIX = {
+const CONTACT_LEVEL_OPTIONS = [
+  { value:'nessun_contatto', label:'Nessun contatto', index:1 },
+  { value:'accidentale', label:'Accidentale', index:2 },
+  { value:'discontinuo', label:'Discontinuo', index:3 },
+  { value:'esteso', label:'Esteso', index:4 },
+];
+
+const DISTANCE_OPTIONS = [
+  { value:'lt_1', label:'< 1 m (d = 1.00)', d:1.0 },
+  { value:'1_3', label:'1 – 3 m (d = 0.75)', d:0.75 },
+  { value:'3_5', label:'3 – 5 m (d = 0.50)', d:0.50 },
+  { value:'5_10', label:'5 – 10 m (d = 0.25)', d:0.25 },
+  { value:'ge_10', label:'≥ 10 m (d = 0.10)', d:0.10 },
+];
+
+const ECUT_MATRIX = {
   1: { 1:1, 2:1, 3:3, 4:7 }, // Sistema chiuso
   2: { 1:1, 2:3, 3:3, 4:7 }, // Inclusione in matrice
   3: { 1:1, 2:3, 3:7, 4:10 }, // Uso controllato
@@ -208,6 +227,8 @@ const defaults = {
   exposureTime:'15_120',
   qtyBand:'1_10',
   statoFisico:'liquido_media_alta',
+  contactLevel:'nessun_contatto',
+  distanceBand:'1_3',
   DIS:0.75,
   Ecut:1.0
 };
@@ -601,24 +622,30 @@ function render(){
     const exposureInfo = getExposureOption(r.exposureTime);
     const qtyOptions = buildOptions(QUANTITY_OPTIONS, r.qtyBand);
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
+    const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
+    const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
 
     tr.innerHTML = `
       <td>${escapeHtml(r.file)}</td>
       <td class="edit" data-field="nome" contenteditable>${escapeHtml(r.nome)}</td>
       <td><select data-stato>${statoOptions}</select></td>
       <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
-      <td class="num edit" data-field="SCORE" contenteditable>${r.SCORE}</td>
+      <td class="num edit" data-field="SCORE" contenteditable>${fmt(r.SCORE)}</td>
       <td><select data-sistema>${sistemaOptions}</select></td>
       <td><select data-controllo title="Indice ${controlInfo?.index ?? '-'}">${controlOptions}</select></td>
       <td><select data-exposure title="Indice ${exposureInfo?.index ?? '-'}">${exposureOptions}</select></td>
       <td><select data-qty>${qtyOptions}</select></td>
-      <td class="num" title="Indice proprietà: ${r.D}\nValore matrice base: ${fmt(r.baseIntensity||0)}">${r.D}</td>
-      <td class="num" title="Indice tipologia d'uso">${r.U}</td>
-      <td class="num" title="Indice tipologia di controllo">${r.C}</td>
+      <td><select data-contact>${contactOptions}</select></td>
+      <td class="num" title="Indice proprietà chimico-fisiche (D)">${r.D}</td>
+      <td class="num" title="Indice quantità in uso (Q)">${r.Q}</td>
+      <td class="num" title="Indice tipologia d'uso (U)">${r.U}</td>
+      <td class="num" title="Indice tipologia di controllo (C)">${r.C}</td>
+      <td class="num" title="Indice tempo di esposizione (T)">${r.T}</td>
       <td class="num">${fmt(r.I)}</td>
-      <td class="num edit" data-field="DIS" contenteditable>${r.DIS}</td>
+      <td><select data-distance>${distanceOptions}</select></td>
+      <td class="num">${fmt(r.DIS)}</td>
       <td class="num">${fmt(r.Einal)}</td>
-      <td class="num edit" data-field="Ecut" contenteditable>${r.Ecut}</td>
+      <td class="num">${fmt(r.Ecut)}</td>
       <td class="num">${fmt(r.Rinal)}</td>
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
@@ -631,10 +658,13 @@ function render(){
         const value = cell.innerText.trim();
         if(field==='nome'){ r.nome = value; }
         else if(field==='hcodes'){ r.hcodes = value.split(';').map(s=>s.trim()).filter(Boolean); }
-        else if(field==='SCORE'){ r.SCORE = toNum(value, r.SCORE); }
-        else if(field==='DIS'){ r.DIS = toNum(value, r.DIS); }
-        else if(field==='Ecut'){ r.Ecut = toNum(value, r.Ecut); }
-        render();
+        else if(field==='SCORE'){
+          const parsed = parseNumeric(value);
+          if(isFinite(parsed)){
+            r.SCORE = round(parsed, 2);
+          }
+          render();
+        }
       });
     });
 
@@ -663,6 +693,16 @@ function render(){
       render();
     });
 
+    tr.querySelector('[data-contact]')?.addEventListener('change', (ev)=>{
+      r.contactLevel = ev.target.value || defaults.contactLevel;
+      render();
+    });
+
+    tr.querySelector('[data-distance]')?.addEventListener('change', (ev)=>{
+      r.distanceBand = ev.target.value || defaults.distanceBand;
+      render();
+    });
+
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
     tb.appendChild(tr);
   });
@@ -682,9 +722,18 @@ function badge(text, cls){
   return `<span class="badge ${css}">${safe}</span>`;
 }
 
-function toNum(v, def){ v = v.replace?.(',', '.') ?? v; const n=parseFloat(v); return isFinite(n)?n:def; }
+function parseNumeric(value){
+  if(value === null || value === undefined){ return NaN; }
+  const normalized = String(value).replace(',', '.').trim();
+  if(!normalized){ return NaN; }
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : NaN;
+}
 function round(n,d=2){ const p=10**d; return Math.round(n*p)/p; }
-function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+function fmt(n){
+  const num = Number.isFinite(n) ? n : 0;
+  return (Math.round(num*100)/100).toFixed(2);
+}
 function classifyRisk(value){
   const r = isFinite(value) ? value : 0;
   const found = RISK_CLASSES.find(cls=>cls.test(r));
@@ -707,6 +756,8 @@ function getControlOption(value){ return CONTROL_TYPE_OPTIONS.find(opt=>opt.valu
 function getExposureOption(value){ return EXPOSURE_TIME_OPTIONS.find(opt=>opt.value===value); }
 function getQuantityOption(value){ return QUANTITY_OPTIONS.find(opt=>opt.value===value); }
 function getPropertyOption(value){ return STATO_FISICO_OPTIONS.find(opt=>opt.value===value); }
+function getContactOption(value){ return CONTACT_LEVEL_OPTIONS.find(opt=>opt.value===value); }
+function getDistanceOption(value){ return DISTANCE_OPTIONS.find(opt=>opt.value===value); }
 
 function updateExposureFactors(row){
   const sistemaInfo = getSistemaOption(row.sistema) || getSistemaOption(defaults.sistema);
@@ -714,12 +765,16 @@ function updateExposureFactors(row){
   const qtyInfo = getQuantityOption(row.qtyBand) || getQuantityOption(defaults.qtyBand);
   const controlInfo = getControlOption(row.controlType) || getControlOption(defaults.controlType);
   const exposureInfo = getExposureOption(row.exposureTime) || getExposureOption(defaults.exposureTime);
+  const contactInfo = getContactOption(row.contactLevel) || getContactOption(defaults.contactLevel);
+  const distanceInfo = getDistanceOption(row.distanceBand) || getDistanceOption(defaults.distanceBand);
 
   row.sistema = sistemaInfo?.value ?? defaults.sistema;
   row.statoFisico = propInfo?.value ?? defaults.statoFisico;
   row.qtyBand = qtyInfo?.value ?? defaults.qtyBand;
   row.controlType = controlInfo?.value ?? defaults.controlType;
   row.exposureTime = exposureInfo?.value ?? defaults.exposureTime;
+  row.contactLevel = contactInfo?.value ?? defaults.contactLevel;
+  row.distanceBand = distanceInfo?.value ?? defaults.distanceBand;
   row.qty = row.qty || qtyInfo?.label || row.qtyBand;
 
   const usoIdx = sistemaInfo?.index ?? 0;
@@ -727,15 +782,27 @@ function updateExposureFactors(row){
   const qtyIdx = qtyInfo?.index ?? 0;
   const controlIdx = controlInfo?.index ?? 0;
   const timeIdx = exposureInfo?.index ?? 0;
-  const base = (INTENSITY_MATRIX[usoIdx] && INTENSITY_MATRIX[usoIdx][propIdx]) ?? 0;
+  const contactIdx = contactInfo?.index ?? 0;
+  const distance = Number.isFinite(distanceInfo?.d) ? distanceInfo.d : defaults.DIS;
 
   row.D = propIdx;
+  row.Q = qtyIdx;
   row.U = usoIdx;
   row.C = controlIdx;
-  row.baseIntensity = base;
-  row.qtyIndex = qtyIdx;
-  row.timeIndex = timeIdx;
-  row.I = round(base + qtyIdx + controlIdx + timeIdx, 2);
+  row.T = timeIdx;
+  row.contactIndex = contactIdx;
+  row.DIS = round(distance, 2);
+
+  if(propIdx && qtyIdx && usoIdx && controlIdx && timeIdx){
+    row.I = round(propIdx * qtyIdx * usoIdx * controlIdx * timeIdx, 2);
+  }else{
+    row.I = 0;
+  }
+
+  const ecutMatrixRow = ECUT_MATRIX[usoIdx] || {};
+  const ecutValue = ecutMatrixRow[contactIdx];
+  const ecut = Number.isFinite(ecutValue) ? ecutValue : defaults.Ecut;
+  row.Ecut = round(ecut, 2);
 }
 
 function applySistema(row, value){
@@ -825,6 +892,8 @@ async function exportExcel(){
     flatRows = state.rows.map(r=>{
       const controlInfo = getControlOption(r.controlType);
       const exposureInfo = getExposureOption(r.exposureTime);
+      const contactInfo = getContactOption(r.contactLevel);
+      const distanceInfo = getDistanceOption(r.distanceBand);
       return {
         File:r.file,
         Nome_commerciale:r.nome,
@@ -837,13 +906,17 @@ async function exportExcel(){
         Tempo_di_esposizione: exposureInfo?.label ?? r.exposureTime,
         Indice_tempo_di_esposizione: exposureInfo?.index ?? '',
         Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
-        Indice_quantità:r.qtyIndex ?? '',
-        Intensità_base_matrice:r.baseIntensity ?? '',
+        Indice_quantità:r.Q ?? '',
+        Livello_di_contatto: contactInfo?.label ?? r.contactLevel,
+        Indice_livello_di_contatto: r.contactIndex ?? '',
         Indice_D:r.D,
+        Indice_Q:r.Q,
         Indice_U:r.U,
         Indice_C:r.C,
+        Indice_T:r.T,
         Indice_I:r.I,
-        Distanza_DIS:r.DIS,
+        Distanza_operatore_sorgente: distanceInfo?.label ?? r.distanceBand,
+        Valore_d:r.DIS,
         E_inal:r.Einal,
         Ecut:r.Ecut,
         R_inal:r.Rinal,
@@ -910,7 +983,9 @@ parseBtn.addEventListener('click', async ()=>{
         exposureTime: defaults.exposureTime,
         qtyBand: defaults.qtyBand,
         qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
-        D: 0, U: 0, C: 0,
+        contactLevel: defaults.contactLevel,
+        distanceBand: defaults.distanceBand,
+        D: 0, Q:0, U: 0, C: 0, T:0,
         I: 0,
         DIS: defaults.DIS, Ecut: defaults.Ecut,
         Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: '', GiudizioClass: ''
@@ -950,7 +1025,9 @@ async function runTest(){
       exposureTime: defaults.exposureTime,
       qtyBand: defaults.qtyBand,
       qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
-      D: 0, U: 0, C: 0,
+      contactLevel: defaults.contactLevel,
+      distanceBand: defaults.distanceBand,
+      D: 0, Q:0, U: 0, C: 0, T:0,
       I: 0, DIS: defaults.DIS, Ecut: defaults.Ecut,
       Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:'', GiudizioClass:''
     }];
