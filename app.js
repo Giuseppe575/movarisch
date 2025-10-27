@@ -90,20 +90,14 @@ const defaults = {
   Ecut:1.0
 };
 
-const {
-  calcI,
-  calcEinal,
-  calcRinal,
-  calcRcute,
-  calcRcum,
-} = window.movarischLib || {};
+const MOVARISCH = window.movarischLib || {};
 
 if (
-  typeof calcI !== 'function' ||
-  typeof calcEinal !== 'function' ||
-  typeof calcRinal !== 'function' ||
-  typeof calcRcute !== 'function' ||
-  typeof calcRcum !== 'function'
+  typeof MOVARISCH.calcI !== 'function' ||
+  typeof MOVARISCH.calcEinal !== 'function' ||
+  typeof MOVARISCH.calcRinal !== 'function' ||
+  typeof MOVARISCH.calcRcute !== 'function' ||
+  typeof MOVARISCH.calcRcum !== 'function'
 ) {
   throw new Error('Libreria MOVARISCH non caricata: funzioni di calcolo mancanti.');
 }
@@ -468,11 +462,11 @@ function recalcRow(row){
   updateExposureFactors(row);
   const timeFactor = Number.isFinite(row.T) ? row.T : 0;
   const distanceFactor = Number.isFinite(row.DIS) ? row.DIS : 0;
-  const einal = calcEinal(row.I, timeFactor, distanceFactor);
+  const einal = MOVARISCH.calcEinal(row.I, timeFactor, distanceFactor);
   row.Einal = round(einal, 2);
-  row.Rinal = round(calcRinal(row.SCORE, row.Einal), 2);
-  row.Rcut  = round(calcRcute(row.SCORE, row.Ecut), 2);
-  row.Rtot  = round(calcRcum(row.Rinal, row.Rcut), 2);
+  row.Rinal = round(MOVARISCH.calcRinal(row.SCORE, row.Einal), 2);
+  row.Rcut  = round(MOVARISCH.calcRcute(row.SCORE, row.Ecut), 2);
+  row.Rtot  = round(MOVARISCH.calcRcum(row.Rinal, row.Rcut), 2);
   const risk = classifyRisk(row.Rtot);
   row.Giudizio = risk.text;
   row.GiudizioClass = risk.id;
@@ -677,7 +671,7 @@ function updateExposureFactors(row){
   row.contactIndex = contactIdx;
   row.DIS = round(distance, 2);
 
-  const intensityIndex = calcI(row.D, row.Q, row.U, row.C);
+  const intensityIndex = MOVARISCH.calcI(row.D, row.Q, row.U, row.C);
   row.I = Number.isFinite(intensityIndex) ? intensityIndex : 0;
 
   const ecutMatrixRow = ECUT_MATRIX[usoIdx] || {};
