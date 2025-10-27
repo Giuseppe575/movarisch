@@ -35,6 +35,19 @@ con:
 
 La funzione **normalizeToScale()** applica la tabella di soglie per riportare **Iraw** alla scala 1–10.
 
+| Intervallo Iraw (D×Q×U×C) | I normalizzato |
+|---------------------------|----------------|
+| ≤ 5                       | 1              |
+| 5 &lt; Iraw ≤ 10            | 2              |
+| 10 &lt; Iraw ≤ 20           | 3              |
+| 20 &lt; Iraw ≤ 30           | 4              |
+| 30 &lt; Iraw ≤ 40           | 5              |
+| 40 &lt; Iraw ≤ 50           | 6              |
+| 50 &lt; Iraw ≤ 60           | 7              |
+| 60 &lt; Iraw ≤ 70           | 8              |
+| 70 &lt; Iraw ≤ 80           | 9              |
+| &gt; 80                     | 10             |
+
 La distanza operatore-sorgente (**d**) è scelta fra i seguenti intervalli:
 
 | Distanza (m) | d |
