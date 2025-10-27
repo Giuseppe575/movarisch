@@ -109,7 +109,9 @@ if(window.pdfjsLib){
           <th>Stato fisico</th>
           <th>H-codes (estratti)</th>
           <th class="num">SCORE</th>
-          <th>Sistema</th>
+          <th>Tipologia d'uso</th>
+          <th>Tipologia di controllo</th>
+          <th>Tempo di esposizione</th>
           <th>Quantità in uso</th>
           <th class="num">D</th>
           <th class="num">U</th>
@@ -157,9 +159,25 @@ const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
 
 const SISTEMA_OPTIONS = [
   { value:'chiuso', label:'Sistema chiuso', baseIndex:1.5 },
-  { value:'controllato', label:'Sistema controllato', baseIndex:2.0 },
+  { value:'controllato', label:'Uso controllato', baseIndex:2.0 },
   { value:'dispersivo', label:'Sistema dispersivo', baseIndex:2.5 },
   { value:'matrice', label:'Incluso nella matrice', baseIndex:1.0 },
+];
+
+const CONTROL_TYPE_OPTIONS = [
+  { value:'contenimento_completo', label:'Contenimento completo' },
+  { value:'aspirazione_localizzata', label:'Aspirazione localizzata' },
+  { value:'segregazione_separazione', label:'Segregazione - separazione' },
+  { value:'ventilazione_generale', label:'Ventilazione generale' },
+  { value:'manipolazione_diretta', label:'Manipolazione diretta' },
+];
+
+const EXPOSURE_TIME_OPTIONS = [
+  { value:'lt_15', label:'< 15 minuti' },
+  { value:'15_2', label:'15 minuti e 2 ore' },
+  { value:'2_4', label:'2 ore - 4 ore' },
+  { value:'4_6', label:'4 ore - 6 ore' },
+  { value:'gt_6', label:'> 6 ore' },
 ];
 
 const QUANTITY_OPTIONS = [
@@ -177,7 +195,9 @@ const STATO_FISICO_OPTIONS = [
 ];
 
 const defaults = {
-  sistema:'chiuso',
+  sistema:'controllato',
+  controlType:'aspirazione_localizzata',
+  exposureTime:'15_2',
   qtyBand:'1_10',
   statoFisico:'liquido',
   D:3, U:3, C:3, I:3, DIS:0.75, Ecut:1.0
@@ -557,8 +577,16 @@ function render(){
     if(!r.sistema){
       applySistema(r, undefined);
     }
+    if(!r.controlType){
+      r.controlType = defaults.controlType;
+    }
+    if(!r.exposureTime){
+      r.exposureTime = defaults.exposureTime;
+    }
     const tr = document.createElement('tr');
     const sistemaOptions = buildOptions(SISTEMA_OPTIONS, r.sistema);
+    const controlOptions = buildOptions(CONTROL_TYPE_OPTIONS, r.controlType);
+    const exposureOptions = buildOptions(EXPOSURE_TIME_OPTIONS, r.exposureTime);
     const qtyOptions = buildOptions(QUANTITY_OPTIONS, r.qtyBand);
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
 
@@ -569,6 +597,8 @@ function render(){
       <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
       <td class="num edit" data-field="SCORE" contenteditable>${r.SCORE}</td>
       <td><select data-sistema>${sistemaOptions}</select></td>
+      <td><select data-controllo>${controlOptions}</select></td>
+      <td><select data-exposure>${exposureOptions}</select></td>
       <td><select data-qty>${qtyOptions}</select></td>
       <td class="num edit" data-field="D" contenteditable>${r.D}</td>
       <td class="num edit" data-field="U" contenteditable>${r.U}</td>
@@ -602,6 +632,16 @@ function render(){
 
     tr.querySelector('[data-sistema]')?.addEventListener('change', (ev)=>{
       applySistema(r, ev.target.value);
+      render();
+    });
+
+    tr.querySelector('[data-controllo]')?.addEventListener('change', (ev)=>{
+      r.controlType = ev.target.value || defaults.controlType;
+      render();
+    });
+
+    tr.querySelector('[data-exposure]')?.addEventListener('change', (ev)=>{
+      r.exposureTime = ev.target.value || defaults.exposureTime;
       render();
     });
 
@@ -650,6 +690,8 @@ function buildOptions(options, selected){
 }
 
 function getSistemaOption(value){ return SISTEMA_OPTIONS.find(opt=>opt.value===value); }
+function getControlOption(value){ return CONTROL_TYPE_OPTIONS.find(opt=>opt.value===value); }
+function getExposureOption(value){ return EXPOSURE_TIME_OPTIONS.find(opt=>opt.value===value); }
 function getQuantityOption(value){ return QUANTITY_OPTIONS.find(opt=>opt.value===value); }
 
 function computeDefaultI(sistema, qtyBand){
@@ -753,6 +795,8 @@ async function exportExcel(){
       Hcodes:r.hcodes.join(';'),
       SCORE:r.SCORE,
       Sistema: getSistemaOption(r.sistema)?.label ?? r.sistema,
+      Tipologia_di_controllo: getControlOption(r.controlType)?.label ?? r.controlType,
+      Tempo_di_esposizione: getExposureOption(r.exposureTime)?.label ?? r.exposureTime,
       Quantità_in_uso: getQuantityOption(r.qtyBand)?.label ?? r.qty,
       Indice_D:r.D,
       Indice_U:r.U,
@@ -820,6 +864,8 @@ parseBtn.addEventListener('click', async ()=>{
         hcodes,
         SCORE: score,
         sistema: defaults.sistema,
+        controlType: defaults.controlType,
+        exposureTime: defaults.exposureTime,
         qtyBand: defaults.qtyBand,
         qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
         D: defaults.D, U: defaults.U, C: defaults.C,
@@ -858,6 +904,8 @@ async function runTest(){
       hcodes: h,
       SCORE: pickScore(h),
       sistema: defaults.sistema,
+      controlType: defaults.controlType,
+      exposureTime: defaults.exposureTime,
       qtyBand: defaults.qtyBand,
       qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
       D: defaults.D, U: defaults.U, C: defaults.C,
