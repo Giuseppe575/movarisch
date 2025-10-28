@@ -244,23 +244,23 @@ function findH(text){
 }
 
 const PRODUCT_LINE_PATTERNS = [
-  { regex:/nome\s+commerciale\s*(?:[:\-–]\s*)?(.+)/i, priority:100, type:'name' },
-  { regex:/nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:95, type:'name' },
-  { regex:/nome\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:90, type:'name' },
-  { regex:/denominazione\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:85, type:'name' },
-  { regex:/denominazione\s*(?:[:\-–]\s*)?(.+)/i, priority:80, type:'name' },
-  { regex:/product\s+trade\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:75, type:'name' },
-  { regex:/product\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:70, type:'name' },
-  { regex:/trade\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:65, type:'name' },
-  { regex:/commercial\s+name\s*(?:[:\-–]\s*)?(.+)/i, priority:60, type:'name' },
-  { regex:/identificatore\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:58, type:'identifier' },
-  { regex:/product\s+identifier\s*(?:[:\-–]\s*)?(.+)/i, priority:25, type:'identifier' },
+  { regex:/nome\s+commerciale\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:100, type:'name' },
+  { regex:/nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:95, type:'name' },
+  { regex:/nome\s+prodotto\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:90, type:'name' },
+  { regex:/denominazione\s+del\s+prodotto\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:85, type:'name' },
+  { regex:/denominazione\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:80, type:'name' },
+  { regex:/product\s+trade\s+name\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:75, type:'name' },
+  { regex:/product\s+name\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:70, type:'name' },
+  { regex:/trade\s+name\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:65, type:'name' },
+  { regex:/commercial\s+name\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:60, type:'name' },
+  { regex:/identificatore\s+del\s+prodotto\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:58, type:'identifier' },
+  { regex:/product\s+identifier\s*(?:[:\-–]\s*)?([^\n]+?)(?:\s+(?:\d+\.\d+|USO|USI|USE|USES|UTILIZZO|CAS|EC|CODICE|CODE|N[º°]|REG|IDENTIFICATORE|IDENTIFIER|FORNITORE|SUPPLIER|EMERGENCY|TELEFONO)\b|\s*$)/i, priority:25, type:'identifier' },
 ];
 
 const PRODUCT_LABEL_ONLY = /(nome\s+commerciale|nome\s+del\s+prodotto|nome\s+prodotto|denominazione\s+del\s+prodotto|denominazione|identificatore\s+del\s+prodotto|product\s+trade\s+name|product\s+name|trade\s+name|commercial\s+name)\b/i;
 
 const PRODUCT_STOP_WORDS = [
-  'USO','USI','USE','USES','UTILIZZO','UTILIZATION','IDENTIFICATORE','IDENTIFIER','RELEVANT','IDENTIFIED','CAS','EC','INDEX','NUMERO','NUMBER','SUPPLIER','FORNITORE','COMPANY','MANUFACTURER','REGISTRATION','REGISTRAZIONE','EMERGENCY','TELEFONO','TELEPHONE','EMAIL','FAX','DETAILS','SAFETY DATA SHEET','SCHEDA DI SICUREZZA','SEZIONE','SECTION','1.2','1.3','1.4','2.1','2.2'
+  'USO','USI','USE','USES','UTILIZZO','UTILIZATION','IDENTIFICATORE','IDENTIFIER','RELEVANT','IDENTIFIED','CAS','EC','INDEX','NUMERO','NUMBER','SUPPLIER','FORNITORE','COMPANY','MANUFACTURER','REGISTRATION','REGISTRAZIONE','EMERGENCY','TELEFONO','TELEPHONE','EMAIL','FAX','DETAILS','SAFETY DATA SHEET','SCHEDA DI SICUREZZA','SEZIONE','SECTION','1.2','1.3','1.4','2.1','2.2','CODICE','CODE','ARTICOLO','ARTICLE','RIFERIMENTO','REF','REFERENCE','MISCELA','MIXTURE','COMPOSIZIONE','COMPOSITION','CONSIGLI','ADVICE','REACH','REG','ART'
 ];
 
 const SECTION11_START_REGEX = /^\s*1(?:\s*[\.,]\s*|\s+|[)\-–]\s*)1(?:\b|[\s:.-])/;
@@ -274,6 +274,16 @@ function cleanProductName(raw){
   name = name.replace(/^(?:product\s+trade\s+name|trade\s+name|commercial\s+name|nome\s+commerciale|denominazione\s+del\s+prodotto|denominazione|nome\s+del\s+prodotto|nome\s+prodotto)\s*/i, '').trim();
   name = name.replace(/^(?:o|or)\s+(?:designazione\s+della\s+miscela|designation\s+of\s+the\s+mixture)\s*/i, '').trim();
   name = name.replace(/^(?:designazione\s+della\s+miscela|designation\s+of\s+the\s+mixture)\s*/i, '').trim();
+
+  // Remove product codes and numbers (e.g., "- Code: 12345", "Codice: ABC", "Cod. 123")
+  name = name.replace(/\s+[-–]\s+(?:cod\.?|codice|code|art\.?|articolo|article|ref\.?|rif\.?|n[º°]\.?)\s*[:\-]?\s*[A-Z0-9]+.*$/i, '').trim();
+
+  // Remove trailing CAS, EC, REG numbers
+  name = name.replace(/\s+(?:CAS|EC|REG|N[º°])\s*[:\-]?\s*\d+.*$/i, '').trim();
+
+  // Remove anything after common separators followed by numbers or codes
+  name = name.replace(/\s+[-–]\s+\d+.*$/, '').trim();
+
   if(!name) return '';
   const upper = name.toUpperCase();
   for(const stop of PRODUCT_STOP_WORDS){
