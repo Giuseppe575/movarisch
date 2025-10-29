@@ -179,6 +179,28 @@ async function ensureXlsx(){
   return window.XLSX;
 }
 
+async function ensureDocx(){
+  if(window.docxLib){ return window.docxLib; }
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/docx@8.5.0/+esm',
+    'https://unpkg.com/docx@8.5.0/+esm'
+  ];
+  let lastErr;
+  for(const url of urls){
+    try{
+      const module = await import(url);
+      window.docxLib = module;
+      if(window.docxLib){ break; }
+    }catch(err){
+      lastErr = err;
+    }
+  }
+  if(!window.docxLib){
+    throw lastErr || new Error('Impossibile caricare la libreria docx.');
+  }
+  return window.docxLib;
+}
+
 async function ensurePdfJs(){
   if(window.pdfjsLib){ return window.pdfjsLib; }
   const urls = [
@@ -584,6 +606,7 @@ function render(){
     tb.appendChild(tr);
   });
   document.querySelector('#exportBtn').disabled = state.rows.length===0;
+  document.querySelector('#exportWordBtn').disabled = state.rows.length===0;
 }
 
 function badge(text, cls){
@@ -823,10 +846,189 @@ async function exportExcel(){
   }
 }
 
+async function exportWord(){
+  try{
+    if(!state.rows.length){
+      showAlert('Nessun dato da esportare. Carica o genera prima delle righe.');
+      return;
+    }
+    const docx = await ensureDocx();
+    if(!docx){
+      throw new Error('Libreria docx caricata ma non disponibile.');
+    }
+
+    const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, VerticalAlign } = docx;
+
+    // Helper per ottenere il colore in base alla classe di rischio
+    function getRiskColor(giudizioClass){
+      switch(giudizioClass){
+        case 'irr': return '00FF00'; // Verde
+        case 'unc': return 'FFFF00'; // Giallo
+        case 'sup': return 'FFA500'; // Arancione
+        case 'elev': return 'FF0000'; // Rosso
+        case 'grave': return '8B0000'; // Rosso scuro
+        default: return 'FFFFFF'; // Bianco
+      }
+    }
+
+    // Crea sezioni per ogni riga
+    const sections = state.rows.map((r, index) => {
+      const controlInfo = getControlOption(r.controlType);
+      const exposureInfo = getExposureOption(r.exposureTime);
+      const contactInfo = getContactOption(r.contactLevel);
+      const distanceInfo = getDistanceOption(r.distanceBand);
+
+      // Dati della tabella (Campo | Valore)
+      const tableData = [
+        ['File', r.file || ''],
+        ['Nome commerciale / Sostanza', r.nome || ''],
+        ['Stato fisico', STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico],
+        ['Codici H', r.hcodes.join('; ')],
+        ['SCORE (Indice di Rischio)', String(r.SCORE ?? '')],
+        ['Sistema', getSistemaOption(r.sistema)?.label ?? r.sistema],
+        ['Tipologia di controllo', controlInfo?.label ?? r.controlType],
+        ['Indice tipologia di controllo', String(controlInfo?.index ?? '')],
+        ['Tempo di esposizione', exposureInfo?.label ?? r.exposureTime],
+        ['Indice tempo di esposizione', String(exposureInfo?.index ?? '')],
+        ['Quantità in uso', getQuantityOption(r.qtyBand)?.label ?? r.qty],
+        ['Indice quantità (Q)', String(r.Q ?? '')],
+        ['Livello di contatto', contactInfo?.label ?? r.contactLevel],
+        ['Indice livello di contatto (C)', String(r.contactIndex ?? '')],
+        ['Indice D', String(r.D ?? '')],
+        ['Indice U', String(r.U ?? '')],
+        ['Indice T', String(r.T ?? '')],
+        ['Indice I', String(r.I ?? '')],
+        ['Distanza operatore-sorgente', distanceInfo?.label ?? r.distanceBand],
+        ['Valore d (distanza)', String(r.DIS ?? '')],
+        ['E inalatoria (E_inal)', String(r.Einal ?? '')],
+        ['E cutanea (E_cut)', String(r.Ecut ?? '')],
+        ['R inalatoria (R_inal)', String(r.Rinal ?? '')],
+        ['R cutanea (R_cut)', String(r.Rcut ?? '')],
+        ['Rischio cumulativo Rischio Salute (R_tot)', String(r.Rtot ?? '')]
+      ];
+
+      // Crea righe della tabella
+      const tableRows = tableData.map(([campo, valore]) => {
+        return new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: campo, bold: true })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 45, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER
+            }),
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: valore })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 55, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER
+            })
+          ]
+        });
+      });
+
+      // Aggiungi riga finale per il Giudizio con sfondo colorato
+      const riskColor = getRiskColor(r.GiudizioClass);
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: 'Giudizio Finale', bold: true })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 45, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER
+            }),
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: r.Giudizio || '', bold: true })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 55, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER,
+              shading: {
+                type: ShadingType.SOLID,
+                color: riskColor,
+                fill: riskColor
+              }
+            })
+          ]
+        })
+      );
+
+      // Crea la tabella
+      const table = new Table({
+        rows: tableRows,
+        width: { size: 100, type: WidthType.PERCENTAGE }
+      });
+
+      // Crea i paragrafi per questa sezione
+      const children = [
+        new Paragraph({
+          children: [new TextRun({
+            text: 'SCHEDA RIEPILOGO DELLA VALUTAZIONE SOSTANZA/MISCELA/PREPARATO',
+            bold: true,
+            size: 28
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [new TextRun({
+            text: 'ESPOSIZIONE PER INALAZIONE E CONTATTO',
+            bold: true,
+            size: 24
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [new TextRun({
+            text: 'Metodologia: MOVARISCH (MOdello di VAlutazione del RISchio CHimico)',
+            size: 20
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        table
+      ];
+
+      // Aggiungi page break tra le sezioni (tranne l'ultima)
+      if(index < state.rows.length - 1){
+        children.push(new Paragraph({ pageBreakBefore: true }));
+      }
+
+      return children;
+    });
+
+    // Crea il documento con tutte le sezioni
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: sections.flat()
+      }]
+    });
+
+    // Genera il file
+    const blob = await docx.Packer.toBlob(doc);
+    await downloadBlob(blob, 'MOVARISCH_autoestratto.docx');
+
+  } catch(err){
+    console.error(err);
+    showAlert('Export Word fallito: ' + (err && err.message ? err.message : err));
+  }
+}
+
 // =================== EVENTS ===================
 const pdfInput = document.querySelector('#pdfInput');
 const parseBtn = document.querySelector('#parseBtn');
 const exportBtn = document.querySelector('#exportBtn');
+const exportWordBtn = document.querySelector('#exportWordBtn');
 const clearBtn = document.querySelector('#clearBtn');
 const testBtn = document.querySelector('#testBtn');
 
@@ -873,6 +1075,7 @@ parseBtn.addEventListener('click', async ()=>{
 });
 
 exportBtn.addEventListener('click', exportExcel);
+exportWordBtn.addEventListener('click', exportWord);
 clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); });
 
 // =================== TEST CASE ===================
