@@ -605,8 +605,10 @@ function render(){
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
     tb.appendChild(tr);
   });
-  document.querySelector('#exportBtn').disabled = state.rows.length===0;
-  document.querySelector('#exportWordBtn').disabled = state.rows.length===0;
+  const exportBtnEl = document.querySelector('#exportBtn');
+  const exportWordBtnEl = document.querySelector('#exportWordBtn');
+  if(exportBtnEl) exportBtnEl.disabled = state.rows.length===0;
+  if(exportWordBtnEl) exportWordBtnEl.disabled = state.rows.length===0;
 }
 
 function badge(text, cls){
