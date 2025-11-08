@@ -102,7 +102,8 @@
       "subtitle": "Useful resources to get started fast:",
       "knowledgeBase": "📚 Knowledge base",
       "documentation": "📘 Technical documentation",
-      "contact": "🎫 Open a support ticket"
+      "contact": "🎫 Open a support ticket",
+      "license": "📄 Terms of use"
     },
     "knowledge": {
       "title": "Internal knowledge base",
@@ -240,8 +241,9 @@
     "text": "© MOVARISCH Tool – internal consultancy use. Everything runs offline in the browser. No uploads."
   },
   "links": {
-    "knowledgeBase": "https://support.movarisch.example/en/kb",
-    "documentation": "https://support.movarisch.example/en/docs",
-    "ticket": "https://support.movarisch.example/en/tickets/new"
+    "knowledgeBase": "support/knowledge-base.html",
+    "documentation": "support/documentation.html",
+    "ticket": "support/ticket.html",
+    "license": "support/licence.html"
   }
 }

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MOVARISCH technical documentation</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    main { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { margin-bottom: 0.5em; }
+    section { margin-bottom: 32px; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 20px 22px; }
+    section h2 { margin-top: 0; font-size: 1.1rem; }
+    nav a { color: #8cc1ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← Back to the dashboard</a></nav>
+    <h1>Technical documentation</h1>
+    <p>This page gathers the key operational information required to run the MOVARISCH SDS parser during chemical risk assessments.</p>
+    <section>
+      <h2>Requirements</h2>
+      <ul>
+        <li>Modern browser (Chrome, Edge or Firefox) with JavaScript enabled.</li>
+        <li>SDS/TDS files in PDF format without password protection.</li>
+        <li>Word export needs an internet connection to load the <code>docx</code> library.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Workflow</h2>
+      <ol>
+        <li>Upload one or more PDFs with the “Select PDF” button.</li>
+        <li>Run “Extract &amp; Calculate” to collect H-codes and pre-fill the MOVARISCH table.</li>
+        <li>Complete missing data (quantity, exposure time, distance) before finalising.</li>
+        <li>Export the report in Excel or Word for your internal archive.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Quality checks</h2>
+      <p>The “Test library” button is executed after each release to ensure the H-code extraction engine still works. The bundled sample PDF includes H317 and H335 for validation.</p>
+    </section>
+    <section>
+      <h2>Contact</h2>
+      <p>Report bugs or feature requests via <a href="mailto:support@movarisch.local">support@movarisch.local</a>. Please mention the customer and attach the reference PDF.</p>
+    </section>
+  </main>
+</body>
+</html>
