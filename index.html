@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MOVARISCH – SDS Parser (PDF → Tabella → Excel)</title>
+<title data-i18n="meta.title">MOVARISCH – SDS Parser (PDF → Tabella → Excel)</title>
 <link rel="stylesheet" href="style.css" />
 <!-- Librerie: SheetJS e PDF.js (UMD). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11,8 +11,19 @@
 </head>
 <body>
 <header>
-  <h1>MOVARISCH – Parser SDS da PDF</h1>
-  <p class="sub">Carica le SDS/TDS in PDF → estrazione H/EUH → calcolo MOVARISCH → esporta Excel</p>
+  <div class="header-main">
+    <div>
+      <h1 data-i18n="header.title">MOVARISCH – Parser SDS da PDF</h1>
+      <p class="sub" data-i18n="header.subtitle">Carica le SDS/TDS in PDF → estrazione H/EUH → calcolo MOVARISCH → esporta Excel</p>
+    </div>
+    <div class="lang-switch">
+      <label for="langSelect" data-i18n="language.label">Lingua</label>
+      <select id="langSelect">
+        <option value="it" data-i18n="language.it">Italiano</option>
+        <option value="en" data-i18n="language.en">Inglese</option>
+      </select>
+    </div>
+  </div>
 </header>
 
 <main>
@@ -20,72 +31,107 @@
     <div class="row">
       <label class="btn">
         <input type="file" id="pdfInput" accept="application/pdf" multiple />
-        📄 Seleziona PDF SDS/TDS
+        <span data-i18n="buttons.selectPdf">📄 Seleziona PDF SDS/TDS</span>
       </label>
-      <button class="btn" id="parseBtn" disabled>🔍 Estrai & Calcola</button>
-      <button class="btn" id="clearBtn">♻️ Svuota</button>
-      <button class="btn" id="testBtn">🧪 Test libreria</button>
-      <button class="btn primary" id="exportBtn" disabled>⬇️ Esporta Excel</button>
-      <button class="btn primary" id="exportWordBtn" disabled>⬇️ Esporta Word</button>
+      <button class="btn" id="parseBtn" disabled data-i18n="buttons.parse">🔍 Estrai & Calcola</button>
+      <button class="btn" id="clearBtn" data-i18n="buttons.clear">♻️ Svuota</button>
+      <button class="btn" id="testBtn" data-i18n="buttons.test">🧪 Test libreria</button>
+      <button class="btn primary" id="exportBtn" disabled data-i18n="buttons.exportExcel">⬇️ Esporta Excel</button>
+      <button class="btn primary" id="exportWordBtn" disabled data-i18n="buttons.exportWord">⬇️ Esporta Word</button>
     </div>
     <div class="risk-legend">
-      <span class="legend-title">Classificazione del giudizio</span>
+      <span class="legend-title" data-i18n="legend.title">Classificazione del giudizio</span>
       <div class="legend-grid">
         <div class="legend-item">
-          <div class="legend-range">0,1 ≤ R &lt; 15</div>
-          <span class="badge b-irr">Irrilevante per la salute</span>
+          <div class="legend-range" data-i18n="legend.items.irr.range">0,1 ≤ R &lt; 15</div>
+          <span class="badge b-irr" data-i18n="legend.items.irr.text">Irrilevante per la salute</span>
         </div>
         <div class="legend-item">
-          <div class="legend-range">15 ≤ R &lt; 21</div>
-          <span class="badge b-unc">Intervallo di incertezza<br/>E’ necessario, prima della classificazione in rischio irrilevante per la salute, rivedere con scrupolo l’assegnazione dei vari punteggi, rivedere le misure di prevenzione e protezione adottate e consultare il medico competente per la decisione finale.</span>
+          <div class="legend-range" data-i18n="legend.items.unc.range">15 ≤ R &lt; 21</div>
+          <span class="badge b-unc" data-i18n-html="legend.items.unc.text">Intervallo di incertezza<br/>E’ necessario, prima della classificazione in rischio irrilevante per la salute, rivedere con scrupolo l’assegnazione dei vari punteggi, rivedere le misure di prevenzione e protezione adottate e consultare il medico competente per la decisione finale.</span>
         </div>
         <div class="legend-item">
-          <div class="legend-range">21 ≤ R ≤ 40</div>
-          <span class="badge b-sup">Rischio superiore al rischio chimico irrilevante per la salute<br/>Applicare gli articoli 225, 226, 229 e 230 D. Lgs 81/08 e s.m.i.</span>
+          <div class="legend-range" data-i18n="legend.items.sup.range">21 ≤ R ≤ 40</div>
+          <span class="badge b-sup" data-i18n-html="legend.items.sup.text">Rischio superiore al rischio chimico irrilevante per la salute<br/>Applicare gli articoli 225, 226, 229 e 230 D. Lgs 81/08 e s.m.i.</span>
         </div>
         <div class="legend-item">
-          <div class="legend-range">40 &lt; R ≤ 80</div>
-          <span class="badge b-elev">Rischio elevato</span>
+          <div class="legend-range" data-i18n="legend.items.elev.range">40 &lt; R ≤ 80</div>
+          <span class="badge b-elev" data-i18n="legend.items.elev.text">Rischio elevato</span>
         </div>
         <div class="legend-item">
-          <div class="legend-range">R &gt; 80</div>
-          <span class="badge b-grave">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
+          <div class="legend-range" data-i18n="legend.items.grave.range">R &gt; 80</div>
+          <span class="badge b-grave" data-i18n-html="legend.items.grave.text">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
         </div>
       </div>
-      <p class="mono default-note">Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto "nessun contatto", distanza 1 – 3 m (d = 0,75)</p>
+      <p class="mono default-note" data-i18n="legend.defaultNote">Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto "nessun contatto", distanza 1 – 3 m (d = 0,75)</p>
     </div>
     <div id="alert"></div>
+  </section>
+
+  <section class="card info-grid">
+    <div class="info-block tutorial">
+      <h2 data-i18n="tutorial.title">Come utilizzare il parser MOVARISCH</h2>
+      <ol id="tutorialSteps" class="tutorial-steps"></ol>
+    </div>
+    <div class="info-block support">
+      <h2 data-i18n="support.quick.title">Supporto rapido</h2>
+      <p class="support-sub" data-i18n="support.quick.subtitle">Risorse utili per partire subito:</p>
+      <div class="support-links">
+        <a class="support-link" target="_blank" rel="noopener" data-i18n="support.quick.knowledgeBase" data-i18n-href="links.knowledgeBase">📚 Knowledge base</a>
+        <a class="support-link" target="_blank" rel="noopener" data-i18n="support.quick.documentation" data-i18n-href="links.documentation">📘 Documentazione tecnica</a>
+        <a class="support-link" target="_blank" rel="noopener" data-i18n="support.quick.contact" data-i18n-href="links.ticket">🎫 Apri ticket di assistenza</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="card knowledge">
+    <div class="knowledge-head">
+      <div>
+        <h2 data-i18n="support.knowledge.title">Knowledge base interna</h2>
+        <p data-i18n="support.knowledge.subtitle">Cerca nelle guide e trova risposte immediate prima di aprire un ticket.</p>
+      </div>
+      <div class="kb-search">
+        <input type="search" id="kbSearch" data-i18n-placeholder="support.knowledge.searchPlaceholder" />
+      </div>
+    </div>
+    <p class="kb-count" id="kbCount"></p>
+    <div id="kbResults" class="kb-results"></div>
+    <div class="ticket-box">
+      <h3 data-i18n="support.knowledge.ticketTitle">Non hai trovato ciò che cercavi?</h3>
+      <p data-i18n="support.knowledge.ticketDescription">Apri un ticket sulla piattaforma di supporto e allega direttamente il file PDF o il report MOVARISCH.</p>
+      <a class="btn primary" id="ticketLink" target="_blank" rel="noopener" data-i18n="support.knowledge.ticketButton" data-i18n-href="links.ticket">Crea nuovo ticket</a>
+    </div>
   </section>
 
   <section class="card" style="margin-top:14px">
     <table id="tbl">
       <thead>
         <tr>
-          <th>File</th>
-          <th>Nome commerciale</th>
-          <th>Stato fisico</th>
-          <th>H-codes (estratti)</th>
-          <th class="num">SCORE</th>
-          <th>Tipologia d'uso</th>
-          <th>Tipologia di controllo</th>
-          <th>Tempo di esposizione</th>
-          <th>Quantità in uso</th>
-          <th>Livello di contatto</th>
-          <th class="num" title="Indice proprietà chimico-fisiche (D)">D</th>
-          <th class="num" title="Indice quantità in uso (Q)">Q</th>
-          <th class="num" title="Indice tipologia d'uso (U)">U</th>
-          <th class="num" title="Indice tipologia di controllo (C)">C</th>
-          <th class="num" title="Indice tempo di esposizione (T)">T</th>
-          <th class="num" title="Indice intensità inalatoria (I)">I</th>
-          <th>Distanza operatore-sorgente</th>
-          <th class="num">d</th>
-          <th class="num">E<sub>inal</sub></th>
-          <th class="num">E<sub>cut</sub></th>
-          <th class="num">R<sub>inal</sub></th>
-          <th class="num">R<sub>cut</sub></th>
-          <th class="num">R<sub>tot</sub></th>
-          <th>Giudizio</th>
-          <th>—</th>
+          <th data-i18n="table.headers.file">File</th>
+          <th data-i18n="table.headers.tradeName">Nome commerciale</th>
+          <th data-i18n="table.headers.physicalState">Stato fisico</th>
+          <th data-i18n="table.headers.hCodes">H-codes (estratti)</th>
+          <th class="num" data-i18n="table.headers.score">SCORE</th>
+          <th data-i18n="table.headers.useType">Tipologia d'uso</th>
+          <th data-i18n="table.headers.controlType">Tipologia di controllo</th>
+          <th data-i18n="table.headers.exposureTime">Tempo di esposizione</th>
+          <th data-i18n="table.headers.quantity">Quantità in uso</th>
+          <th data-i18n="table.headers.contactLevel">Livello di contatto</th>
+          <th class="num" data-i18n="table.headers.dIndex" data-i18n-title="table.tooltips.dIndex">D</th>
+          <th class="num" data-i18n="table.headers.qIndex" data-i18n-title="table.tooltips.qIndex">Q</th>
+          <th class="num" data-i18n="table.headers.uIndex" data-i18n-title="table.tooltips.uIndex">U</th>
+          <th class="num" data-i18n="table.headers.cIndex" data-i18n-title="table.tooltips.cIndex">C</th>
+          <th class="num" data-i18n="table.headers.tIndex" data-i18n-title="table.tooltips.tIndex">T</th>
+          <th class="num" data-i18n="table.headers.iIndex">I</th>
+          <th data-i18n="table.headers.distance">Distanza operatore-sorgente</th>
+          <th class="num" data-i18n="table.headers.distanceValue">d</th>
+          <th class="num" data-i18n="table.headers.eInal">E<sub>inal</sub></th>
+          <th class="num" data-i18n="table.headers.eCut">E<sub>cut</sub></th>
+          <th class="num" data-i18n="table.headers.rInal">R<sub>inal</sub></th>
+          <th class="num" data-i18n="table.headers.rCut">R<sub>cut</sub></th>
+          <th class="num" data-i18n="table.headers.rTot">R<sub>tot</sub></th>
+          <th data-i18n="table.headers.judgement">Giudizio</th>
+          <th data-i18n="table.headers.actions">—</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -94,10 +140,12 @@
 </main>
 
 <footer>
-  © MOVARISCH Tool – uso interno consulenza. Tutto offline nel browser. Nessun upload a server.
+  <p data-i18n="footer.text">© MOVARISCH Tool – uso interno consulenza. Tutto offline nel browser. Nessun upload a server.</p>
 </footer>
 
+<script src="src/i18n/index.js"></script>
 <script src="src/lib/movarisch.js"></script>
 <script src="app.js"></script>
+<script src="src/support.js"></script>
 </body>
 </html>

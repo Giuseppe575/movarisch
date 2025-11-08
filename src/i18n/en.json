@@ -1,0 +1,247 @@
+{
+  "meta": {
+    "title": "MOVARISCH – SDS Parser (PDF → Table → Excel)"
+  },
+  "header": {
+    "title": "MOVARISCH – SDS Parser",
+    "subtitle": "Upload SDS/TDS PDFs → extract H/EUH codes → run MOVARISCH risk model → export Excel"
+  },
+  "language": {
+    "label": "Language",
+    "it": "Italian",
+    "en": "English"
+  },
+  "buttons": {
+    "selectPdf": "📄 Select SDS/TDS PDFs",
+    "parse": "🔍 Extract & Calculate",
+    "clear": "♻️ Clear",
+    "test": "🧪 Library test",
+    "exportExcel": "⬇️ Export Excel",
+    "exportWord": "⬇️ Export Word"
+  },
+  "legend": {
+    "title": "Risk judgement classes",
+    "items": {
+      "irr": {
+        "range": "0.1 ≤ R < 15",
+        "text": "Negligible for health"
+      },
+      "unc": {
+        "range": "15 ≤ R < 21",
+        "text": "Uncertainty interval<br/>Before classifying as negligible risk, double check the assigned scores, review the prevention and protection measures and consult the occupational physician for the final decision."
+      },
+      "sup": {
+        "range": "21 ≤ R ≤ 40",
+        "text": "Above the negligible chemical risk<br/>Apply Italian Legislative Decree 81/08 articles 225, 226, 229 and 230."
+      },
+      "elev": {
+        "range": "40 < R ≤ 80",
+        "text": "High risk"
+      },
+      "grave": {
+        "range": "R > 80",
+        "text": "Severe risk<br/>Reassess the prevention and protection measures and enhance surveillance, monitoring of chemical agents and maintenance frequency."
+      }
+    },
+    "defaultNote": "Default factors → Controlled use, local exhaust ventilation, 15 min – 2 h exposure, quantity 1 – 10 kg, contact level \"no contact\", distance 1 – 3 m (d = 0.75)"
+  },
+  "table": {
+    "headers": {
+      "file": "File",
+      "tradeName": "Trade name",
+      "physicalState": "Physical state",
+      "hCodes": "H-codes (parsed)",
+      "score": "SCORE",
+      "useType": "Use type",
+      "controlType": "Control type",
+      "exposureTime": "Exposure time",
+      "quantity": "Quantity in use",
+      "contactLevel": "Contact level",
+      "dIndex": "D",
+      "qIndex": "Q",
+      "uIndex": "U",
+      "cIndex": "C",
+      "tIndex": "T",
+      "iIndex": "I",
+      "distance": "Operator-source distance",
+      "distanceValue": "d",
+      "eInal": "Eₙ",
+      "eCut": "Eₚ",
+      "rInal": "Rₙ",
+      "rCut": "Rₚ",
+      "rTot": "Rₜ",
+      "judgement": "Judgement",
+      "actions": "—"
+    },
+    "tooltips": {
+      "controlIndex": "Control type index (C): {index}",
+      "exposureIndex": "Exposure time index (T): {index}",
+      "dIndex": "Chemical/physical properties index (D)",
+      "qIndex": "Quantity in use index (Q)",
+      "uIndex": "Use type index (U)",
+      "cIndex": "Control type index (C)",
+      "tIndex": "Exposure time index (T)"
+    },
+    "actions": {
+      "delete": "✖"
+    }
+  },
+  "tutorial": {
+    "title": "How to use the MOVARISCH parser",
+    "steps": [
+      "Upload one or more SDS/TDS safety sheets in PDF format from your device.",
+      "Click \"Extract & Calculate\" to automatically compute the risk indices.",
+      "Review the extracted information and adjust fields or parameters if needed.",
+      "Use the legend to interpret the risk judgement assigned to each substance.",
+      "Export the outcomes to Excel or Word for internal reporting."
+    ]
+  },
+  "support": {
+    "quick": {
+      "title": "Quick support",
+      "subtitle": "Useful resources to get started fast:",
+      "knowledgeBase": "📚 Knowledge base",
+      "documentation": "📘 Technical documentation",
+      "contact": "🎫 Open a support ticket"
+    },
+    "knowledge": {
+      "title": "Internal knowledge base",
+      "subtitle": "Search the guides and find instant answers before opening a ticket.",
+      "searchPlaceholder": "Search a keyword...",
+      "results": "{count} result(s) found",
+      "noResults": "No articles found. Try different keywords.",
+      "ticketTitle": "Still need help?",
+      "ticketDescription": "Open a ticket on the support platform and attach the PDF or MOVARISCH report.",
+      "ticketButton": "Create new ticket"
+    }
+  },
+  "kb": {
+    "entries": {
+      "import": {
+        "title": "Import SDS files properly",
+        "summary": "Tips on file naming, PDF quality and handling multi-page documents."
+      },
+      "indici": {
+        "title": "Understand MOVARISCH indices",
+        "summary": "Explanation of D, Q, U, C, T and I with practical lab and production examples."
+      },
+      "export": {
+        "title": "Exporting the results",
+        "summary": "How to create Excel and Word outputs, customize tables and share reports."
+      }
+    }
+  },
+  "options": {
+    "indexLabel": "Index {index}",
+    "system": {
+      "chiuso": "Closed system",
+      "matrice": "Matrix inclusion",
+      "controllato": "Controlled use",
+      "dispersivo": "Dispersive use"
+    },
+    "control": {
+      "contenimento_completo": "Full containment",
+      "aspirazione_localizzata": "Local exhaust ventilation",
+      "segregazione_separazione": "Segregation / separation",
+      "ventilazione_generale": "General ventilation",
+      "manipolazione_diretta": "Direct handling"
+    },
+    "exposure": {
+      "lt_15": "< 15 minutes",
+      "15_120": "15 minutes – 2 hours",
+      "120_240": "2 – 4 hours",
+      "240_360": "4 – 6 hours",
+      "gt_360": "> 6 hours"
+    },
+    "quantity": {
+      "lt_0_1": "< 0.1 kg",
+      "0_1_1": "0.1 – 1 kg",
+      "1_10": "1 – 10 kg",
+      "10_100": "10 – 100 kg",
+      "gt_100": "> 100 kg"
+    },
+    "physical": {
+      "solido_nebbia": "Solid / coarse mist",
+      "liquido_bassa": "Low volatility liquid",
+      "liquido_media_alta": "Medium/high volatility liquid or fine dust",
+      "gas": "Gaseous state"
+    },
+    "contact": {
+      "nessun_contatto": "No contact",
+      "accidentale": "Accidental",
+      "discontinuo": "Intermittent",
+      "esteso": "Extended"
+    },
+    "distance": {
+      "lt_1": "< 1 m (d = 1.00)",
+      "1_3": "1 – 3 m (d = 0.75)",
+      "3_5": "3 – 5 m (d = 0.50)",
+      "5_10": "5 – 10 m (d = 0.25)",
+      "ge_10": "≥ 10 m (d = 0.10)"
+    }
+  },
+  "errors": {
+    "movarischMissing": "MOVARISCH library not loaded: missing calculation functions.",
+    "loadScript": "Unable to load resource: {src}",
+    "loadXlsx": "Unable to load the Excel library (SheetJS).",
+    "xlsxInvalid": "SheetJS library loaded without the expected utilities.",
+    "loadDocx": "Unable to load the docx library.",
+    "docxInvalid": "Docx library loaded but unavailable.",
+    "loadPdf": "Unable to load PDF.js. Check the connection or network policies.",
+    "readFile": "Unable to read the file",
+    "blobDownload": "Browser does not support Blob downloads.",
+    "pdfParse": "PDF parsing error: {error}",
+    "excelExport": "Excel export failed: {error}",
+    "wordExport": "Word export failed: {error}",
+    "testFailed": "Test failed: {error}"
+  },
+  "alerts": {
+    "noRows": "Nothing to export. Load or generate rows first.",
+    "excelFallback": "Excel export unavailable. A fallback CSV has been generated. Details: {error}",
+    "testSuccess": "Test completed: PDF.js loaded and parsing OK. Codes found: {codes}"
+  },
+  "doc": {
+    "summary": "SUMMARY SHEET FOR SUBSTANCE / MIXTURE EVALUATION",
+    "exposure": "INHALATION AND CONTACT EXPOSURE",
+    "method": "Methodology: MOVARISCH (Chemical Risk Assessment Model)",
+    "fields": {
+      "file": "File",
+      "tradeName": "Trade name / Substance",
+      "physicalState": "Physical state",
+      "hCodes": "H codes",
+      "score": "SCORE (Risk index)",
+      "system": "System",
+      "control": "Control type",
+      "controlIndex": "Control type index",
+      "exposure": "Exposure time",
+      "exposureIndex": "Exposure time index",
+      "quantity": "Quantity in use",
+      "quantityIndex": "Quantity index (Q)",
+      "contact": "Contact level",
+      "contactIndex": "Contact level index (C)",
+      "dIndex": "D index",
+      "uIndex": "U index",
+      "tIndex": "T index",
+      "iIndex": "I index",
+      "distance": "Operator-source distance",
+      "distanceValue": "Distance value d",
+      "eInal": "Inhalation exposure (E_inal)",
+      "eCut": "Dermal exposure (E_cut)",
+      "rInal": "Inhalation risk (R_inal)",
+      "rCut": "Dermal risk (R_cut)",
+      "rTot": "Cumulative health risk (R_tot)",
+      "final": "Final judgement"
+    }
+  },
+  "test": {
+    "productName": "Sample – Parser test"
+  },
+  "footer": {
+    "text": "© MOVARISCH Tool – internal consultancy use. Everything runs offline in the browser. No uploads."
+  },
+  "links": {
+    "knowledgeBase": "https://support.movarisch.example/en/kb",
+    "documentation": "https://support.movarisch.example/en/docs",
+    "ticket": "https://support.movarisch.example/en/tickets/new"
+  }
+}

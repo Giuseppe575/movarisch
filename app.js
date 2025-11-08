@@ -1,4 +1,30 @@
 // =================== CONFIG ===================
+function t(key, params){
+  const fn = window.i18n && typeof window.i18n.t === 'function' ? window.i18n.t : null;
+  if(fn){ return fn(key, params); }
+  if(!key) return '';
+  if(params){
+    return key.replace(/\{(\w+)\}/g, (match, name)=> Object.prototype.hasOwnProperty.call(params, name) ? params[name] : match);
+  }
+  return key;
+}
+
+function makeOption(value, labelKey, extras={}){
+  return Object.assign({
+    value,
+    labelKey,
+    get label(){ return t(labelKey); }
+  }, extras);
+}
+
+function describeError(err){
+  if(!err && err !== 0){ return ''; }
+  if(typeof err === 'string'){ return err; }
+  if(typeof err?.message === 'string' && err.message){ return err.message; }
+  try{ return JSON.stringify(err); }
+  catch(e){ return String(err); }
+}
+
 const H_SCORE = {
   "H332":4.50,"H312":3.00,"H302":2.00,"H331":6.00,"H311":4.50,"H301":2.25,
   "H330":6.50,"H330 cat.1":6.50,"H330 cat.2":5.50,
@@ -19,56 +45,56 @@ const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
 const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
 
 const SISTEMA_OPTIONS = [
-  { value:'chiuso', label:'Sistema chiuso', index:1, showIndex:true },
-  { value:'matrice', label:'Inclusione in matrice', index:2, showIndex:true },
-  { value:'controllato', label:'Uso controllato', index:3, showIndex:true },
-  { value:'dispersivo', label:'Uso dispersivo', index:4, showIndex:true },
+  makeOption('chiuso', 'options.system.chiuso', { index:1, showIndex:true }),
+  makeOption('matrice', 'options.system.matrice', { index:2, showIndex:true }),
+  makeOption('controllato', 'options.system.controllato', { index:3, showIndex:true }),
+  makeOption('dispersivo', 'options.system.dispersivo', { index:4, showIndex:true })
 ];
 
 const CONTROL_TYPE_OPTIONS = [
-  { value:'contenimento_completo', label:'Contenimento completo', index:1, showIndex:true },
-  { value:'aspirazione_localizzata', label:'Ventilazione localizzata', index:2, showIndex:true },
-  { value:'segregazione_separazione', label:'Segregazione / separazione', index:3, showIndex:true },
-  { value:'ventilazione_generale', label:'Ventilazione generale', index:4, showIndex:true },
-  { value:'manipolazione_diretta', label:'Manipolazione diretta', index:5, showIndex:true },
+  makeOption('contenimento_completo', 'options.control.contenimento_completo', { index:1, showIndex:true }),
+  makeOption('aspirazione_localizzata', 'options.control.aspirazione_localizzata', { index:2, showIndex:true }),
+  makeOption('segregazione_separazione', 'options.control.segregazione_separazione', { index:3, showIndex:true }),
+  makeOption('ventilazione_generale', 'options.control.ventilazione_generale', { index:4, showIndex:true }),
+  makeOption('manipolazione_diretta', 'options.control.manipolazione_diretta', { index:5, showIndex:true })
 ];
 
 const EXPOSURE_TIME_OPTIONS = [
-  { value:'lt_15', label:'< 15 minuti', index:1, showIndex:true },
-  { value:'15_120', label:'15 minuti – 2 ore', index:2, showIndex:true },
-  { value:'120_240', label:'2 – 4 ore', index:3, showIndex:true },
-  { value:'240_360', label:'4 – 6 ore', index:4, showIndex:true },
-  { value:'gt_360', label:'> 6 ore', index:5, showIndex:true },
+  makeOption('lt_15', 'options.exposure.lt_15', { index:1, showIndex:true }),
+  makeOption('15_120', 'options.exposure.15_120', { index:2, showIndex:true }),
+  makeOption('120_240', 'options.exposure.120_240', { index:3, showIndex:true }),
+  makeOption('240_360', 'options.exposure.240_360', { index:4, showIndex:true }),
+  makeOption('gt_360', 'options.exposure.gt_360', { index:5, showIndex:true })
 ];
 
 const QUANTITY_OPTIONS = [
-  { value:'lt_0_1', label:'< 0,1 kg', index:1, showIndex:true },
-  { value:'0_1_1', label:'0,1 – 1 kg', index:2, showIndex:true },
-  { value:'1_10', label:'1 – 10 kg', index:3, showIndex:true },
-  { value:'10_100', label:'10 – 100 kg', index:4, showIndex:true },
-  { value:'gt_100', label:'> 100 kg', index:5, showIndex:true },
+  makeOption('lt_0_1', 'options.quantity.lt_0_1', { index:1, showIndex:true }),
+  makeOption('0_1_1', 'options.quantity.0_1_1', { index:2, showIndex:true }),
+  makeOption('1_10', 'options.quantity.1_10', { index:3, showIndex:true }),
+  makeOption('10_100', 'options.quantity.10_100', { index:4, showIndex:true }),
+  makeOption('gt_100', 'options.quantity.gt_100', { index:5, showIndex:true })
 ];
 
 const STATO_FISICO_OPTIONS = [
-  { value:'solido_nebbia', label:'Solido / nebbie grossolane', index:1 },
-  { value:'liquido_bassa', label:'Liquido a bassa volatilità', index:2 },
-  { value:'liquido_media_alta', label:'Liquido a media/alta volatilità o polveri fini', index:3 },
-  { value:'gas', label:'Stato gassoso', index:4 },
+  makeOption('solido_nebbia', 'options.physical.solido_nebbia', { index:1 }),
+  makeOption('liquido_bassa', 'options.physical.liquido_bassa', { index:2 }),
+  makeOption('liquido_media_alta', 'options.physical.liquido_media_alta', { index:3 }),
+  makeOption('gas', 'options.physical.gas', { index:4 })
 ];
 
 const CONTACT_LEVEL_OPTIONS = [
-  { value:'nessun_contatto', label:'Nessun contatto', index:1 },
-  { value:'accidentale', label:'Accidentale', index:2 },
-  { value:'discontinuo', label:'Discontinuo', index:3 },
-  { value:'esteso', label:'Esteso', index:4 },
+  makeOption('nessun_contatto', 'options.contact.nessun_contatto', { index:1 }),
+  makeOption('accidentale', 'options.contact.accidentale', { index:2 }),
+  makeOption('discontinuo', 'options.contact.discontinuo', { index:3 }),
+  makeOption('esteso', 'options.contact.esteso', { index:4 })
 ];
 
 const DISTANCE_OPTIONS = [
-  { value:'lt_1', label:'< 1 m (d = 1.00)', d:1.0 },
-  { value:'1_3', label:'1 – 3 m (d = 0.75)', d:0.75 },
-  { value:'3_5', label:'3 – 5 m (d = 0.50)', d:0.50 },
-  { value:'5_10', label:'5 – 10 m (d = 0.25)', d:0.25 },
-  { value:'ge_10', label:'≥ 10 m (d = 0.10)', d:0.10 },
+  makeOption('lt_1', 'options.distance.lt_1', { d:1.0 }),
+  makeOption('1_3', 'options.distance.1_3', { d:0.75 }),
+  makeOption('3_5', 'options.distance.3_5', { d:0.50 }),
+  makeOption('5_10', 'options.distance.5_10', { d:0.25 }),
+  makeOption('ge_10', 'options.distance.ge_10', { d:0.10 })
 ];
 
 const ECUT_MATRIX = {
@@ -99,34 +125,34 @@ if (
   typeof MOVARISCH.calcRcute !== 'function' ||
   typeof MOVARISCH.calcRcum !== 'function'
 ) {
-  throw new Error('Libreria MOVARISCH non caricata: funzioni di calcolo mancanti.');
+  throw new Error(t('errors.movarischMissing'));
 }
 
 const RISK_CLASSES = [
   {
     id:'irr',
     test:(r)=> r < 15,
-    text:'Irrilevante per la salute'
+    get text(){ return t('legend.items.irr.text'); }
   },
   {
     id:'unc',
     test:(r)=> r >= 15 && r < 21,
-    text:'Intervallo di incertezza\nE\u2019 necessario, prima della classificazione in rischio irrilevante per la salute, rivedere con scrupolo l\u2019assegnazione dei vari punteggi, rivedere le misure di prevenzione e protezione adottate e consultare il medico competente per la decisione finale.'
+    get text(){ return t('legend.items.unc.text'); }
   },
   {
     id:'sup',
     test:(r)=> r >= 21 && r <= 40,
-    text:'Rischio superiore al rischio chimico irrilevante per la salute\nApplicare gli articoli 225, 226, 229 e 230 D. Lgs 81/08 e s.m.i.'
+    get text(){ return t('legend.items.sup.text'); }
   },
   {
     id:'elev',
     test:(r)=> r > 40 && r <= 80,
-    text:'Rischio elevato'
+    get text(){ return t('legend.items.elev.text'); }
   },
   {
     id:'grave',
     test:(r)=> r > 80,
-    text:'Rischio grave\nRiconsiderare il percorso dell\u2019identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.'
+    get text(){ return t('legend.items.grave.text'); }
   }
 ];
 
@@ -152,7 +178,8 @@ async function loadScript(src){
     s.onload = () => resolve();
     s.onerror = (err) => {
       s.remove();
-      reject(err || new Error('Impossibile caricare '+src));
+      const msg = t('errors.loadScript', { src });
+      reject(err || new Error(msg));
     };
     document.head.appendChild(s);
   });
@@ -174,7 +201,8 @@ async function ensureXlsx(){
     }
   }
   if(!window.XLSX){
-    throw lastErr || new Error('Impossibile caricare la libreria Excel (SheetJS).');
+    const msg = t('errors.loadXlsx');
+    throw lastErr || new Error(msg);
   }
   return window.XLSX;
 }
@@ -196,7 +224,8 @@ async function ensureDocx(){
     }
   }
   if(!window.docxLib){
-    throw lastErr || new Error('Impossibile caricare la libreria docx.');
+    const msg = t('errors.loadDocx');
+    throw lastErr || new Error(msg);
   }
   return window.docxLib;
 }
@@ -213,7 +242,7 @@ async function ensurePdfJs(){
       if(window.pdfjsLib){ break; }
     }catch(e){}
   }
-  if(!window.pdfjsLib){ throw new Error('Impossibile caricare PDF.js. Verifica la connessione o le policy di rete.'); }
+  if(!window.pdfjsLib){ throw new Error(t('errors.loadPdf')); }
   try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }catch(e){}
   return window.pdfjsLib;
 }
@@ -223,7 +252,7 @@ function readAsArrayBuffer(file){
   return new Promise((resolve, reject)=>{
     const fr = new FileReader();
     fr.onload = () => resolve(fr.result);
-    fr.onerror = () => reject(fr.error || new Error('Impossibile leggere il file'));
+    fr.onerror = () => reject(fr.error || new Error(t('errors.readFile')));
     fr.readAsArrayBuffer(file);
   });
 }
@@ -523,6 +552,14 @@ function render(){
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
     const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
     const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
+    const controlTitle = t('table.tooltips.controlIndex', { index: controlInfo?.index ?? '-' });
+    const exposureTitle = t('table.tooltips.exposureIndex', { index: exposureInfo?.index ?? '-' });
+    const dTitle = t('table.tooltips.dIndex');
+    const qTitle = t('table.tooltips.qIndex');
+    const uTitle = t('table.tooltips.uIndex');
+    const cTitle = t('table.tooltips.cIndex');
+    const tTitle = t('table.tooltips.tIndex');
+    const deleteLabel = t('table.actions.delete');
 
     tr.innerHTML = `
       <td>${escapeHtml(r.file)}</td>
@@ -531,15 +568,15 @@ function render(){
       <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
       <td class="num edit" data-field="SCORE" contenteditable>${fmt(r.SCORE)}</td>
       <td><select data-sistema>${sistemaOptions}</select></td>
-      <td><select data-controllo title="Indice ${controlInfo?.index ?? '-'}">${controlOptions}</select></td>
-      <td><select data-exposure title="Indice ${exposureInfo?.index ?? '-'}">${exposureOptions}</select></td>
+      <td><select data-controllo title="${escapeHtml(controlTitle)}">${controlOptions}</select></td>
+      <td><select data-exposure title="${escapeHtml(exposureTitle)}">${exposureOptions}</select></td>
       <td><select data-qty>${qtyOptions}</select></td>
       <td><select data-contact>${contactOptions}</select></td>
-      <td class="num" title="Indice proprietà chimico-fisiche (D)">${r.D}</td>
-      <td class="num" title="Indice quantità in uso (Q)">${r.Q}</td>
-      <td class="num" title="Indice tipologia d'uso (U)">${r.U}</td>
-      <td class="num" title="Indice tipologia di controllo (C)">${r.C}</td>
-      <td class="num" title="Indice tempo di esposizione (T)">${r.T}</td>
+      <td class="num" title="${escapeHtml(dTitle)}">${r.D}</td>
+      <td class="num" title="${escapeHtml(qTitle)}">${r.Q}</td>
+      <td class="num" title="${escapeHtml(uTitle)}">${r.U}</td>
+      <td class="num" title="${escapeHtml(cTitle)}">${r.C}</td>
+      <td class="num" title="${escapeHtml(tTitle)}">${r.T}</td>
       <td class="num">${fmt(r.I)}</td>
       <td><select data-distance>${distanceOptions}</select></td>
       <td class="num">${fmt(r.DIS)}</td>
@@ -549,7 +586,7 @@ function render(){
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
       <td>${badge(r.Giudizio, r.GiudizioClass)}</td>
-      <td><button class="btn" data-del="${i}">x</button></td>`;
+      <td><button class="btn" data-del="${i}" aria-label="${escapeHtml(deleteLabel)}">${escapeHtml(deleteLabel)}</button></td>`;
 
     tr.querySelectorAll('.edit').forEach((cell)=>{
       cell.addEventListener('input', ()=>{
@@ -640,12 +677,20 @@ function classifyRisk(value){
   if(found){ return found; }
   return RISK_CLASSES[0];
 }
-function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","\u003e":"&gt;"}[c]||c)); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>'"]/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    "'":'&#39;',
+    '"':'&quot;'
+  }[c] || c));
+}
 
 function buildOptions(options, selected){
   return options.map(opt=>{
     const text = (opt.showIndex && typeof opt.index === 'number')
-      ? `${opt.label} (Indice ${opt.index})`
+      ? `${opt.label} (${t('options.indexLabel', { index: opt.index })})`
       : opt.label;
     return `<option value="${opt.value}"${opt.value===selected?' selected':''}>${text}</option>`;
   }).join('');
@@ -755,7 +800,7 @@ async function downloadBlob(blob, filename){
         reject(err);
       }
     };
-    reader.onerror = () => reject(reader.error || new Error('Browser non supporta download di Blob.'));
+    reader.onerror = () => reject(reader.error || new Error(t('errors.blobDownload')));
     reader.readAsDataURL(blob);
   });
 }
@@ -779,12 +824,12 @@ async function exportExcel(){
   let flatRows;
   try{
     if(!state.rows.length){
-      showAlert('Nessun dato da esportare. Carica o genera prima delle righe.');
+      showAlert(t('alerts.noRows'));
       return;
     }
     const XLSX = await ensureXlsx();
     if(!XLSX?.utils){
-      throw new Error('Libreria SheetJS caricata ma priva delle utilità attese.');
+      throw new Error(t('errors.xlsxInvalid'));
     }
     flatRows = state.rows.map(r=>{
       const controlInfo = getControlOption(r.controlType);
@@ -836,25 +881,26 @@ async function exportExcel(){
         const csv = rowsToCsv(flatRows);
         const csvBlob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
         await downloadBlob(csvBlob, 'MOVARISCH_autoestratto.csv');
-        showAlert('Export Excel non disponibile. È stato generato un CSV di fallback. Dettaglio: ' + (err && err.message ? err.message : err));
+        const detail = describeError(err);
+        showAlert(t('alerts.excelFallback', { error: detail }));
         return;
       }catch(csvErr){
         console.error(csvErr);
       }
     }
-    showAlert('Export Excel fallito: ' + (err && err.message ? err.message : err));
+    showAlert(t('errors.excelExport', { error: describeError(err) }));
   }
 }
 
 async function exportWord(){
   try{
     if(!state.rows.length){
-      showAlert('Nessun dato da esportare. Carica o genera prima delle righe.');
+      showAlert(t('alerts.noRows'));
       return;
     }
     const docx = await ensureDocx();
     if(!docx){
-      throw new Error('Libreria docx caricata ma non disponibile.');
+      throw new Error(t('errors.docxInvalid'));
     }
 
     const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ShadingType, VerticalAlign } = docx;
@@ -872,6 +918,40 @@ async function exportWord(){
     }
 
     // Crea sezioni per ogni riga
+    const docLabels = {
+      summary: t('doc.summary'),
+      exposure: t('doc.exposure'),
+      method: t('doc.method'),
+      fields: {
+        file: t('doc.fields.file'),
+        tradeName: t('doc.fields.tradeName'),
+        physicalState: t('doc.fields.physicalState'),
+        hCodes: t('doc.fields.hCodes'),
+        score: t('doc.fields.score'),
+        system: t('doc.fields.system'),
+        control: t('doc.fields.control'),
+        controlIndex: t('doc.fields.controlIndex'),
+        exposure: t('doc.fields.exposure'),
+        exposureIndex: t('doc.fields.exposureIndex'),
+        quantity: t('doc.fields.quantity'),
+        quantityIndex: t('doc.fields.quantityIndex'),
+        contact: t('doc.fields.contact'),
+        contactIndex: t('doc.fields.contactIndex'),
+        dIndex: t('doc.fields.dIndex'),
+        uIndex: t('doc.fields.uIndex'),
+        tIndex: t('doc.fields.tIndex'),
+        iIndex: t('doc.fields.iIndex'),
+        distance: t('doc.fields.distance'),
+        distanceValue: t('doc.fields.distanceValue'),
+        eInal: t('doc.fields.eInal'),
+        eCut: t('doc.fields.eCut'),
+        rInal: t('doc.fields.rInal'),
+        rCut: t('doc.fields.rCut'),
+        rTot: t('doc.fields.rTot'),
+        final: t('doc.fields.final')
+      }
+    };
+
     const sections = state.rows.map((r, index) => {
       const controlInfo = getControlOption(r.controlType);
       const exposureInfo = getExposureOption(r.exposureTime);
@@ -880,31 +960,31 @@ async function exportWord(){
 
       // Dati della tabella (Campo | Valore)
       const tableData = [
-        ['File', r.file || ''],
-        ['Nome commerciale / Sostanza', r.nome || ''],
-        ['Stato fisico', STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico],
-        ['Codici H', r.hcodes.join('; ')],
-        ['SCORE (Indice di Rischio)', String(r.SCORE ?? '')],
-        ['Sistema', getSistemaOption(r.sistema)?.label ?? r.sistema],
-        ['Tipologia di controllo', controlInfo?.label ?? r.controlType],
-        ['Indice tipologia di controllo', String(controlInfo?.index ?? '')],
-        ['Tempo di esposizione', exposureInfo?.label ?? r.exposureTime],
-        ['Indice tempo di esposizione', String(exposureInfo?.index ?? '')],
-        ['Quantità in uso', getQuantityOption(r.qtyBand)?.label ?? r.qty],
-        ['Indice quantità (Q)', String(r.Q ?? '')],
-        ['Livello di contatto', contactInfo?.label ?? r.contactLevel],
-        ['Indice livello di contatto (C)', String(r.contactIndex ?? '')],
-        ['Indice D', String(r.D ?? '')],
-        ['Indice U', String(r.U ?? '')],
-        ['Indice T', String(r.T ?? '')],
-        ['Indice I', String(r.I ?? '')],
-        ['Distanza operatore-sorgente', distanceInfo?.label ?? r.distanceBand],
-        ['Valore d (distanza)', String(r.DIS ?? '')],
-        ['E inalatoria (E_inal)', String(r.Einal ?? '')],
-        ['E cutanea (E_cut)', String(r.Ecut ?? '')],
-        ['R inalatoria (R_inal)', String(r.Rinal ?? '')],
-        ['R cutanea (R_cut)', String(r.Rcut ?? '')],
-        ['Rischio cumulativo Rischio Salute (R_tot)', String(r.Rtot ?? '')]
+        [docLabels.fields.file, r.file || ''],
+        [docLabels.fields.tradeName, r.nome || ''],
+        [docLabels.fields.physicalState, STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico],
+        [docLabels.fields.hCodes, r.hcodes.join('; ')],
+        [docLabels.fields.score, String(r.SCORE ?? '')],
+        [docLabels.fields.system, getSistemaOption(r.sistema)?.label ?? r.sistema],
+        [docLabels.fields.control, controlInfo?.label ?? r.controlType],
+        [docLabels.fields.controlIndex, String(controlInfo?.index ?? '')],
+        [docLabels.fields.exposure, exposureInfo?.label ?? r.exposureTime],
+        [docLabels.fields.exposureIndex, String(exposureInfo?.index ?? '')],
+        [docLabels.fields.quantity, getQuantityOption(r.qtyBand)?.label ?? r.qty],
+        [docLabels.fields.quantityIndex, String(r.Q ?? '')],
+        [docLabels.fields.contact, contactInfo?.label ?? r.contactLevel],
+        [docLabels.fields.contactIndex, String(r.contactIndex ?? '')],
+        [docLabels.fields.dIndex, String(r.D ?? '')],
+        [docLabels.fields.uIndex, String(r.U ?? '')],
+        [docLabels.fields.tIndex, String(r.T ?? '')],
+        [docLabels.fields.iIndex, String(r.I ?? '')],
+        [docLabels.fields.distance, distanceInfo?.label ?? r.distanceBand],
+        [docLabels.fields.distanceValue, String(r.DIS ?? '')],
+        [docLabels.fields.eInal, String(r.Einal ?? '')],
+        [docLabels.fields.eCut, String(r.Ecut ?? '')],
+        [docLabels.fields.rInal, String(r.Rinal ?? '')],
+        [docLabels.fields.rCut, String(r.Rcut ?? '')],
+        [docLabels.fields.rTot, String(r.Rtot ?? '')]
       ];
 
       // Crea righe della tabella
@@ -938,7 +1018,7 @@ async function exportWord(){
           children: [
             new TableCell({
               children: [new Paragraph({
-                children: [new TextRun({ text: 'Giudizio Finale', bold: true })],
+                children: [new TextRun({ text: docLabels.fields.final, bold: true })],
                 alignment: AlignmentType.LEFT
               })],
               width: { size: 45, type: WidthType.PERCENTAGE },
@@ -971,7 +1051,7 @@ async function exportWord(){
       const children = [
         new Paragraph({
           children: [new TextRun({
-            text: 'SCHEDA RIEPILOGO DELLA VALUTAZIONE SOSTANZA/MISCELA/PREPARATO',
+            text: docLabels.summary,
             bold: true,
             size: 28
           })],
@@ -980,7 +1060,7 @@ async function exportWord(){
         }),
         new Paragraph({
           children: [new TextRun({
-            text: 'ESPOSIZIONE PER INALAZIONE E CONTATTO',
+            text: docLabels.exposure,
             bold: true,
             size: 24
           })],
@@ -989,7 +1069,7 @@ async function exportWord(){
         }),
         new Paragraph({
           children: [new TextRun({
-            text: 'Metodologia: MOVARISCH (MOdello di VAlutazione del RISchio CHimico)',
+            text: docLabels.method,
             size: 20
           })],
           alignment: AlignmentType.CENTER,
@@ -1020,7 +1100,7 @@ async function exportWord(){
 
   } catch(err){
     console.error(err);
-    showAlert('Export Word fallito: ' + (err && err.message ? err.message : err));
+    showAlert(t('errors.wordExport', { error: describeError(err) }));
   }
 }
 
@@ -1070,7 +1150,7 @@ parseBtn.addEventListener('click', async ()=>{
     }
     render();
   }catch(err){
-    showAlert('Errore durante il parsing PDF: '+ (err && err.message ? err.message : err));
+    showAlert(t('errors.pdfParse', { error: describeError(err) }));
   }
 });
 
@@ -1089,7 +1169,7 @@ async function runTest(){
     const bytes = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
     const testFile = new File([bytes], 'TEST_H317_H335.pdf', {type:'application/pdf'});
     const text = await pdfToText(testFile);
-    const productName = extractProductName(text) || 'Esempio – Test Parser';
+    const productName = extractProductName(text) || t('test.productName');
     const h = findH(text);
     state.rows = [{
       file: testFile.name,
@@ -1109,10 +1189,16 @@ async function runTest(){
       Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:'', GiudizioClass:''
     }];
     render();
-    showAlert('Test eseguito: libreria PDF.js caricata e parsing OK. H trovate: '+h.join('; '));
+    showAlert(t('alerts.testSuccess', { codes: h.join('; ') }));
   }catch(e){
-    showAlert('Test fallito: '+(e && e.message ? e.message : e));
+    showAlert(t('errors.testFailed', { error: describeError(e) }));
   }
 }
 
 document.querySelector('#testBtn').addEventListener('click', runTest);
+
+if(window.i18n && typeof window.i18n.onChange === 'function'){
+  window.i18n.onChange(()=>{ render(); });
+}else{
+  window.addEventListener('i18n:change', ()=>{ render(); });
+}
