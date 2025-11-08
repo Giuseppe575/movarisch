@@ -230,8 +230,52 @@ async function ensureDocx(){
   return window.docxLib;
 }
 
+const PDFJS_WORKER_CANDIDATES = [
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+];
+let pdfWorkerConfigured = false;
+
+async function configurePdfWorker(pdfjs){
+  if(!pdfjs || pdfWorkerConfigured){
+    if(pdfjs && pdfjs.GlobalWorkerOptions && pdfjs.GlobalWorkerOptions.workerSrc){
+      return;
+    }
+    if(pdfjs && pdfjs.disableWorker && typeof location !== 'undefined' && location.protocol === 'file:'){
+      try{ pdfjs.disableWorker = true; }catch(e){}
+    }
+    return;
+  }
+  pdfWorkerConfigured = true;
+
+  if(typeof location !== 'undefined' && location.protocol === 'file:'){
+    try{ pdfjs.disableWorker = true; }catch(e){}
+    return;
+  }
+
+  for(const url of PDFJS_WORKER_CANDIDATES){
+    try{
+      if(typeof fetch === 'function'){
+        const res = await fetch(url, { method:'HEAD', mode:'cors' });
+        if(!res.ok) continue;
+      }
+      if(pdfjs.GlobalWorkerOptions){
+        pdfjs.GlobalWorkerOptions.workerSrc = url;
+      }
+      return;
+    }catch(err){
+      // Prova il prossimo URL
+    }
+  }
+
+  try{ pdfjs.disableWorker = true; }catch(e){}
+}
+
 async function ensurePdfJs(){
-  if(window.pdfjsLib){ return window.pdfjsLib; }
+  if(window.pdfjsLib){
+    await configurePdfWorker(window.pdfjsLib);
+    return window.pdfjsLib;
+  }
   const urls = [
     'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
@@ -243,7 +287,7 @@ async function ensurePdfJs(){
     }catch(e){}
   }
   if(!window.pdfjsLib){ throw new Error(t('errors.loadPdf')); }
-  try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }catch(e){}
+  await configurePdfWorker(window.pdfjsLib);
   return window.pdfjsLib;
 }
 
