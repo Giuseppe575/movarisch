@@ -102,7 +102,8 @@
       "subtitle": "Risorse utili per partire subito:",
       "knowledgeBase": "📚 Knowledge base",
       "documentation": "📘 Documentazione tecnica",
-      "contact": "🎫 Apri ticket di assistenza"
+      "contact": "🎫 Apri ticket di assistenza",
+      "license": "📄 Licenza d'uso"
     },
     "knowledge": {
       "title": "Knowledge base interna",
@@ -240,8 +241,9 @@
     "text": "© MOVARISCH Tool – uso interno consulenza. Tutto offline nel browser. Nessun upload a server."
   },
   "links": {
-    "knowledgeBase": "https://support.movarisch.example/kb",
-    "documentation": "https://support.movarisch.example/docs",
-    "ticket": "https://support.movarisch.example/tickets/new"
+    "knowledgeBase": "support/knowledge-base.html",
+    "documentation": "support/documentazione.html",
+    "ticket": "support/ticket.html",
+    "license": "support/licenza-uso.html"
   }
 }

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documentazione tecnica MOVARISCH</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    main { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { margin-bottom: 0.5em; }
+    section { margin-bottom: 32px; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 20px 22px; }
+    section h2 { margin-top: 0; font-size: 1.1rem; }
+    nav a { color: #8cc1ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← Torna alla dashboard</a></nav>
+    <h1>Documentazione tecnica</h1>
+    <p>Questa pagina raccoglie le informazioni operative essenziali per l'utilizzo del parser MOVARISCH nella valutazione del rischio chimico.</p>
+    <section>
+      <h2>Prerequisiti</h2>
+      <ul>
+        <li>Browser aggiornato (Chrome, Edge o Firefox) con JavaScript attivo.</li>
+        <li>File SDS/TDS in formato PDF non protetto da password.</li>
+        <li>Per l'esportazione Word è richiesta la connessione per caricare la libreria <code>docx</code>.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Flusso di lavoro</h2>
+      <ol>
+        <li>Carica uno o più PDF con il pulsante «Seleziona PDF».</li>
+        <li>Avvia l'estrazione con «Estrai &amp; Calcola» per ottenere codici H e punteggi precompilati.</li>
+        <li>Completa eventuali campi mancanti (quantità, durata esposizione, distanza).</li>
+        <li>Esporta il risultato in Excel o Word per archiviazione interna.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Controlli qualità</h2>
+      <p>Dopo ogni aggiornamento della libreria viene eseguito il pulsante «Test libreria» per verificare che l'estrazione dei codici H sia operativa. Il test utilizza un file di prova con i codici H317 e H335.</p>
+    </section>
+    <section>
+      <h2>Contatti</h2>
+      <p>Per segnalare bug o richiedere nuove funzionalità scrivi a <a href="mailto:supporto@movarisch.local">supporto@movarisch.local</a> indicando l'azienda cliente e allegando il PDF.</p>
+    </section>
+  </main>
+</body>
+</html>
