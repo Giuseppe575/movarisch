@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Knowledge base MOVARISCH</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    main { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { margin-bottom: 0.5em; }
+    .article-list { display: grid; gap: 16px; }
+    article { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 18px 20px; }
+    article h2 { margin-top: 0; font-size: 1.15rem; }
+    article p { margin: 0.45em 0 0; line-height: 1.6; }
+    nav a { color: #8cc1ff; text-decoration: none; margin-right: 12px; }
+    nav { margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← Torna alla dashboard</a></nav>
+    <h1>Knowledge base MOVARISCH</h1>
+    <p>Benvenuto nella raccolta di guide operative curate dal team MOVARISCH. Qui trovi procedure rapide, FAQ e suggerimenti per sfruttare al massimo il parser SDS.</p>
+    <div class="article-list">
+      <article id="import">
+        <h2>Importare correttamente le SDS</h2>
+        <p>Verifica che i PDF non siano protetti e abbiano testo selezionabile. Per serie di file rinomina i documenti con un codice progressivo e caricali nello stesso gruppo.</p>
+      </article>
+      <article id="indices">
+        <h2>Interpretare gli indici MOVARISCH</h2>
+        <p>Dopo l'elaborazione controlla i punteggi D, Q, U, C e T. Usa la legenda nella dashboard per confrontare le soglie e documenta le motivazioni di eventuali modifiche manuali.</p>
+      </article>
+      <article id="export">
+        <h2>Esportazione dei risultati</h2>
+        <p>Quando le schede sono complete puoi esportare in Excel o Word. Salva i file prodotti nella cartella del cliente insieme alle SDS originali per assicurare la tracciabilità.</p>
+      </article>
+      <article id="faq">
+        <h2>FAQ rapide</h2>
+        <p><strong>Il test libreria non parte?</strong> Assicurati di avere la connessione attiva o usa la versione offline inclusa. <strong>Non trovi un codice H?</strong> Puoi aggiungerlo manualmente dalla tabella modificando la colonna dedicata.</p>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
