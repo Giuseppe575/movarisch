@@ -1349,14 +1349,16 @@ async function exportWord(){
         });
       });
 
-      // Aggiungi riga finale per il Giudizio con sfondo colorato
-      const riskColor = getRiskColor(r.GiudizioClass);
+      // Aggiungi righe finali per i giudizi con sfondo colorato
+
+      // GIUDIZIO SALUTE
+      const healthRiskColor = getRiskColor(r.GiudizioClass);
       tableRows.push(
         new TableRow({
           children: [
             new TableCell({
               children: [new Paragraph({
-                children: [new TextRun({ text: docLabels.fields.final, bold: true })],
+                children: [new TextRun({ text: 'Giudizio SALUTE', bold: true })],
                 alignment: AlignmentType.LEFT
               })],
               width: { size: 45, type: WidthType.PERCENTAGE },
@@ -1364,15 +1366,77 @@ async function exportWord(){
             }),
             new TableCell({
               children: [new Paragraph({
-                children: [new TextRun({ text: r.Giudizio || '', bold: true })],
+                children: [new TextRun({ text: r.Giudizio || '', bold: true, color: '000000' })],
                 alignment: AlignmentType.LEFT
               })],
               width: { size: 55, type: WidthType.PERCENTAGE },
               verticalAlign: VerticalAlign.CENTER,
               shading: {
                 type: ShadingType.SOLID,
-                color: riskColor,
-                fill: riskColor
+                color: healthRiskColor,
+                fill: healthRiskColor
+              }
+            })
+          ]
+        })
+      );
+
+      // GIUDIZIO SICUREZZA
+      const safetyRiskColor = getRiskColor(r.SafetyClass || 'irr');
+      const safetyLevelText = t('safety.level.' + (r.SafetyLevel || 'basso'));
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: 'Giudizio SICUREZZA', bold: true })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 45, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER
+            }),
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: safetyLevelText, bold: true, color: '000000' })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 55, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER,
+              shading: {
+                type: ShadingType.SOLID,
+                color: safetyRiskColor,
+                fill: safetyRiskColor
+              }
+            })
+          ]
+        })
+      );
+
+      // RISCHIO COMPLESSIVO (max tra salute e sicurezza)
+      const overallRiskColor = getRiskColor(r.OverallClass || r.GiudizioClass);
+      const overallText = `RISCHIO COMPLESSIVO: ${r.OverallRiskValue ? r.OverallRiskValue.toFixed(2) : '-'}`;
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: 'Giudizio FINALE (Complessivo)', bold: true, size: 24 })],
+                alignment: AlignmentType.LEFT
+              })],
+              width: { size: 45, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER
+            }),
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: overallText, bold: true, color: 'FFFFFF', size: 28 })],
+                alignment: AlignmentType.CENTER
+              })],
+              width: { size: 55, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.CENTER,
+              shading: {
+                type: ShadingType.SOLID,
+                color: overallRiskColor,
+                fill: overallRiskColor
               }
             })
           ]
