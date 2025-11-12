@@ -168,23 +168,27 @@ const defaults = {
   DIS:0.75,
   Ecut:1.0,
 
-  // SAFETY defaults
+  // M.I.R.C. (INRS) SAFETY defaults
   hcodesPhysical: [],
-  physicalStateSafety: 'liquido',
-  systemTypeSafety: 'chiuso',
-  ventilation: 'naturale',
-  openFlames: false,
-  ignitionSources: false,
   flashPoint: null,
   autoIgnitionTemp: null,
-  operatingTemp: 25,
-  vaporPressure: null,
-  quantitySafety: null,
-  PI: 10,
-  IQ: 1,
-  FCO: 1.0,
-  RiskSafety: 10,
-  SafetyLevel: 'basso'
+
+  // M.I.R.C. Fattori di Danno
+  A1: 0,  // Danno salute (H3xx, H4xx)
+  A2: 0,  // Danno sicurezza (H2xx fisici)
+
+  // M.I.R.C. Fattori di Esposizione
+  B1: 0,  // Quantità utilizzata
+  B2: 0,  // Frequenza/Durata
+  B3: 0,  // Ventilazione/Contenimento
+  B4: 0,  // DPI e protezioni (può essere negativo)
+
+  // M.I.R.C. Indici calcolati
+  D_mirc: 0,   // D = A1 + A2
+  E_mirc: 0,   // E = B1 + B2 + B3 + B4
+  IRC: 0.1,    // IRC = 10^((D+E)/100)
+  mircLevel: 'irrilevante',
+  mircClass: 'irr'
 };
 
 const MOVARISCH = window.movarischLib || {};
@@ -716,41 +720,39 @@ function recalcRow(row){
   row.Giudizio = risk.text;
   row.GiudizioClass = risk.id;
 
-  // SAFETY calculations
+  // M.I.R.C. (INRS) SAFETY calculations
   if (!row.hcodesPhysical) row.hcodesPhysical = [];
-  if (!row.quantitySafety) row.quantitySafety = null;
-  if (!row.systemTypeSafety) row.systemTypeSafety = defaults.systemTypeSafety;
-  if (!row.ventilation) row.ventilation = defaults.ventilation;
-  if (row.openFlames === undefined) row.openFlames = defaults.openFlames;
-  if (row.ignitionSources === undefined) row.ignitionSources = defaults.ignitionSources;
-  if (!Number.isFinite(row.operatingTemp)) row.operatingTemp = defaults.operatingTemp;
 
-  row.PI = MOVARISCH.calcPI(row.hcodesPhysical, H_PHYSICAL_SCORE);
-  row.IQ = MOVARISCH.calcIQ(row.quantitySafety);
-  row.FCO = round(MOVARISCH.calcFCO(
-    row.systemTypeSafety,
-    row.ventilation,
-    row.openFlames,
-    row.ignitionSources,
-    row.operatingTemp,
-    row.flashPoint
-  ), 2);
-  row.RiskSafety = round(MOVARISCH.calcRiskSafety(row.PI, row.IQ, row.FCO), 2);
+  // Ensure M.I.R.C. parameters exist
+  if (!Number.isFinite(row.A1)) row.A1 = defaults.A1;
+  if (!Number.isFinite(row.A2)) row.A2 = defaults.A2;
+  if (!Number.isFinite(row.B1)) row.B1 = defaults.B1;
+  if (!Number.isFinite(row.B2)) row.B2 = defaults.B2;
+  if (!Number.isFinite(row.B3)) row.B3 = defaults.B3;
+  if (!Number.isFinite(row.B4)) row.B4 = defaults.B4;
 
-  const safetyRisk = MOVARISCH.classifySafetyRisk(row.RiskSafety);
-  row.SafetyLevel = safetyRisk.level;
-  row.SafetyClass = safetyRisk.class;
+  // Calculate M.I.R.C. indices
+  row.D_mirc = MOVARISCH.calcMircD(row.A1, row.A2);
+  row.E_mirc = MOVARISCH.calcMircE(row.B1, row.B2, row.B3, row.B4);
+  row.IRC = round(MOVARISCH.calcMircIRC(row.D_mirc, row.E_mirc), 2);
 
-  // Overall risk (max of health and safety)
+  // Classify M.I.R.C. risk
+  const mircRisk = MOVARISCH.classifyMircRisk(row.IRC);
+  row.mircLevel = mircRisk.level;
+  row.mircClass = mircRisk.class;
+  row.mircText = mircRisk.text;
+
+  // Overall risk (max of health Rtot and safety IRC)
+  // Convert to comparable scale: use risk class index
   const healthRiskNumeric = row.Rtot;
-  const safetyRiskNumeric = row.RiskSafety;
-  row.OverallRiskValue = Math.max(healthRiskNumeric, safetyRiskNumeric);
+  const safetyRiskNumeric = row.IRC;
 
-  // Determine overall class (worst case)
+  // Determine overall class (worst case between health and safety)
   const healthClass = RISK_CLASSES.findIndex(c => c.id === row.GiudizioClass);
-  const safetyClass = RISK_CLASSES.findIndex(c => c.id === row.SafetyClass);
+  const safetyClass = RISK_CLASSES.findIndex(c => c.id === row.mircClass);
   const overallClassIndex = Math.max(healthClass, safetyClass);
   row.OverallClass = overallClassIndex >= 0 ? RISK_CLASSES[overallClassIndex].id : 'irr';
+  row.OverallRiskValue = Math.max(healthRiskNumeric, safetyRiskNumeric);
 }
 
 function render(){
@@ -783,10 +785,6 @@ function render(){
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
     const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
     const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
-
-    // Safety options
-    const systemTypeSafetyOptions = buildOptions(SYSTEM_TYPE_SAFETY_OPTIONS, r.systemTypeSafety);
-    const ventilationOptions = buildOptions(VENTILATION_OPTIONS, r.ventilation);
 
     const controlTitle = t('table.tooltips.controlIndex', { index: controlInfo?.index ?? '-' });
     const exposureTitle = t('table.tooltips.exposureIndex', { index: exposureInfo?.index ?? '-' });
@@ -822,20 +820,20 @@ function render(){
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
       <td>${badge(r.Giudizio, r.GiudizioClass)}</td>
-      <!-- SAFETY COLUMNS -->
+      <!-- M.I.R.C. (INRS) SAFETY COLUMNS -->
       <td class="edit" data-field="hcodesPhysical" contenteditable>${escapeHtml((r.hcodesPhysical || []).join(';'))}</td>
       <td class="num edit" data-field="quantitySafety" contenteditable>${fmt(r.quantitySafety)}</td>
       <td class="num edit" data-field="flashPoint" contenteditable>${fmt(r.flashPoint)}</td>
-      <td class="num edit" data-field="operatingTemp" contenteditable>${fmt(r.operatingTemp)}</td>
-      <td><select data-system-type-safety>${systemTypeSafetyOptions}</select></td>
-      <td><select data-ventilation>${ventilationOptions}</select></td>
-      <td><input type="checkbox" data-open-flames ${r.openFlames ? 'checked' : ''} /></td>
-      <td><input type="checkbox" data-ignition-sources ${r.ignitionSources ? 'checked' : ''} /></td>
-      <td class="num">${fmt(r.PI)}</td>
-      <td class="num">${fmt(r.IQ)}</td>
-      <td class="num">${fmt(r.FCO)}</td>
-      <td class="num"><b>${fmt(r.RiskSafety)}</b></td>
-      <td>${badge(t('safety.level.' + r.SafetyLevel), r.SafetyClass)}</td>
+      <td class="num edit" data-field="A1" contenteditable>${fmt(r.A1)}</td>
+      <td class="num edit" data-field="A2" contenteditable>${fmt(r.A2)}</td>
+      <td class="num"><b>${fmt(r.D_mirc)}</b></td>
+      <td class="num edit" data-field="B1" contenteditable>${fmt(r.B1)}</td>
+      <td class="num edit" data-field="B2" contenteditable>${fmt(r.B2)}</td>
+      <td class="num edit" data-field="B3" contenteditable>${fmt(r.B3)}</td>
+      <td class="num edit" data-field="B4" contenteditable>${fmt(r.B4)}</td>
+      <td class="num"><b>${fmt(r.E_mirc)}</b></td>
+      <td class="num"><b>${fmt(r.IRC)}</b></td>
+      <td>${badge(r.mircText, r.mircClass)}</td>
       <td class="num"><b>${badge(fmt(r.OverallRiskValue), r.OverallClass)}</b></td>
       <td><button class="btn" data-del="${i}" aria-label="${escapeHtml(deleteLabel)}">${escapeHtml(deleteLabel)}</button></td>`;
 
@@ -867,9 +865,35 @@ function render(){
           r.flashPoint = isFinite(parsed) ? parsed : null;
           render();
         }
-        else if(field==='operatingTemp'){
+        // M.I.R.C. FIELDS
+        else if(field==='A1'){
           const parsed = parseNumeric(value);
-          r.operatingTemp = isFinite(parsed) ? parsed : 25;
+          r.A1 = isFinite(parsed) ? round(parsed, 2) : 0;
+          render();
+        }
+        else if(field==='A2'){
+          const parsed = parseNumeric(value);
+          r.A2 = isFinite(parsed) ? round(parsed, 2) : 0;
+          render();
+        }
+        else if(field==='B1'){
+          const parsed = parseNumeric(value);
+          r.B1 = isFinite(parsed) ? round(parsed, 2) : 0;
+          render();
+        }
+        else if(field==='B2'){
+          const parsed = parseNumeric(value);
+          r.B2 = isFinite(parsed) ? round(parsed, 2) : 0;
+          render();
+        }
+        else if(field==='B3'){
+          const parsed = parseNumeric(value);
+          r.B3 = isFinite(parsed) ? round(parsed, 2) : 0;
+          render();
+        }
+        else if(field==='B4'){
+          const parsed = parseNumeric(value);
+          r.B4 = isFinite(parsed) ? round(parsed, 2) : 0;
           render();
         }
       });
@@ -907,27 +931,6 @@ function render(){
 
     tr.querySelector('[data-distance]')?.addEventListener('change', (ev)=>{
       r.distanceBand = ev.target.value || defaults.distanceBand;
-      render();
-    });
-
-    // SAFETY EVENT LISTENERS
-    tr.querySelector('[data-system-type-safety]')?.addEventListener('change', (ev)=>{
-      r.systemTypeSafety = ev.target.value || defaults.systemTypeSafety;
-      render();
-    });
-
-    tr.querySelector('[data-ventilation]')?.addEventListener('change', (ev)=>{
-      r.ventilation = ev.target.value || defaults.ventilation;
-      render();
-    });
-
-    tr.querySelector('[data-open-flames]')?.addEventListener('change', (ev)=>{
-      r.openFlames = ev.target.checked;
-      render();
-    });
-
-    tr.querySelector('[data-ignition-sources]')?.addEventListener('change', (ev)=>{
-      r.ignitionSources = ev.target.checked;
       render();
     });
 
@@ -1158,20 +1161,20 @@ async function exportExcel(){
         R_cut:r.Rcut,
         R_tot:r.Rtot,
         Giudizio:r.Giudizio,
-        // SAFETY FIELDS
+        // M.I.R.C. (INRS) SAFETY FIELDS
         Hcodes_Fisici:(r.hcodesPhysical || []).join(';'),
         Quantita_Sicurezza_kg_l:r.quantitySafety ?? '',
         Punto_Infiammabilita_C:r.flashPoint ?? '',
-        Temperatura_Esercizio_C:r.operatingTemp ?? 25,
-        Tipo_Sistema:SYSTEM_TYPE_SAFETY_OPTIONS.find(opt=>opt.value===r.systemTypeSafety)?.label ?? r.systemTypeSafety,
-        Ventilazione:VENTILATION_OPTIONS.find(opt=>opt.value===r.ventilation)?.label ?? r.ventilation,
-        Fiamme_Libere:r.openFlames ? 'Sì' : 'No',
-        Fonti_Innesco:r.ignitionSources ? 'Sì' : 'No',
-        Pericolo_Intrinseco_PI:r.PI,
-        Indice_Quantita_IQ:r.IQ,
-        Fattore_Condizioni_Operative_FCO:r.FCO,
-        Rischio_Sicurezza:r.RiskSafety,
-        Livello_Sicurezza:t('safety.level.' + r.SafetyLevel),
+        A1_Danno_Salute:r.A1 ?? 0,
+        A2_Danno_Sicurezza:r.A2 ?? 0,
+        D_Danno_Totale:r.D_mirc ?? 0,
+        B1_Quantita:r.B1 ?? 0,
+        B2_Frequenza:r.B2 ?? 0,
+        B3_Ventilazione:r.B3 ?? 0,
+        B4_DPI:r.B4 ?? 0,
+        E_Esposizione:r.E_mirc ?? 0,
+        IRC_Indice_Rischio:r.IRC ?? 0,
+        Giudizio_Sicurezza:r.mircText ?? '',
         Rischio_Complessivo:r.OverallRiskValue
       };
     });
@@ -1206,6 +1209,13 @@ async function exportWord(){
       showAlert(t('alerts.noRows'));
       return;
     }
+
+    // Assicurati che i18n sia inizializzato prima di procedere
+    if(!window.i18n || !window.i18n.isReady || !window.i18n.isReady()){
+      showAlert('Le traduzioni non sono ancora caricate. Attendi un momento e riprova. / Translations not loaded yet. Please wait a moment and try again.');
+      return;
+    }
+
     const docx = await ensureDocx();
     if(!docx){
       throw new Error(t('errors.docxInvalid'));
@@ -1257,19 +1267,19 @@ async function exportWord(){
         rCut: t('doc.fields.rCut'),
         rTot: t('doc.fields.rTot'),
         final: t('doc.fields.final'),
-        // SAFETY FIELDS
+        // M.I.R.C. (INRS) SAFETY FIELDS
         hCodesPhysical: t('doc.fields.hCodesPhysical'),
         quantitySafety: t('doc.fields.quantitySafety'),
         flashPoint: t('doc.fields.flashPoint'),
-        operatingTemp: t('doc.fields.operatingTemp'),
-        systemTypeSafety: t('doc.fields.systemTypeSafety'),
-        ventilation: t('doc.fields.ventilation'),
-        openFlames: t('doc.fields.openFlames'),
-        ignitionSources: t('doc.fields.ignitionSources'),
-        pi: t('doc.fields.pi'),
-        iq: t('doc.fields.iq'),
-        fco: t('doc.fields.fco'),
-        riskSafety: t('doc.fields.riskSafety'),
+        A1: t('doc.fields.A1'),
+        A2: t('doc.fields.A2'),
+        D_mirc: t('doc.fields.D_mirc'),
+        B1: t('doc.fields.B1'),
+        B2: t('doc.fields.B2'),
+        B3: t('doc.fields.B3'),
+        B4: t('doc.fields.B4'),
+        E_mirc: t('doc.fields.E_mirc'),
+        IRC: t('doc.fields.IRC'),
         safetyLevel: t('doc.fields.safetyLevel'),
         overallRisk: t('doc.fields.overallRisk')
       }
@@ -1308,20 +1318,19 @@ async function exportWord(){
         [docLabels.fields.rInal, String(r.Rinal ?? '')],
         [docLabels.fields.rCut, String(r.Rcut ?? '')],
         [docLabels.fields.rTot, String(r.Rtot ?? '')],
-        // SAFETY FIELDS
+        // M.I.R.C. (INRS) SAFETY FIELDS
         [docLabels.fields.hCodesPhysical, (r.hcodesPhysical || []).join('; ')],
         [docLabels.fields.quantitySafety, String(r.quantitySafety ?? '')],
         [docLabels.fields.flashPoint, String(r.flashPoint ?? '')],
-        [docLabels.fields.operatingTemp, String(r.operatingTemp ?? 25)],
-        [docLabels.fields.systemTypeSafety, SYSTEM_TYPE_SAFETY_OPTIONS.find(opt=>opt.value===r.systemTypeSafety)?.label ?? r.systemTypeSafety],
-        [docLabels.fields.ventilation, VENTILATION_OPTIONS.find(opt=>opt.value===r.ventilation)?.label ?? r.ventilation],
-        [docLabels.fields.openFlames, r.openFlames ? 'Sì' : 'No'],
-        [docLabels.fields.ignitionSources, r.ignitionSources ? 'Sì' : 'No'],
-        [docLabels.fields.pi, String(r.PI ?? 10)],
-        [docLabels.fields.iq, String(r.IQ ?? 1)],
-        [docLabels.fields.fco, String(r.FCO ?? 1.0)],
-        [docLabels.fields.riskSafety, String(r.RiskSafety ?? 10)],
-        [docLabels.fields.safetyLevel, t('safety.level.' + r.SafetyLevel)],
+        [docLabels.fields.A1, String(r.A1 ?? 0)],
+        [docLabels.fields.A2, String(r.A2 ?? 0)],
+        [docLabels.fields.D_mirc, String(r.D_mirc ?? 0)],
+        [docLabels.fields.B1, String(r.B1 ?? 0)],
+        [docLabels.fields.B2, String(r.B2 ?? 0)],
+        [docLabels.fields.B3, String(r.B3 ?? 0)],
+        [docLabels.fields.B4, String(r.B4 ?? 0)],
+        [docLabels.fields.E_mirc, String(r.E_mirc ?? 0)],
+        [docLabels.fields.IRC, String(r.IRC ?? 0)],
         [docLabels.fields.overallRisk, String(r.OverallRiskValue ?? 0)]
       ];
 
@@ -1381,15 +1390,15 @@ async function exportWord(){
         })
       );
 
-      // GIUDIZIO SICUREZZA
-      const safetyRiskColor = getRiskColor(r.SafetyClass || 'irr');
-      const safetyLevelText = t('safety.level.' + (r.SafetyLevel || 'basso'));
+      // GIUDIZIO SICUREZZA (M.I.R.C.)
+      const safetyRiskColor = getRiskColor(r.mircClass || 'irr');
+      const safetyLevelText = r.mircText || 'RISCHIO IRRILEVANTE';
       tableRows.push(
         new TableRow({
           children: [
             new TableCell({
               children: [new Paragraph({
-                children: [new TextRun({ text: 'Giudizio SICUREZZA', bold: true })],
+                children: [new TextRun({ text: 'Giudizio SICUREZZA (M.I.R.C.)', bold: true })],
                 alignment: AlignmentType.LEFT
               })],
               width: { size: 45, type: WidthType.PERCENTAGE },

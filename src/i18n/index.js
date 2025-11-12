@@ -145,6 +145,7 @@
       return value;
     },
     getLanguage(){ return currentLang; },
+    isReady(){ return initialized; },
     onChange(fn){ if(typeof fn === 'function'){ listeners.add(fn); } },
     offChange(fn){ if(fn){ listeners.delete(fn); } }
   };
