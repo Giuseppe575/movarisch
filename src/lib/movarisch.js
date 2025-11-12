@@ -54,63 +54,60 @@
     return Math.hypot(inal, cute);
   };
 
-  // =================== SAFETY CALCULATIONS ===================
+  // =================== M.I.R.C. (INRS) SAFETY CALCULATIONS ===================
 
-  // Calculate Pericolo Intrinseco (PI)
-  const calcPI = (hcodesPhysical, H_PHYSICAL_SCORE) => {
-    if (!Array.isArray(hcodesPhysical) || hcodesPhysical.length === 0) {
-      return 10; // default if no H-codes
+  // Calculate D (Fattore Danno) = A1 + A2
+  const calcMircD = (A1, A2) => {
+    const a1 = Number.isFinite(A1) ? A1 : 0;
+    const a2 = Number.isFinite(A2) ? A2 : 0;
+    return a1 + a2;
+  };
+
+  // Calculate E (Fattore Esposizione) = B1 + B2 + B3 + B4
+  const calcMircE = (B1, B2, B3, B4) => {
+    const b1 = Number.isFinite(B1) ? B1 : 0;
+    const b2 = Number.isFinite(B2) ? B2 : 0;
+    const b3 = Number.isFinite(B3) ? B3 : 0;
+    const b4 = Number.isFinite(B4) ? B4 : 0;
+    return b1 + b2 + b3 + b4;
+  };
+
+  // Calculate IRC (Indice Rischio Chimico)
+  // Formula esponenziale semplificata: IRC = 10^((D+E)/100)
+  // Questa formula gestisce correttamente anche valori negativi di E (DPI molto efficaci)
+  const calcMircIRC = (D, E) => {
+    const d = Number.isFinite(D) ? D : 0;
+    const e = Number.isFinite(E) ? E : 0;
+
+    // IRC = 10^((D+E)/100)
+    const exponent = (d + e) / 100;
+    return Math.pow(10, exponent);
+  };
+
+  // Classify M.I.R.C. IRC Level (3 levels INRS standard)
+  const classifyMircRisk = (irc) => {
+    const risk = Number.isFinite(irc) ? irc : 0;
+
+    // Classificazione INRS standard a 3 livelli
+    if (risk < 1.0) {
+      return {
+        level: 'basso',
+        class: 'irr',
+        text: 'RISCHIO BASSO (Accettabile)'
+      };
     }
-    const scores = hcodesPhysical
-      .map(h => H_PHYSICAL_SCORE[h])
-      .filter(score => Number.isFinite(score) && score > 0);
-
-    return scores.length > 0 ? Math.max(...scores) : 10;
-  };
-
-  // Calculate Indice Quantità (IQ)
-  const calcIQ = (quantity) => {
-    const qty = Number.isFinite(quantity) ? quantity : 0;
-    if (qty < 1) return 1;
-    if (qty <= 10) return 2;
-    if (qty <= 100) return 3;
-    if (qty <= 1000) return 4;
-    return 5;
-  };
-
-  // Calculate Fattore Condizioni Operative (FCO)
-  const calcFCO = (systemType, ventilation, openFlames, ignitionSources,
-                   operatingTemp, flashPoint) => {
-    let fco = 1.0;
-
-    if (systemType === 'aperto') fco *= 1.5;
-    if (ventilation === 'assente') fco *= 1.3;
-    if (openFlames === true) fco *= 2.0;
-    if (ignitionSources === true) fco *= 1.5;
-
-    // Check if operating temp > flash point
-    const temp = Number.isFinite(operatingTemp) ? operatingTemp : 25;
-    const flash = Number.isFinite(flashPoint) ? flashPoint : Infinity;
-    if (temp > flash) fco *= 2.0;
-
-    return fco;
-  };
-
-  // Calculate Rischio Sicurezza
-  const calcRiskSafety = (PI, IQ, FCO) => {
-    const pi = Number.isFinite(PI) ? PI : 10;
-    const iq = Number.isFinite(IQ) ? IQ : 1;
-    const fco = Number.isFinite(FCO) ? FCO : 1.0;
-    return pi * iq * fco;
-  };
-
-  // Classify Safety Risk Level
-  const classifySafetyRisk = (riskValue) => {
-    const risk = Number.isFinite(riskValue) ? riskValue : 0;
-    if (risk <= 10) return { level: 'basso', class: 'irr' };
-    if (risk <= 25) return { level: 'medio', class: 'unc' };
-    if (risk <= 50) return { level: 'alto', class: 'sup' };
-    return { level: 'molto_alto', class: 'grave' };
+    if (risk < 10.0) {
+      return {
+        level: 'medio',
+        class: 'unc',
+        text: 'RISCHIO MEDIO (Verificare misure)'
+      };
+    }
+    return {
+      level: 'alto',
+      class: 'grave',
+      text: 'RISCHIO ALTO (Non tollerabile)'
+    };
   };
 
   const movarischLib = {
@@ -119,12 +116,11 @@
     calcRinal,
     calcRcute,
     calcRcum,
-    // Safety functions
-    calcPI,
-    calcIQ,
-    calcFCO,
-    calcRiskSafety,
-    classifySafetyRisk
+    // M.I.R.C. (INRS) Safety functions
+    calcMircD,
+    calcMircE,
+    calcMircIRC,
+    classifyMircRisk
   };
 
   if (typeof module !== "undefined" && module.exports) {
