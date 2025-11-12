@@ -409,6 +409,85 @@ function findH(text){
   return out;
 }
 
+// Separa H-codes in salute (H3xx, H4xx) e fisici (H2xx, EUH)
+function separateHCodes(allHCodes){
+  const health = [];
+  const physical = [];
+
+  for(const code of allHCodes){
+    const baseCode = code.split(' ')[0]; // Rimuove " cat.X" se presente
+
+    // H-codes fisici: H2xx (200-299) e EUH
+    if(/^H2\d{2}$/.test(baseCode) || /^EUH\d{3}$/.test(baseCode)){
+      physical.push(code);
+    }
+    // H-codes salute: H3xx (300-399), H4xx (400-499)
+    else if(/^H[34]\d{2}$/.test(baseCode)){
+      health.push(code);
+    }
+    // Default: se inizia con H3 o H4 -> salute, altrimenti fisici
+    else if(/^H[34]/.test(baseCode)){
+      health.push(code);
+    } else {
+      physical.push(code);
+    }
+  }
+
+  return { health, physical };
+}
+
+// Estrae punto di infiammabilità dalla Sezione 9
+function extractFlashPoint(text){
+  // Pattern comuni per punto di infiammabilità in SDS italiane e inglesi
+  const patterns = [
+    /punto\s+(?:di\s+)?infiammabilit[àa]\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /flash\s+point\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /flash\s*[\-–]?\s*point\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /infiammabilit[àa]\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /p\.?\s*infiamm\.?\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i
+  ];
+
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match){
+      let value = match[1].trim();
+      // Rimuove simboli < > e converte , in .
+      value = value.replace(/[<>]/g, '').replace(',', '.').trim();
+      const num = parseFloat(value);
+      if(!isNaN(num) && num >= -100 && num <= 500){
+        return num;
+      }
+    }
+  }
+
+  return null;
+}
+
+// Estrae temperatura di autoaccensione dalla Sezione 9
+function extractAutoIgnitionTemp(text){
+  const patterns = [
+    /temperatura\s+(?:di\s+)?autoaccensione\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /auto[\-–]?ignition\s+temperature\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /autoignition\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /temp\.?\s+autoaccensione\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i,
+    /t\.?\s*autoaccensione\s*(?:[:\-–]?\s*)?([<>]?\s*\d+(?:[.,]\d+)?)\s*°?\s*c/i
+  ];
+
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match){
+      let value = match[1].trim();
+      value = value.replace(/[<>]/g, '').replace(',', '.').trim();
+      const num = parseFloat(value);
+      if(!isNaN(num) && num >= 0 && num <= 1000){
+        return num;
+      }
+    }
+  }
+
+  return null;
+}
+
 const PRODUCT_LINE_PATTERNS = [
   { regex:/nome\s+commerciale\s*(?:[:\-–]\s*)?(.+)/i, priority:100, type:'name' },
   { regex:/nome\s+del\s+prodotto\s*(?:[:\-–]\s*)?(.+)/i, priority:95, type:'name' },
@@ -1383,15 +1462,37 @@ parseBtn.addEventListener('click', async ()=>{
   try{
     for(const file of state.files){
       const text = await pdfToText(file);
-      let hcodes = findH(text);
-      if(!hcodes.length && guessUV(file.name, text)) hcodes = UV_FALLBACK.slice();
-      let score = hcodes.length ? pickScore(hcodes) : 0;
+      let allHCodes = findH(text);
+      if(!allHCodes.length && guessUV(file.name, text)) allHCodes = UV_FALLBACK.slice();
+
+      // Separa H-codes in salute vs fisici
+      const separated = separateHCodes(allHCodes);
+      const hcodesHealth = separated.health;
+      const hcodesPhysical = separated.physical;
+
+      // Calcola score salute (solo da H-codes salute)
+      let score = hcodesHealth.length ? pickScore(hcodesHealth) : 0;
+
+      // Estrai proprietà fisico-chimiche per sicurezza
+      const flashPoint = extractFlashPoint(text);
+      const autoIgnitionTemp = extractAutoIgnitionTemp(text);
+
       const productName = extractProductName(text) || file.name.replace(/\.pdf$/i, '');
+
+      // Log per debug (visibile in console)
+      console.log(`[${file.name}] EXTRACTION:`, {
+        healthCodes: hcodesHealth,
+        physicalCodes: hcodesPhysical,
+        flashPoint: flashPoint ? `${flashPoint}°C` : 'non trovato',
+        autoIgnitionTemp: autoIgnitionTemp ? `${autoIgnitionTemp}°C` : 'non trovato'
+      });
+
       const row = {
+        // HEALTH fields
         file: file.name,
         nome: productName,
         statoFisico: defaults.statoFisico,
-        hcodes,
+        hcodes: hcodesHealth, // Solo H-codes salute
         SCORE: score,
         sistema: defaults.sistema,
         controlType: defaults.controlType,
@@ -1403,7 +1504,21 @@ parseBtn.addEventListener('click', async ()=>{
         D: 0, Q:0, U: 0, C: 0, T:0,
         I: 0,
         DIS: defaults.DIS, Ecut: defaults.Ecut,
-        Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: '', GiudizioClass: ''
+        Einal: 0, Rinal: 0, Rcut: 0, Rtot: 0, Giudizio: '', GiudizioClass: '',
+
+        // SAFETY fields (auto-popolati)
+        hcodesPhysical: hcodesPhysical, // H-codes fisici estratti
+        flashPoint: flashPoint, // Estratto da Sezione 9
+        autoIgnitionTemp: autoIgnitionTemp, // Estratto da Sezione 9
+        operatingTemp: defaults.operatingTemp,
+        quantitySafety: defaults.quantitySafety,
+        systemTypeSafety: defaults.systemTypeSafety,
+        ventilation: defaults.ventilation,
+        openFlames: defaults.openFlames,
+        ignitionSources: defaults.ignitionSources,
+        PI: 10, IQ: 1, FCO: 1.0,
+        RiskSafety: 10, SafetyLevel: 'basso', SafetyClass: 'irr',
+        OverallRiskValue: 0, OverallClass: 'irr'
       };
       state.rows.push(row);
     }
