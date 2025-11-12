@@ -38,6 +38,7 @@
       <button class="btn" id="testBtn" data-i18n="buttons.test">🧪 Test libreria</button>
       <button class="btn primary" id="exportBtn" disabled data-i18n="buttons.exportExcel">⬇️ Esporta Excel</button>
       <button class="btn primary" id="exportWordBtn" disabled data-i18n="buttons.exportWord">⬇️ Esporta Word</button>
+      <button class="btn" id="cumulativeBtn" disabled data-i18n="buttons.cumulative" onclick="window.open('cumulative-report.html', '_blank')">📊 Scheda Cumulativa</button>
     </div>
     <div class="risk-legend">
       <span class="legend-title" data-i18n="legend.title">Classificazione del giudizio</span>
@@ -131,7 +132,22 @@
           <th class="num" data-i18n="table.headers.rInal">R<sub>inal</sub></th>
           <th class="num" data-i18n="table.headers.rCut">R<sub>cut</sub></th>
           <th class="num" data-i18n="table.headers.rTot">R<sub>tot</sub></th>
-          <th data-i18n="table.headers.judgement">Giudizio</th>
+          <th data-i18n="table.headers.judgement">Giudizio SALUTE</th>
+          <!-- SAFETY COLUMNS -->
+          <th data-i18n="table.headers.safety.hCodesPhysical">H-codes Fisici</th>
+          <th data-i18n="table.headers.safety.quantitySafety">Quantità (kg/l)</th>
+          <th data-i18n="table.headers.safety.flashPoint">P. Infiamm. (°C)</th>
+          <th data-i18n="table.headers.safety.operatingTemp">T. Esercizio (°C)</th>
+          <th data-i18n="table.headers.safety.systemType">Sistema</th>
+          <th data-i18n="table.headers.safety.ventilation">Ventilazione</th>
+          <th data-i18n="table.headers.safety.openFlames">Fiamme libere</th>
+          <th data-i18n="table.headers.safety.ignitionSources">Fonti innesco</th>
+          <th class="num" data-i18n="table.headers.safety.pi">PI</th>
+          <th class="num" data-i18n="table.headers.safety.iq">IQ</th>
+          <th class="num" data-i18n="table.headers.safety.fco">FCO</th>
+          <th class="num" data-i18n="table.headers.safety.riskSafety">Rischio SICUREZZA</th>
+          <th data-i18n="table.headers.safety.safetyLevel">Livello SICUREZZA</th>
+          <th class="num" data-i18n="table.headers.safety.overallRisk">RISCHIO COMPLESSIVO</th>
           <th data-i18n="table.headers.actions">—</th>
         </tr>
       </thead>

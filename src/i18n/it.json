@@ -17,7 +17,8 @@
     "clear": "♻️ Svuota",
     "test": "🧪 Test libreria",
     "exportExcel": "⬇️ Esporta Excel",
-    "exportWord": "⬇️ Esporta Word"
+    "exportWord": "⬇️ Esporta Word",
+    "cumulative": "📊 Scheda Cumulativa"
   },
   "legend": {
     "title": "Classificazione del giudizio",
@@ -71,6 +72,22 @@
       "rCut": "Rₚ",
       "rTot": "Rₜ",
       "judgement": "Giudizio",
+      "safety": {
+        "hCodesPhysical": "H-codes Fisici",
+        "quantitySafety": "Quantità (kg/l)",
+        "flashPoint": "P. Infiamm. (°C)",
+        "operatingTemp": "T. Esercizio (°C)",
+        "systemType": "Sistema",
+        "ventilation": "Ventilazione",
+        "openFlames": "Fiamme libere",
+        "ignitionSources": "Fonti innesco",
+        "pi": "PI",
+        "iq": "IQ",
+        "fco": "FCO",
+        "riskSafety": "Rischio SICUREZZA",
+        "safetyLevel": "Livello SICUREZZA",
+        "overallRisk": "RISCHIO COMPLESSIVO"
+      },
       "actions": "—"
     },
     "tooltips": {
@@ -179,6 +196,30 @@
       "3_5": "3 – 5 m (d = 0.50)",
       "5_10": "5 – 10 m (d = 0.25)",
       "ge_10": "≥ 10 m (d = 0.10)"
+    },
+    "safety": {
+      "physical_state": {
+        "solido": "Solido",
+        "liquido": "Liquido",
+        "gas": "Gas"
+      },
+      "system_type": {
+        "aperto": "Sistema aperto",
+        "chiuso": "Sistema chiuso"
+      },
+      "ventilation": {
+        "naturale": "Ventilazione naturale",
+        "forzata": "Ventilazione forzata",
+        "assente": "Ventilazione assente"
+      }
+    }
+  },
+  "safety": {
+    "level": {
+      "basso": "Rischio BASSO",
+      "medio": "Rischio MEDIO",
+      "alto": "Rischio ALTO",
+      "molto_alto": "Rischio MOLTO ALTO"
     }
   },
   "errors": {
@@ -231,7 +272,21 @@
       "rInal": "R inalatoria (R_inal)",
       "rCut": "R cutanea (R_cut)",
       "rTot": "Rischio cumulativo Rischio Salute (R_tot)",
-      "final": "Giudizio Finale"
+      "final": "Giudizio Finale",
+      "hCodesPhysical": "H-codes Fisici (Sicurezza)",
+      "quantitySafety": "Quantità (kg/l)",
+      "flashPoint": "Punto di infiammabilità (°C)",
+      "operatingTemp": "Temperatura di esercizio (°C)",
+      "systemTypeSafety": "Tipo di sistema",
+      "ventilation": "Ventilazione",
+      "openFlames": "Presenza fiamme libere",
+      "ignitionSources": "Presenza fonti di innesco",
+      "pi": "Pericolo Intrinseco (PI)",
+      "iq": "Indice Quantità (IQ)",
+      "fco": "Fattore Condizioni Operative (FCO)",
+      "riskSafety": "Rischio Sicurezza",
+      "safetyLevel": "Livello Rischio Sicurezza",
+      "overallRisk": "Rischio Complessivo (Salute + Sicurezza)"
     }
   },
   "test": {

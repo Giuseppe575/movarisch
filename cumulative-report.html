@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MOVARISCH - Scheda Cumulativa Rischio Chimico</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .report-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+  }
+
+  .report-header {
+    text-align: center;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+  }
+
+  .report-header h1 {
+    font-size: 32px;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .report-header .subtitle {
+    font-size: 16px;
+    color: var(--muted);
+  }
+
+  .section-card {
+    background: var(--card);
+    border: 1px solid #1d2a44;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .section-title {
+    font-size: 24px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1d2a44;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-item {
+    background: rgba(122, 162, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .info-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .info-value {
+    font-size: 18px;
+    color: var(--ink);
+    font-weight: bold;
+  }
+
+  .risk-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .risk-box {
+    background: rgba(122, 162, 255, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .risk-box h3 {
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .risk-value {
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 400px;
+    margin: 20px 0;
+  }
+
+  .dpi-list, .interventions-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .dpi-list li, .interventions-list li {
+    background: rgba(122, 162, 255, 0.05);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dpi-list li:before {
+    content: "🛡️";
+    font-size: 20px;
+  }
+
+  .interventions-list li:before {
+    content: "⚠️";
+    font-size: 20px;
+  }
+
+  .priority-high {
+    border-left-color: #ff616f !important;
+  }
+
+  .priority-medium {
+    border-left-color: #f0ad4e !important;
+  }
+
+  .priority-low {
+    border-left-color: #1fb26b !important;
+  }
+
+  .btn-back {
+    display: inline-block;
+    margin: 20px 0;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: var(--bg);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover {
+    background: #5a8aef;
+    transform: translateY(-2px);
+  }
+
+  @media print {
+    .btn-back {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="report-container">
+  <a href="index.html" class="btn-back">← Torna alla Dashboard</a>
+
+  <div class="report-header">
+    <h1>📊 SCHEDA CUMULATIVA VALUTAZIONE RISCHIO CHIMICO</h1>
+    <p class="subtitle">Valutazione integrata SALUTE + SICUREZZA secondo D.Lgs 81/08 e Reg. CLP 1272/2008/CE</p>
+  </div>
+
+  <!-- SECTION 1: IDENTIFICAZIONE -->
+  <div class="section-card">
+    <h2 class="section-title">1. IDENTIFICAZIONE SOSTANZA</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Nome commerciale</div>
+        <div class="info-value" id="substanceName">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Numero CAS</div>
+        <div class="info-value" id="casNumber">N/A</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Data valutazione</div>
+        <div class="info-value" id="assessmentDate">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Valutatore</div>
+        <div class="info-value" id="assessor">RSPP / Consulente</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: RISCHIO SALUTE -->
+  <div class="section-card">
+    <h2 class="section-title">2. VALUTAZIONE RISCHIO SALUTE</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Frasi H Salute</div>
+        <div class="info-value" id="healthHCodes">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">SCORE Pericolosità</div>
+        <div class="info-value" id="healthScore">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Rischio Inalatorio</div>
+        <div class="info-value" id="riskInhal">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Rischio Cutaneo</div>
+        <div class="info-value" id="riskDermal">-</div>
+      </div>
+    </div>
+    <div class="risk-box" style="margin-top: 20px;">
+      <h3>Indice Rischio Totale SALUTE</h3>
+      <div class="risk-value" id="healthRiskValue" style="color: var(--ok);">-</div>
+      <div id="healthRiskBadge"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: RISCHIO SICUREZZA -->
+  <div class="section-card">
+    <h2 class="section-title">3. VALUTAZIONE RISCHIO SICUREZZA</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Frasi H Fisiche</div>
+        <div class="info-value" id="safetyHCodes">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Pericolo Intrinseco (PI)</div>
+        <div class="info-value" id="safetyPI">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Indice Quantità (IQ)</div>
+        <div class="info-value" id="safetyIQ">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Condizioni Operative (FCO)</div>
+        <div class="info-value" id="safetyFCO">-</div>
+      </div>
+    </div>
+    <div class="risk-box" style="margin-top: 20px;">
+      <h3>Indice Rischio Totale SICUREZZA</h3>
+      <div class="risk-value" id="safetyRiskValue" style="color: var(--mod);">-</div>
+      <div id="safetyRiskBadge"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: RIEPILOGO COMPARATIVO -->
+  <div class="section-card">
+    <h2 class="section-title">4. RIEPILOGO COMPARATIVO</h2>
+
+    <div class="chart-container">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <div class="risk-box" style="margin-top: 30px; background: rgba(255, 97, 111, 0.1);">
+      <h3>RISCHIO COMPLESSIVO MASSIMO</h3>
+      <div class="risk-value" id="overallRiskValue" style="color: #ff616f;">-</div>
+      <div id="overallRiskBadge"></div>
+      <p style="margin-top: 12px; color: var(--muted); font-size: 14px;">
+        Il rischio complessivo è determinato dal valore massimo tra SALUTE e SICUREZZA
+      </p>
+    </div>
+  </div>
+
+  <!-- SECTION 5: DPI NECESSARI -->
+  <div class="section-card">
+    <h2 class="section-title">5. DISPOSITIVI DI PROTEZIONE INDIVIDUALE (DPI)</h2>
+    <ul class="dpi-list" id="dpiList">
+      <li>Caricamento dati...</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 6: PIANO INTERVENTI -->
+  <div class="section-card">
+    <h2 class="section-title">6. PIANO INTERVENTI PRIORITARI</h2>
+    <ul class="interventions-list" id="interventionsList">
+      <li>Caricamento dati...</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+// Retrieve data from localStorage or URL params
+const urlParams = new URLSearchParams(window.location.search);
+const substanceIndex = parseInt(urlParams.get('index')) || 0;
+
+// Mock data (in produzione, questo verrebbe da localStorage o sessionStorage)
+const substanceData = {
+  name: urlParams.get('name') || 'Sostanza chimica esempio',
+  cas: urlParams.get('cas') || 'N/A',
+  healthHCodes: ['H304', 'H315', 'H335'],
+  healthScore: 4.5,
+  riskInhal: 22.5,
+  riskDermal: 3.5,
+  riskHealthTotal: 25.5,
+  healthLevel: 'sup',
+  safetyHCodes: ['H226', 'H290'],
+  safetyPI: 75,
+  safetyIQ: 3,
+  safetyFCO: 2.25,
+  riskSafetyTotal: 506.25,
+  safetyLevel: 'grave',
+  overallRisk: 506.25
+};
+
+// Populate identification
+document.getElementById('substanceName').textContent = substanceData.name;
+document.getElementById('casNumber').textContent = substanceData.cas;
+document.getElementById('assessmentDate').textContent = new Date().toLocaleDateString('it-IT');
+
+// Populate health risk
+document.getElementById('healthHCodes').textContent = substanceData.healthHCodes.join(', ');
+document.getElementById('healthScore').textContent = substanceData.healthScore.toFixed(2);
+document.getElementById('riskInhal').textContent = substanceData.riskInhal.toFixed(2);
+document.getElementById('riskDermal').textContent = substanceData.riskDermal.toFixed(2);
+document.getElementById('healthRiskValue').textContent = substanceData.riskHealthTotal.toFixed(2);
+
+// Populate safety risk
+document.getElementById('safetyHCodes').textContent = substanceData.safetyHCodes.join(', ');
+document.getElementById('safetyPI').textContent = substanceData.safetyPI;
+document.getElementById('safetyIQ').textContent = substanceData.safetyIQ;
+document.getElementById('safetyFCO').textContent = substanceData.safetyFCO.toFixed(2);
+document.getElementById('safetyRiskValue').textContent = substanceData.riskSafetyTotal.toFixed(2);
+
+// Overall risk
+document.getElementById('overallRiskValue').textContent = substanceData.overallRisk.toFixed(2);
+
+// Risk badges
+function createBadge(level) {
+  const labels = {
+    irr: { text: 'Irrilevante', color: '#1fb26b' },
+    unc: { text: 'Incertezza', color: '#f0ad4e' },
+    sup: { text: 'Superiore', color: '#ff616f' },
+    elev: { text: 'Elevato', color: '#e89eff' },
+    grave: { text: 'Grave', color: '#ff8f8f' }
+  };
+  const badge = labels[level] || labels.irr;
+  return `<span style="background: ${badge.color}; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">${badge.text}</span>`;
+}
+
+document.getElementById('healthRiskBadge').innerHTML = createBadge(substanceData.healthLevel);
+document.getElementById('safetyRiskBadge').innerHTML = createBadge(substanceData.safetyLevel);
+document.getElementById('overallRiskBadge').innerHTML = createBadge(substanceData.safetyLevel); // use worst
+
+// Radar Chart
+const ctx = document.getElementById('radarChart');
+new Chart(ctx, {
+  type: 'radar',
+  data: {
+    labels: ['Pericolosità', 'Esposizione', 'Quantità', 'Condizioni Operative', 'Protezione'],
+    datasets: [{
+      label: 'RISCHIO SALUTE',
+      data: [
+        substanceData.healthScore * 10,
+        substanceData.riskInhal,
+        50,
+        30,
+        40
+      ],
+      backgroundColor: 'rgba(31, 178, 107, 0.2)',
+      borderColor: 'rgba(31, 178, 107, 1)',
+      borderWidth: 2
+    }, {
+      label: 'RISCHIO SICUREZZA',
+      data: [
+        substanceData.safetyPI,
+        substanceData.safetyIQ * 20,
+        substanceData.safetyFCO * 30,
+        60,
+        25
+      ],
+      backgroundColor: 'rgba(255, 97, 111, 0.2)',
+      borderColor: 'rgba(255, 97, 111, 1)',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          stepSize: 20,
+          color: '#9fb0cf'
+        },
+        grid: {
+          color: 'rgba(159, 176, 207, 0.2)'
+        },
+        pointLabels: {
+          color: '#e8eefc',
+          font: {
+            size: 14
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#e8eefc',
+          font: {
+            size: 14
+          }
+        }
+      }
+    }
+  }
+});
+
+// DPI recommendations based on risk levels
+function generateDPIList() {
+  const dpiList = [];
+
+  // Based on health risk
+  if (substanceData.healthScore > 5) {
+    dpiList.push('Maschera respiratoria con filtri A2P3 (protezione vapori organici e polveri)');
+  } else if (substanceData.healthScore > 3) {
+    dpiList.push('Maschera semifacciale con filtri A1 (vapori organici)');
+  }
+
+  if (substanceData.riskDermal > 5) {
+    dpiList.push('Guanti in nitrile resistenti a sostanze chimiche (EN 374)');
+    dpiList.push('Tuta di protezione chimica Categoria III Tipo 4 (EN 14605)');
+  } else {
+    dpiList.push('Guanti monouso in nitrile');
+  }
+
+  // Based on safety risk
+  if (substanceData.safetyHCodes.some(h => h.startsWith('H22'))) {
+    dpiList.push('Calzature di sicurezza antiscintilla S3 (EN ISO 20345)');
+    dpiList.push('Abbigliamento antistatico (EN 1149-5)');
+  }
+
+  if (substanceData.safetyPI > 60) {
+    dpiList.push('Schermo facciale per protezione da schizzi chimici');
+    dpiList.push('Grembiule impermeabile resistente agli agenti chimici');
+  }
+
+  // Always recommended
+  dpiList.push('Occhiali di protezione a mascherina (EN 166)');
+
+  return dpiList;
+}
+
+// Intervention plan based on risk levels
+function generateInterventionPlan() {
+  const interventions = [];
+
+  if (substanceData.overallRisk > 50) {
+    interventions.push({
+      text: 'URGENTE: Rivalutare immediatamente le misure di prevenzione e protezione',
+      priority: 'high'
+    });
+    interventions.push({
+      text: 'Implementare sistema di aspirazione localizzata (LEV) efficace',
+      priority: 'high'
+    });
+  }
+
+  if (substanceData.riskHealthTotal > 40) {
+    interventions.push({
+      text: 'Attivare sorveglianza sanitaria mirata con periodicità semestrale',
+      priority: 'high'
+    });
+  }
+
+  if (substanceData.safetyRiskTotal > 100) {
+    interventions.push({
+      text: 'Installare sistema di rilevazione fughe gas/vapori con allarme',
+      priority: 'high'
+    });
+    interventions.push({
+      text: 'Verificare impianto elettrico antideflagrante (ATEX)',
+      priority: 'high'
+    });
+  }
+
+  interventions.push({
+    text: 'Formazione specifica dei lavoratori sui rischi chimici (art. 227 D.Lgs 81/08)',
+    priority: 'medium'
+  });
+
+  interventions.push({
+    text: 'Aggiornare procedure operative e schede di sicurezza aziendali',
+    priority: 'medium'
+  });
+
+  interventions.push({
+    text: 'Pianificare campionamenti ambientali periodici (aria)',
+    priority: 'medium'
+  });
+
+  interventions.push({
+    text: 'Verificare efficienza DPI con test di fit testing',
+    priority: 'low'
+  });
+
+  return interventions;
+}
+
+// Populate DPI list
+const dpiList = generateDPIList();
+const dpiContainer = document.getElementById('dpiList');
+dpiContainer.innerHTML = dpiList.map(dpi => `<li>${dpi}</li>`).join('');
+
+// Populate interventions
+const interventions = generateInterventionPlan();
+const interventionsContainer = document.getElementById('interventionsList');
+interventionsContainer.innerHTML = interventions.map(int =>
+  `<li class="priority-${int.priority}">${int.text}</li>`
+).join('');
+</script>
+
+</body>
+</html>
