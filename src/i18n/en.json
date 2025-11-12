@@ -17,7 +17,8 @@
     "clear": "♻️ Clear",
     "test": "🧪 Library test",
     "exportExcel": "⬇️ Export Excel",
-    "exportWord": "⬇️ Export Word"
+    "exportWord": "⬇️ Export Word",
+    "cumulative": "📊 Cumulative Report"
   },
   "legend": {
     "title": "Risk judgement classes",
@@ -71,6 +72,22 @@
       "rCut": "Rₚ",
       "rTot": "Rₜ",
       "judgement": "Judgement",
+      "safety": {
+        "hCodesPhysical": "Physical H-codes",
+        "quantitySafety": "Quantity (kg/l)",
+        "flashPoint": "Flash Point (°C)",
+        "operatingTemp": "Operating Temp (°C)",
+        "systemType": "System",
+        "ventilation": "Ventilation",
+        "openFlames": "Open flames",
+        "ignitionSources": "Ignition sources",
+        "pi": "PI",
+        "iq": "IQ",
+        "fco": "FCO",
+        "riskSafety": "SAFETY Risk",
+        "safetyLevel": "SAFETY Level",
+        "overallRisk": "OVERALL RISK"
+      },
       "actions": "—"
     },
     "tooltips": {
@@ -179,6 +196,30 @@
       "3_5": "3 – 5 m (d = 0.50)",
       "5_10": "5 – 10 m (d = 0.25)",
       "ge_10": "≥ 10 m (d = 0.10)"
+    },
+    "safety": {
+      "physical_state": {
+        "solido": "Solid",
+        "liquido": "Liquid",
+        "gas": "Gas"
+      },
+      "system_type": {
+        "aperto": "Open system",
+        "chiuso": "Closed system"
+      },
+      "ventilation": {
+        "naturale": "Natural ventilation",
+        "forzata": "Forced ventilation",
+        "assente": "No ventilation"
+      }
+    }
+  },
+  "safety": {
+    "level": {
+      "basso": "LOW Risk",
+      "medio": "MEDIUM Risk",
+      "alto": "HIGH Risk",
+      "molto_alto": "VERY HIGH Risk"
     }
   },
   "errors": {
@@ -231,7 +272,21 @@
       "rInal": "Inhalation risk (R_inal)",
       "rCut": "Dermal risk (R_cut)",
       "rTot": "Cumulative health risk (R_tot)",
-      "final": "Final judgement"
+      "final": "Final judgement",
+      "hCodesPhysical": "Physical H-codes (Safety)",
+      "quantitySafety": "Quantity (kg/l)",
+      "flashPoint": "Flash point (°C)",
+      "operatingTemp": "Operating temperature (°C)",
+      "systemTypeSafety": "System type",
+      "ventilation": "Ventilation",
+      "openFlames": "Open flames present",
+      "ignitionSources": "Ignition sources present",
+      "pi": "Intrinsic Hazard (PI)",
+      "iq": "Quantity Index (IQ)",
+      "fco": "Operating Conditions Factor (FCO)",
+      "riskSafety": "Safety Risk",
+      "safetyLevel": "Safety Risk Level",
+      "overallRisk": "Overall Risk (Health + Safety)"
     }
   },
   "test": {

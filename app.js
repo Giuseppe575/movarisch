@@ -41,6 +41,40 @@ const H_SCORE = {
   "H341":8.00,"H351":8.00,"H361":8.00,"H361d":7.50,"H361f":7.50,"H361fd":8.00,
   "H362":6.00,
 };
+
+// =================== SAFETY HAZARDS (Physical H-codes) ===================
+const H_PHYSICAL_SCORE = {
+  // ESPLOSIVITÀ (100)
+  "H200":100, "H201":100, "H202":100, "H203":100, "H204":100, "H205":100,
+
+  // INFIAMMABILITÀ ALTA (75)
+  "H220":75, "H221":75, "H222":75, "H223":75, "H224":75, "H225":75, "H226":75,
+
+  // INFIAMMABILITÀ MEDIA (50)
+  "H227":50, "H228":50,
+
+  // AUTOACCENSIONE (80)
+  "H250":80, "H251":80, "H252":80,
+
+  // REATTIVITÀ ACQUA (70)
+  "H260":70, "H261":70,
+
+  // COMBURENZA (60)
+  "H270":60, "H271":60, "H272":60,
+
+  // PRESSIONE/INSTABILITÀ (30)
+  "H229":30, "H230":30, "H231":30, "H240":30, "H241":30, "H242":30,
+  "H280":30, "H281":30, "H290":30,
+
+  // EUH - PROPRIETÀ FISICHE (40)
+  "EUH001":40, "EUH006":40, "EUH014":40, "EUH018":40, "EUH019":40, "EUH044":40,
+
+  // EUH - ELEMENTI ETICHETTA (20)
+  "EUH201":20, "EUH201A":20, "EUH202":20, "EUH203":20, "EUH204":20,
+  "EUH205":20, "EUH206":20, "EUH207":20, "EUH208":20, "EUH209":20,
+  "EUH209A":20, "EUH210":20, "EUH401":20
+};
+
 const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
 const REGEX_H = /(EUH\d{3}|H\d{3})(?:\s*cat\.?\s*(1A|1B|1|2))?/gi;
 
@@ -97,6 +131,24 @@ const DISTANCE_OPTIONS = [
   makeOption('ge_10', 'options.distance.ge_10', { d:0.10 })
 ];
 
+// =================== SAFETY OPTIONS ===================
+const PHYSICAL_STATE_SAFETY_OPTIONS = [
+  makeOption('solido', 'options.safety.physical_state.solido'),
+  makeOption('liquido', 'options.safety.physical_state.liquido'),
+  makeOption('gas', 'options.safety.physical_state.gas')
+];
+
+const SYSTEM_TYPE_SAFETY_OPTIONS = [
+  makeOption('aperto', 'options.safety.system_type.aperto', { factor: 1.5 }),
+  makeOption('chiuso', 'options.safety.system_type.chiuso', { factor: 1.0 })
+];
+
+const VENTILATION_OPTIONS = [
+  makeOption('naturale', 'options.safety.ventilation.naturale', { factor: 1.0 }),
+  makeOption('forzata', 'options.safety.ventilation.forzata', { factor: 1.0 }),
+  makeOption('assente', 'options.safety.ventilation.assente', { factor: 1.3 })
+];
+
 const ECUT_MATRIX = {
   1: { 1:1, 2:1, 3:3, 4:7 }, // Sistema chiuso
   2: { 1:1, 2:3, 3:3, 4:7 }, // Inclusione in matrice
@@ -105,6 +157,7 @@ const ECUT_MATRIX = {
 };
 
 const defaults = {
+  // HEALTH defaults
   sistema:'controllato',
   controlType:'aspirazione_localizzata',
   exposureTime:'15_120',
@@ -113,7 +166,25 @@ const defaults = {
   contactLevel:'nessun_contatto',
   distanceBand:'1_3',
   DIS:0.75,
-  Ecut:1.0
+  Ecut:1.0,
+
+  // SAFETY defaults
+  hcodesPhysical: [],
+  physicalStateSafety: 'liquido',
+  systemTypeSafety: 'chiuso',
+  ventilation: 'naturale',
+  openFlames: false,
+  ignitionSources: false,
+  flashPoint: null,
+  autoIgnitionTemp: null,
+  operatingTemp: 25,
+  vaporPressure: null,
+  quantitySafety: null,
+  PI: 10,
+  IQ: 1,
+  FCO: 1.0,
+  RiskSafety: 10,
+  SafetyLevel: 'basso'
 };
 
 const MOVARISCH = window.movarischLib || {};
@@ -554,6 +625,7 @@ function pickScore(hcodes){
 
 // =================== TABLE & CALC ===================
 function recalcRow(row){
+  // HEALTH calculations
   updateExposureFactors(row);
   const distanceFactor = Number.isFinite(row.DIS) ? row.DIS : 0;
   const einal = MOVARISCH.calcEinal(row.I, distanceFactor);
@@ -564,6 +636,42 @@ function recalcRow(row){
   const risk = classifyRisk(row.Rtot);
   row.Giudizio = risk.text;
   row.GiudizioClass = risk.id;
+
+  // SAFETY calculations
+  if (!row.hcodesPhysical) row.hcodesPhysical = [];
+  if (!row.quantitySafety) row.quantitySafety = null;
+  if (!row.systemTypeSafety) row.systemTypeSafety = defaults.systemTypeSafety;
+  if (!row.ventilation) row.ventilation = defaults.ventilation;
+  if (row.openFlames === undefined) row.openFlames = defaults.openFlames;
+  if (row.ignitionSources === undefined) row.ignitionSources = defaults.ignitionSources;
+  if (!Number.isFinite(row.operatingTemp)) row.operatingTemp = defaults.operatingTemp;
+
+  row.PI = MOVARISCH.calcPI(row.hcodesPhysical, H_PHYSICAL_SCORE);
+  row.IQ = MOVARISCH.calcIQ(row.quantitySafety);
+  row.FCO = round(MOVARISCH.calcFCO(
+    row.systemTypeSafety,
+    row.ventilation,
+    row.openFlames,
+    row.ignitionSources,
+    row.operatingTemp,
+    row.flashPoint
+  ), 2);
+  row.RiskSafety = round(MOVARISCH.calcRiskSafety(row.PI, row.IQ, row.FCO), 2);
+
+  const safetyRisk = MOVARISCH.classifySafetyRisk(row.RiskSafety);
+  row.SafetyLevel = safetyRisk.level;
+  row.SafetyClass = safetyRisk.class;
+
+  // Overall risk (max of health and safety)
+  const healthRiskNumeric = row.Rtot;
+  const safetyRiskNumeric = row.RiskSafety;
+  row.OverallRiskValue = Math.max(healthRiskNumeric, safetyRiskNumeric);
+
+  // Determine overall class (worst case)
+  const healthClass = RISK_CLASSES.findIndex(c => c.id === row.GiudizioClass);
+  const safetyClass = RISK_CLASSES.findIndex(c => c.id === row.SafetyClass);
+  const overallClassIndex = Math.max(healthClass, safetyClass);
+  row.OverallClass = overallClassIndex >= 0 ? RISK_CLASSES[overallClassIndex].id : 'irr';
 }
 
 function render(){
@@ -596,6 +704,11 @@ function render(){
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
     const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
     const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
+
+    // Safety options
+    const systemTypeSafetyOptions = buildOptions(SYSTEM_TYPE_SAFETY_OPTIONS, r.systemTypeSafety);
+    const ventilationOptions = buildOptions(VENTILATION_OPTIONS, r.ventilation);
+
     const controlTitle = t('table.tooltips.controlIndex', { index: controlInfo?.index ?? '-' });
     const exposureTitle = t('table.tooltips.exposureIndex', { index: exposureInfo?.index ?? '-' });
     const dTitle = t('table.tooltips.dIndex');
@@ -630,6 +743,21 @@ function render(){
       <td class="num">${fmt(r.Rcut)}</td>
       <td class="num"><b>${fmt(r.Rtot)}</b></td>
       <td>${badge(r.Giudizio, r.GiudizioClass)}</td>
+      <!-- SAFETY COLUMNS -->
+      <td class="edit" data-field="hcodesPhysical" contenteditable>${escapeHtml((r.hcodesPhysical || []).join(';'))}</td>
+      <td class="num edit" data-field="quantitySafety" contenteditable>${fmt(r.quantitySafety)}</td>
+      <td class="num edit" data-field="flashPoint" contenteditable>${fmt(r.flashPoint)}</td>
+      <td class="num edit" data-field="operatingTemp" contenteditable>${fmt(r.operatingTemp)}</td>
+      <td><select data-system-type-safety>${systemTypeSafetyOptions}</select></td>
+      <td><select data-ventilation>${ventilationOptions}</select></td>
+      <td><input type="checkbox" data-open-flames ${r.openFlames ? 'checked' : ''} /></td>
+      <td><input type="checkbox" data-ignition-sources ${r.ignitionSources ? 'checked' : ''} /></td>
+      <td class="num">${fmt(r.PI)}</td>
+      <td class="num">${fmt(r.IQ)}</td>
+      <td class="num">${fmt(r.FCO)}</td>
+      <td class="num"><b>${fmt(r.RiskSafety)}</b></td>
+      <td>${badge(t('safety.level.' + r.SafetyLevel), r.SafetyClass)}</td>
+      <td class="num"><b>${badge(fmt(r.OverallRiskValue), r.OverallClass)}</b></td>
       <td><button class="btn" data-del="${i}" aria-label="${escapeHtml(deleteLabel)}">${escapeHtml(deleteLabel)}</button></td>`;
 
     tr.querySelectorAll('.edit').forEach((cell)=>{
@@ -643,6 +771,26 @@ function render(){
           if(isFinite(parsed)){
             r.SCORE = round(parsed, 2);
           }
+          render();
+        }
+        // SAFETY FIELDS
+        else if(field==='hcodesPhysical'){
+          r.hcodesPhysical = value.split(';').map(s=>s.trim()).filter(Boolean);
+          render();
+        }
+        else if(field==='quantitySafety'){
+          const parsed = parseNumeric(value);
+          r.quantitySafety = isFinite(parsed) ? parsed : null;
+          render();
+        }
+        else if(field==='flashPoint'){
+          const parsed = parseNumeric(value);
+          r.flashPoint = isFinite(parsed) ? parsed : null;
+          render();
+        }
+        else if(field==='operatingTemp'){
+          const parsed = parseNumeric(value);
+          r.operatingTemp = isFinite(parsed) ? parsed : 25;
           render();
         }
       });
@@ -683,11 +831,33 @@ function render(){
       render();
     });
 
+    // SAFETY EVENT LISTENERS
+    tr.querySelector('[data-system-type-safety]')?.addEventListener('change', (ev)=>{
+      r.systemTypeSafety = ev.target.value || defaults.systemTypeSafety;
+      render();
+    });
+
+    tr.querySelector('[data-ventilation]')?.addEventListener('change', (ev)=>{
+      r.ventilation = ev.target.value || defaults.ventilation;
+      render();
+    });
+
+    tr.querySelector('[data-open-flames]')?.addEventListener('change', (ev)=>{
+      r.openFlames = ev.target.checked;
+      render();
+    });
+
+    tr.querySelector('[data-ignition-sources]')?.addEventListener('change', (ev)=>{
+      r.ignitionSources = ev.target.checked;
+      render();
+    });
+
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
     tb.appendChild(tr);
   });
   document.querySelector('#exportBtn').disabled = state.rows.length===0;
   document.querySelector('#exportWordBtn').disabled = state.rows.length===0;
+  document.querySelector('#cumulativeBtn').disabled = state.rows.length===0;
 }
 
 function badge(text, cls){
@@ -908,7 +1078,22 @@ async function exportExcel(){
         R_inal:r.Rinal,
         R_cut:r.Rcut,
         R_tot:r.Rtot,
-        Giudizio:r.Giudizio
+        Giudizio:r.Giudizio,
+        // SAFETY FIELDS
+        Hcodes_Fisici:(r.hcodesPhysical || []).join(';'),
+        Quantita_Sicurezza_kg_l:r.quantitySafety ?? '',
+        Punto_Infiammabilita_C:r.flashPoint ?? '',
+        Temperatura_Esercizio_C:r.operatingTemp ?? 25,
+        Tipo_Sistema:SYSTEM_TYPE_SAFETY_OPTIONS.find(opt=>opt.value===r.systemTypeSafety)?.label ?? r.systemTypeSafety,
+        Ventilazione:VENTILATION_OPTIONS.find(opt=>opt.value===r.ventilation)?.label ?? r.ventilation,
+        Fiamme_Libere:r.openFlames ? 'Sì' : 'No',
+        Fonti_Innesco:r.ignitionSources ? 'Sì' : 'No',
+        Pericolo_Intrinseco_PI:r.PI,
+        Indice_Quantita_IQ:r.IQ,
+        Fattore_Condizioni_Operative_FCO:r.FCO,
+        Rischio_Sicurezza:r.RiskSafety,
+        Livello_Sicurezza:t('safety.level.' + r.SafetyLevel),
+        Rischio_Complessivo:r.OverallRiskValue
       };
     });
     const ws = XLSX.utils.json_to_sheet(flatRows);
@@ -992,7 +1177,22 @@ async function exportWord(){
         rInal: t('doc.fields.rInal'),
         rCut: t('doc.fields.rCut'),
         rTot: t('doc.fields.rTot'),
-        final: t('doc.fields.final')
+        final: t('doc.fields.final'),
+        // SAFETY FIELDS
+        hCodesPhysical: t('doc.fields.hCodesPhysical'),
+        quantitySafety: t('doc.fields.quantitySafety'),
+        flashPoint: t('doc.fields.flashPoint'),
+        operatingTemp: t('doc.fields.operatingTemp'),
+        systemTypeSafety: t('doc.fields.systemTypeSafety'),
+        ventilation: t('doc.fields.ventilation'),
+        openFlames: t('doc.fields.openFlames'),
+        ignitionSources: t('doc.fields.ignitionSources'),
+        pi: t('doc.fields.pi'),
+        iq: t('doc.fields.iq'),
+        fco: t('doc.fields.fco'),
+        riskSafety: t('doc.fields.riskSafety'),
+        safetyLevel: t('doc.fields.safetyLevel'),
+        overallRisk: t('doc.fields.overallRisk')
       }
     };
 
@@ -1028,7 +1228,22 @@ async function exportWord(){
         [docLabels.fields.eCut, String(r.Ecut ?? '')],
         [docLabels.fields.rInal, String(r.Rinal ?? '')],
         [docLabels.fields.rCut, String(r.Rcut ?? '')],
-        [docLabels.fields.rTot, String(r.Rtot ?? '')]
+        [docLabels.fields.rTot, String(r.Rtot ?? '')],
+        // SAFETY FIELDS
+        [docLabels.fields.hCodesPhysical, (r.hcodesPhysical || []).join('; ')],
+        [docLabels.fields.quantitySafety, String(r.quantitySafety ?? '')],
+        [docLabels.fields.flashPoint, String(r.flashPoint ?? '')],
+        [docLabels.fields.operatingTemp, String(r.operatingTemp ?? 25)],
+        [docLabels.fields.systemTypeSafety, SYSTEM_TYPE_SAFETY_OPTIONS.find(opt=>opt.value===r.systemTypeSafety)?.label ?? r.systemTypeSafety],
+        [docLabels.fields.ventilation, VENTILATION_OPTIONS.find(opt=>opt.value===r.ventilation)?.label ?? r.ventilation],
+        [docLabels.fields.openFlames, r.openFlames ? 'Sì' : 'No'],
+        [docLabels.fields.ignitionSources, r.ignitionSources ? 'Sì' : 'No'],
+        [docLabels.fields.pi, String(r.PI ?? 10)],
+        [docLabels.fields.iq, String(r.IQ ?? 1)],
+        [docLabels.fields.fco, String(r.FCO ?? 1.0)],
+        [docLabels.fields.riskSafety, String(r.RiskSafety ?? 10)],
+        [docLabels.fields.safetyLevel, t('safety.level.' + r.SafetyLevel)],
+        [docLabels.fields.overallRisk, String(r.OverallRiskValue ?? 0)]
       ];
 
       // Crea righe della tabella
