@@ -295,19 +295,55 @@
 </div>
 
 <script>
+console.log('🟢 INIZIO caricamento cumulative-report.html');
+
 // Recupera dati reali da localStorage
 let cumulativeData = null;
 let substanceData = null;
 
 try{
+  console.log('🟢 Tentativo lettura da localStorage...');
   const stored = localStorage.getItem('movarisch_cumulative_data');
+
+  console.log('🟢 Raw string da localStorage:', stored);
+  console.log('🟢 Lunghezza string:', stored ? stored.length : 'NULL');
+
+  if(!stored){
+    console.error('❌ ERRORE CRITICO: localStorage è VUOTO!');
+    console.error('❌ Assicurati di aprire questa pagina dal pulsante "Scheda Cumulativa"');
+  }
+
   if(stored){
     cumulativeData = JSON.parse(stored);
-    console.log('Dati caricati da localStorage:', cumulativeData);
+    console.log('🟢 Dati PARSATI da localStorage:', cumulativeData);
+    console.log('🟢 Timestamp dei dati:', cumulativeData.timestamp);
+    console.log('🟢 Numero di righe (rows.length):', cumulativeData.rows ? cumulativeData.rows.length : 'NO ROWS');
+
+    // Verifica che i dati siano recenti (max 5 minuti fa)
+    if(cumulativeData.timestamp){
+      const dataAge = new Date() - new Date(cumulativeData.timestamp);
+      const ageMinutes = Math.floor(dataAge / 60000);
+      console.log('🟢 Età dei dati:', ageMinutes, 'minuti');
+      if(ageMinutes > 5){
+        console.warn('⚠️ ATTENZIONE: I dati hanno più di 5 minuti!');
+      }
+    }
 
     // Usa la prima sostanza se presente, altrimenti usa dati di default
     if(cumulativeData.rows && cumulativeData.rows.length > 0){
       const row = cumulativeData.rows[0]; // Prima sostanza
+      console.log('🟢 PRIMA RIGA estratta (row):', row);
+      console.log('🟢 row.nome:', row.nome);
+      console.log('🟢 row.hcodes:', row.hcodes);
+      console.log('🟢 row.SCORE:', row.SCORE);
+      console.log('🟢 row.Rinal:', row.Rinal);
+      console.log('🟢 row.Rcut:', row.Rcut);
+      console.log('🟢 row.Rtot:', row.Rtot);
+      console.log('🟢 row.hcodesPhysical:', row.hcodesPhysical);
+      console.log('🟢 row.PI:', row.PI);
+      console.log('🟢 row.RiskSafety:', row.RiskSafety);
+      console.log('🟢 row.OverallRiskValue:', row.OverallRiskValue);
+
       substanceData = {
         name: row.nome || 'N/A',
         cas: row.cas || 'N/A',
@@ -325,16 +361,27 @@ try{
         safetyLevel: row.SafetyClass || 'irr',
         overallRisk: row.OverallRiskValue || 0
       };
+
+      console.log('🟢 substanceData CREATO:', substanceData);
+    } else {
+      console.warn('⚠️ cumulativeData.rows è VUOTO o non esiste');
     }
+  } else {
+    console.warn('⚠️ localStorage NON contiene movarisch_cumulative_data');
   }
 }catch(err){
-  console.error('Errore lettura dati localStorage:', err);
+  console.error('❌ ERRORE lettura dati localStorage:', err);
 }
 
-// Fallback a dati mock se non ci sono dati reali
+// Fallback SOLO se non ci sono dati reali
 if(!substanceData){
+  console.error('❌ ERRORE CRITICO: substanceData NON creato!');
+  console.error('❌ CAUSA: localStorage vuoto o dati corrotti');
+  console.error('❌ SOLUZIONE: Torna a index.html, carica un PDF, clicca "Estrai & Calcola", poi "Scheda Cumulativa"');
+
+  // Mostra messaggio di errore chiaro all'utente
   substanceData = {
-    name: 'Nessun dato disponibile',
+    name: '⚠️ NESSUN DATO - Apri questa pagina dal pulsante "Scheda Cumulativa"',
     cas: 'N/A',
     healthHCodes: [],
     healthScore: 0,
@@ -353,26 +400,43 @@ if(!substanceData){
 }
 
 // Populate identification
+console.log('🟢 POPOLAZIONE UI - Inizio');
 document.getElementById('substanceName').textContent = substanceData.name;
 document.getElementById('casNumber').textContent = substanceData.cas;
 document.getElementById('assessmentDate').textContent = new Date().toLocaleDateString('it-IT');
+console.log('🟢 UI - Nome:', substanceData.name);
+console.log('🟢 UI - CAS:', substanceData.cas);
 
 // Populate health risk
-document.getElementById('healthHCodes').textContent = substanceData.healthHCodes.join(', ');
+const healthHCodesText = substanceData.healthHCodes.join(', ');
+document.getElementById('healthHCodes').textContent = healthHCodesText;
 document.getElementById('healthScore').textContent = substanceData.healthScore.toFixed(2);
 document.getElementById('riskInhal').textContent = substanceData.riskInhal.toFixed(2);
 document.getElementById('riskDermal').textContent = substanceData.riskDermal.toFixed(2);
 document.getElementById('healthRiskValue').textContent = substanceData.riskHealthTotal.toFixed(2);
+console.log('🟢 UI - H-codes SALUTE:', healthHCodesText);
+console.log('🟢 UI - SCORE:', substanceData.healthScore.toFixed(2));
+console.log('🟢 UI - Rischio Inalatorio:', substanceData.riskInhal.toFixed(2));
+console.log('🟢 UI - Rischio Cutaneo:', substanceData.riskDermal.toFixed(2));
+console.log('🟢 UI - Rischio Totale SALUTE:', substanceData.riskHealthTotal.toFixed(2));
 
 // Populate safety risk
-document.getElementById('safetyHCodes').textContent = substanceData.safetyHCodes.join(', ');
+const safetyHCodesText = substanceData.safetyHCodes.join(', ');
+document.getElementById('safetyHCodes').textContent = safetyHCodesText;
 document.getElementById('safetyPI').textContent = substanceData.safetyPI;
 document.getElementById('safetyIQ').textContent = substanceData.safetyIQ;
 document.getElementById('safetyFCO').textContent = substanceData.safetyFCO.toFixed(2);
 document.getElementById('safetyRiskValue').textContent = substanceData.riskSafetyTotal.toFixed(2);
+console.log('🟢 UI - H-codes SICUREZZA:', safetyHCodesText);
+console.log('🟢 UI - PI (Pericolo Intrinseco):', substanceData.safetyPI);
+console.log('🟢 UI - IQ (Indice Quantità):', substanceData.safetyIQ);
+console.log('🟢 UI - FCO (Condizioni Operative):', substanceData.safetyFCO.toFixed(2));
+console.log('🟢 UI - Rischio Totale SICUREZZA:', substanceData.riskSafetyTotal.toFixed(2));
 
 // Overall risk
 document.getElementById('overallRiskValue').textContent = substanceData.overallRisk.toFixed(2);
+console.log('🟢 UI - RISCHIO COMPLESSIVO:', substanceData.overallRisk.toFixed(2));
+console.log('🟢 POPOLAZIONE UI - Fine');
 
 // Risk badges
 function createBadge(level) {
