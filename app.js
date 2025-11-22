@@ -1642,6 +1642,22 @@ exportBtn.addEventListener('click', exportExcel);
 exportWordBtn.addEventListener('click', exportWord);
 clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); });
 
+// Scheda Cumulativa - salva dati in localStorage prima di aprire
+document.querySelector('#cumulativeBtn').addEventListener('click', ()=>{
+  try{
+    // Salva tutti i dati della tabella in localStorage
+    localStorage.setItem('movarisch_cumulative_data', JSON.stringify({
+      rows: state.rows,
+      timestamp: new Date().toISOString(),
+      count: state.rows.length
+    }));
+    // Apri la scheda cumulativa
+    window.open('cumulative-report.html', '_blank');
+  }catch(err){
+    console.error('Errore salvataggio dati cumulativi:', err);
+    showAlert('Errore nel caricamento della scheda cumulativa');
+  }
+});
 
 if(window.i18n && typeof window.i18n.onChange === 'function'){
   window.i18n.onChange(()=>{ render(); });

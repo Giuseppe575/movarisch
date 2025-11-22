@@ -295,28 +295,62 @@
 </div>
 
 <script>
-// Retrieve data from localStorage or URL params
-const urlParams = new URLSearchParams(window.location.search);
-const substanceIndex = parseInt(urlParams.get('index')) || 0;
+// Recupera dati reali da localStorage
+let cumulativeData = null;
+let substanceData = null;
 
-// Mock data (in produzione, questo verrebbe da localStorage o sessionStorage)
-const substanceData = {
-  name: urlParams.get('name') || 'Sostanza chimica esempio',
-  cas: urlParams.get('cas') || 'N/A',
-  healthHCodes: ['H304', 'H315', 'H335'],
-  healthScore: 4.5,
-  riskInhal: 22.5,
-  riskDermal: 3.5,
-  riskHealthTotal: 25.5,
-  healthLevel: 'sup',
-  safetyHCodes: ['H226', 'H290'],
-  safetyPI: 75,
-  safetyIQ: 3,
-  safetyFCO: 2.25,
-  riskSafetyTotal: 506.25,
-  safetyLevel: 'grave',
-  overallRisk: 506.25
-};
+try{
+  const stored = localStorage.getItem('movarisch_cumulative_data');
+  if(stored){
+    cumulativeData = JSON.parse(stored);
+    console.log('Dati caricati da localStorage:', cumulativeData);
+
+    // Usa la prima sostanza se presente, altrimenti usa dati di default
+    if(cumulativeData.rows && cumulativeData.rows.length > 0){
+      const row = cumulativeData.rows[0]; // Prima sostanza
+      substanceData = {
+        name: row.nome || 'N/A',
+        cas: row.cas || 'N/A',
+        healthHCodes: row.hcodes || [],
+        healthScore: row.SCORE || 0,
+        riskInhal: row.Rinal || 0,
+        riskDermal: row.Rcut || 0,
+        riskHealthTotal: row.Rtot || 0,
+        healthLevel: row.GiudizioClass || 'irr',
+        safetyHCodes: row.hcodesPhysical || [],
+        safetyPI: row.PI || 0,
+        safetyIQ: row.IQ || 0,
+        safetyFCO: row.FCO || 0,
+        riskSafetyTotal: row.RiskSafety || 0,
+        safetyLevel: row.SafetyClass || 'irr',
+        overallRisk: row.OverallRiskValue || 0
+      };
+    }
+  }
+}catch(err){
+  console.error('Errore lettura dati localStorage:', err);
+}
+
+// Fallback a dati mock se non ci sono dati reali
+if(!substanceData){
+  substanceData = {
+    name: 'Nessun dato disponibile',
+    cas: 'N/A',
+    healthHCodes: [],
+    healthScore: 0,
+    riskInhal: 0,
+    riskDermal: 0,
+    riskHealthTotal: 0,
+    healthLevel: 'irr',
+    safetyHCodes: [],
+    safetyPI: 0,
+    safetyIQ: 0,
+    safetyFCO: 0,
+    riskSafetyTotal: 0,
+    safetyLevel: 'irr',
+    overallRisk: 0
+  };
+}
 
 // Populate identification
 document.getElementById('substanceName').textContent = substanceData.name;
