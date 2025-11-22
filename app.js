@@ -1578,6 +1578,15 @@ parseBtn.addEventListener('click', async ()=>{
 
       const productName = extractProductName(text) || file.name.replace(/\.pdf$/i, '');
 
+      // Pulizia nome commerciale
+      let cleanedProductName = productName;
+      if (cleanedProductName) {
+        cleanedProductName = cleanedProductName
+          .replace(/^commerciale:\s*/i, '')                    // Rimuove "commerciale:"
+          .replace(/\s*\(Segue da pagina \d+\)/gi, '')         // Rimuove "(Segue da pagina X)"
+          .trim();
+      }
+
       // Log per debug (visibile in console)
       console.log(`[${file.name}] EXTRACTION:`, {
         healthCodes: hcodesHealth,
@@ -1589,7 +1598,7 @@ parseBtn.addEventListener('click', async ()=>{
       const row = {
         // HEALTH fields
         file: file.name,
-        nome: productName,
+        nome: cleanedProductName,
         statoFisico: defaults.statoFisico,
         hcodes: hcodesHealth, // Solo H-codes salute
         SCORE: score,
