@@ -1645,16 +1645,39 @@ clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); 
 // Scheda Cumulativa - salva dati in localStorage prima di aprire
 document.querySelector('#cumulativeBtn').addEventListener('click', ()=>{
   try{
+    console.log('🔵 CLICK Scheda Cumulativa');
+    console.log('🔵 state.rows PRIMA del salvataggio:', state.rows);
+    console.log('🔵 state.rows.length:', state.rows.length);
+
     // Salva tutti i dati della tabella in localStorage
-    localStorage.setItem('movarisch_cumulative_data', JSON.stringify({
+    const dataToSave = {
       rows: state.rows,
       timestamp: new Date().toISOString(),
       count: state.rows.length
-    }));
-    // Apri la scheda cumulativa
-    window.open('cumulative-report.html', '_blank');
+    };
+
+    console.log('🔵 Dati DA SALVARE in localStorage:', dataToSave);
+
+    // CANCELLA vecchi dati prima di salvare nuovi (evita contaminazione)
+    localStorage.removeItem('movarisch_cumulative_data');
+    console.log('🔵 Vecchi dati cancellati da localStorage');
+
+    // Salva i nuovi dati
+    localStorage.setItem('movarisch_cumulative_data', JSON.stringify(dataToSave));
+
+    // Verifica immediatamente cosa è stato salvato
+    const verificaSalvato = localStorage.getItem('movarisch_cumulative_data');
+    console.log('🔵 Verifica DOPO salvataggio - localStorage contiene:', verificaSalvato);
+    console.log('🔵 Verifica PARSED:', JSON.parse(verificaSalvato));
+
+    // Apri la scheda cumulativa con timestamp per evitare cache
+    const timestamp = new Date().getTime();
+    const url = `cumulative-report.html?t=${timestamp}`;
+    console.log('🔵 Apertura finestra:', url);
+    window.open(url, '_blank');
   }catch(err){
-    console.error('Errore salvataggio dati cumulativi:', err);
+    console.error('❌ ERRORE salvataggio dati cumulativi:', err);
+    console.error('❌ Stack:', err.stack);
     showAlert('Errore nel caricamento della scheda cumulativa');
   }
 });
