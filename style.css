@@ -57,7 +57,25 @@ table#tbl tbody td select{display:inline-block !important; visibility:visible !i
 table#tbl tbody td select option{color:#e8eefc !important; background:#0e1a33 !important; padding:6px !important; font-size:14px !important}
 table#tbl tbody td.num, table#tbl thead th.num{text-align:right}
 table#tbl tbody td.edit{background:#0f1c38 !important}
-table#tbl tbody td [contenteditable]{display:inline-block !important; min-height:25px !important; color:#e8eefc !important; width:100%}
+table#tbl tbody td [contenteditable]{display:inline-block !important; min-height:25px !important; color:#e8eefc !important; width:100% !important}
+/* FORZA VISIBILITÀ TOTALE DI TUTTI GLI ELEMENTI NELLE CELLE */
+#tbl tbody td *, #tbl tbody td select, #tbl tbody td [contenteditable], #tbl tbody td input, #tbl tbody td button{
+    display:inline-block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    color:#e8eefc !important;
+    min-height:30px !important;
+    font-size:14px !important;
+}
+#tbl tbody td select{
+    background:#0e1a33 !important;
+    border:2px solid #4a5f8a !important;
+    padding:8px !important;
+    min-width:120px !important;
+}
+#tbl tbody td.num, #tbl tbody td.edit{
+    color:#e8eefc !important;
+}
 .badge{padding:6px 10px; border-radius:12px; font-weight:600; display:block; line-height:1.3}
 .b-irr{background:rgba(31,178,107,.18); color:var(--ok); border:1px solid rgba(31,178,107,.35)}
 .b-unc{background:rgba(240,173,78,.18); color:var(--mod); border:1px solid rgba(240,173,78,.4)}
