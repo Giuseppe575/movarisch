@@ -46,8 +46,9 @@ select{appearance:none; -webkit-appearance:none; min-width:160px}
 .ticket-box{border-top:1px solid #273756; padding-top:12px; display:grid; gap:8px}
 .ticket-box h3{margin:0}
 .ticket-box p{margin:0; color:var(--muted)}
-table{width:100%; border-collapse:collapse; margin-top:12px}
-th, td{border:1px solid #2a3a5a; padding:8px; vertical-align:top}
+.table-wrapper{width:100%; overflow-x:auto; overflow-y:visible}
+table{width:100%; border-collapse:collapse; margin-top:12px; table-layout:auto}
+th, td{border:1px solid #2a3a5a; padding:8px; vertical-align:top; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; max-width:250px}
 th{background:#0e1830; position:sticky; top:84px; z-index:2}
 td.num, th.num{text-align:right}
 td.edit{background:#0f1c38}

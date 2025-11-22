@@ -35,7 +35,6 @@
       </label>
       <button class="btn" id="parseBtn" disabled data-i18n="buttons.parse">🔍 Estrai & Calcola</button>
       <button class="btn" id="clearBtn" data-i18n="buttons.clear">♻️ Svuota</button>
-      <button class="btn" id="testBtn" data-i18n="buttons.test">🧪 Test libreria</button>
       <button class="btn primary" id="exportBtn" disabled data-i18n="buttons.exportExcel">⬇️ Esporta Excel</button>
       <button class="btn primary" id="exportWordBtn" disabled data-i18n="buttons.exportWord">⬇️ Esporta Word</button>
       <button class="btn" id="cumulativeBtn" disabled data-i18n="buttons.cumulative" onclick="window.open('cumulative-report.html', '_blank')">📊 Scheda Cumulativa</button>
@@ -106,8 +105,9 @@
   </section>
 
   <section class="card" style="margin-top:14px">
-    <table id="tbl">
-      <thead>
+    <div class="table-wrapper">
+      <table id="tbl">
+        <thead>
         <tr>
           <th data-i18n="table.headers.file">File</th>
           <th data-i18n="table.headers.tradeName">Nome commerciale</th>
@@ -152,7 +152,8 @@
         </tr>
       </thead>
       <tbody></tbody>
-    </table>
+      </table>
+    </div>
   </section>
 </main>
 
