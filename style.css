@@ -85,3 +85,40 @@ table#tbl tbody td [contenteditable]{display:inline-block !important; min-height
 footer{color:var(--muted); text-align:center; padding:18px}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 #alert{display:none;margin-top:10px;padding:10px 12px;border:1px solid #5b1b1b;background:#2a0b0b;color:#ffd7d7;border-radius:8px}
+
+/* === TEST VISIBILITA FORZATA === */
+#tbl, #tbl *, #tbl tbody, #tbl tbody tr, #tbl tbody td {
+    all: revert !important;
+}
+
+#tbl tbody tr {
+    display: table-row !important;
+    height: 60px !important;
+    background: rgba(255, 0, 0, 0.5) !important;
+    border: 3px solid lime !important;
+}
+
+#tbl tbody td {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: yellow !important;
+    background: blue !important;
+    font-size: 20px !important;
+    font-weight: bold !important;
+    padding: 20px !important;
+    border: 2px solid white !important;
+    line-height: 1.5 !important;
+    overflow: visible !important;
+}
+
+#tbl tbody td * {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: white !important;
+    background: rgba(0, 255, 0, 0.3) !important;
+    font-size: 18px !important;
+    min-width: 50px !important;
+    min-height: 30px !important;
+}
