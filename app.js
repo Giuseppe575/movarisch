@@ -756,9 +756,24 @@ function recalcRow(row){
 }
 
 function render(){
+  console.log('🔄 render() chiamata - state.rows.length:', state.rows.length);
   const tb = document.querySelector('#tbl tbody');
+  console.log('📋 tbody trovato:', tb);
   tb.innerHTML = '';
   state.rows.forEach((r,i)=>{
+    console.log('➕ Creando riga', i, 'per:', r.file);
+    console.log('📊 Dati completi riga:', JSON.stringify(r, null, 2));
+    console.log('🔍 Campi chiave:', {
+      file: r.file,
+      nome: r.nome,
+      statoFisico: r.statoFisico,
+      hcodes: r.hcodes,
+      SCORE: r.SCORE,
+      sistema: r.sistema,
+      controlType: r.controlType,
+      exposureTime: r.exposureTime
+    });
+    try{
     recalcRow(r);
     if(!r.statoFisico){ r.statoFisico = defaults.statoFisico; }
     if(!r.qtyBand){
@@ -785,6 +800,12 @@ function render(){
     const statoOptions = buildOptions(STATO_FISICO_OPTIONS, r.statoFisico);
     const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
     const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
+
+    console.log('🔧 Options generate:', {
+      statoOptions: statoOptions.substring(0, 100),
+      sistemaOptions: sistemaOptions.substring(0, 100),
+      controlOptions: controlOptions.substring(0, 100)
+    });
 
     const controlTitle = t('table.tooltips.controlIndex', { index: controlInfo?.index ?? '-' });
     const exposureTitle = t('table.tooltips.exposureIndex', { index: exposureInfo?.index ?? '-' });
@@ -936,6 +957,11 @@ function render(){
 
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
     tb.appendChild(tr);
+    console.log('✅ Riga', i, 'aggiunta al DOM');
+    }catch(err){
+      console.error('❌ ERRORE creando riga', i, ':', err);
+      console.error('Stack:', err.stack);
+    }
   });
   document.querySelector('#exportBtn').disabled = state.rows.length===0;
   document.querySelector('#exportWordBtn').disabled = state.rows.length===0;
@@ -1594,7 +1620,9 @@ parseBtn.addEventListener('click', async ()=>{
         OverallRiskValue: 0, OverallClass: 'irr'
       };
       state.rows.push(row);
+      console.log('✅ Riga aggiunta a state.rows. Totale righe:', state.rows.length);
     }
+    console.log('🎯 Estrazione completata. Chiamo render() con', state.rows.length, 'righe');
     render();
   }catch(err){
     showAlert(t('errors.pdfParse', { error: describeError(err) }));
@@ -1605,44 +1633,6 @@ exportBtn.addEventListener('click', exportExcel);
 exportWordBtn.addEventListener('click', exportWord);
 clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); });
 
-// =================== TEST CASE ===================
-const TEST_PDF_BASE64 = 'JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHMgWzIgMCBSXS9Db3VudCAxPj4KZW5kb2JqCjIgMCBvYmoKPDwvVHlwZS9QYWdlL1BhcmVudCAxIDAgUi9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUmVzb3VyY2VzPDwvUHJvY1svUERGIC9UZXh0XSA+Pi9Db250ZW50cyAzIDAgUj4+CmVuZG9iajozIDAgb2JqCjw8L0xlbmd0aCAxMTM+PgpzdHJlYW0KQlQKL0YxIDEyIFRmCjEwMCA3MDAgVGQKKC9IQzMxNyBjYXQuMUIgSDMzNSkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDA5NjMgMDAwMDAgbg0KMDAwMDAwMDEzNiAwMDAwMCBuDQowMDAwMDAwMjc0IDAwMDAwIG4NCnRyYWlsZXIKPDwvU2l6ZSA0IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjM5OQolJUVPRgo=';
-
-async function runTest(){
-  clearAlert();
-  try{
-    await ensurePdfJs();
-    const bin = atob(TEST_PDF_BASE64);
-    const bytes = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    const testFile = new File([bytes], 'TEST_H317_H335.pdf', {type:'application/pdf'});
-    const text = await pdfToText(testFile);
-    const productName = extractProductName(text) || t('test.productName');
-    const h = findH(text);
-    state.rows = [{
-      file: testFile.name,
-      nome: productName,
-      statoFisico: defaults.statoFisico,
-      hcodes: h,
-      SCORE: pickScore(h),
-      sistema: defaults.sistema,
-      controlType: defaults.controlType,
-      exposureTime: defaults.exposureTime,
-      qtyBand: defaults.qtyBand,
-      qty: getQuantityOption(defaults.qtyBand)?.label ?? defaults.qtyBand,
-      contactLevel: defaults.contactLevel,
-      distanceBand: defaults.distanceBand,
-      D: 0, Q:0, U: 0, C: 0, T:0,
-      I: 0, DIS: defaults.DIS, Ecut: defaults.Ecut,
-      Einal:0,Rinal:0,Rcut:0,Rtot:0,Giudizio:'', GiudizioClass:''
-    }];
-    render();
-    showAlert(t('alerts.testSuccess', { codes: h.join('; ') }));
-  }catch(e){
-    showAlert(t('errors.testFailed', { error: describeError(e) }));
-  }
-}
-
-document.querySelector('#testBtn').addEventListener('click', runTest);
 
 if(window.i18n && typeof window.i18n.onChange === 'function'){
   window.i18n.onChange(()=>{ render(); });

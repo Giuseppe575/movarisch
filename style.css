@@ -46,12 +46,18 @@ select{appearance:none; -webkit-appearance:none; min-width:160px}
 .ticket-box{border-top:1px solid #273756; padding-top:12px; display:grid; gap:8px}
 .ticket-box h3{margin:0}
 .ticket-box p{margin:0; color:var(--muted)}
-.table-wrapper{width:100%; overflow-x:auto; overflow-y:visible}
-table{width:100%; border-collapse:collapse; margin-top:12px; table-layout:auto}
-th, td{border:1px solid #2a3a5a; padding:8px; vertical-align:top; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; max-width:250px}
-th{background:#0e1830; position:sticky; top:84px; z-index:2}
-td.num, th.num{text-align:right}
-td.edit{background:#0f1c38}
+.table-wrapper{width:100%; overflow-x:auto; overflow-y:auto; padding-bottom:20px; min-height:200px}
+table#tbl{width:100%; border-collapse:collapse; margin-top:12px; margin-bottom:20px; table-layout:auto}
+table#tbl tbody{display:table-row-group !important; visibility:visible !important; opacity:1 !important}
+table#tbl tbody tr{display:table-row !important; height:auto !important; min-height:50px !important; visibility:visible !important; opacity:1 !important}
+table#tbl thead th, table#tbl tbody td{border:1px solid #2a3a5a !important; padding:10px !important; vertical-align:middle !important; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; max-width:250px; display:table-cell !important; visibility:visible !important; opacity:1 !important; font-size:14px !important; line-height:1.6 !important; min-height:50px !important}
+table#tbl thead th{background:#0e1830 !important; position:sticky; top:84px; z-index:2; color:#e8eefc !important}
+table#tbl tbody td{color:#e8eefc !important; background:rgba(14,26,51,0.5) !important}
+table#tbl tbody td select{display:inline-block !important; visibility:visible !important; opacity:1 !important; min-height:35px !important; height:auto !important; color:#e8eefc !important; background:#0e1a33 !important; font-size:14px !important; padding:8px 10px !important; border:2px solid #273756 !important; width:auto !important; min-width:140px !important}
+table#tbl tbody td select option{color:#e8eefc !important; background:#0e1a33 !important; padding:6px !important; font-size:14px !important}
+table#tbl tbody td.num, table#tbl thead th.num{text-align:right}
+table#tbl tbody td.edit{background:#0f1c38 !important}
+table#tbl tbody td [contenteditable]{display:inline-block !important; min-height:25px !important; color:#e8eefc !important; width:100%}
 .badge{padding:6px 10px; border-radius:12px; font-weight:600; display:block; line-height:1.3}
 .b-irr{background:rgba(31,178,107,.18); color:var(--ok); border:1px solid rgba(31,178,107,.35)}
 .b-unc{background:rgba(240,173,78,.18); color:var(--mod); border:1px solid rgba(240,173,78,.4)}
