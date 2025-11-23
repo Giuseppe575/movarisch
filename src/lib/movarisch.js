@@ -73,40 +73,57 @@
   };
 
   // Calculate IRC (Indice Rischio Chimico)
-  // Formula esponenziale semplificata: IRC = 10^((D+E)/100)
-  // Questa formula gestisce correttamente anche valori negativi di E (DPI molto efficaci)
+  // Formula M.I.R.C. (INRS): IRC = (D + E) / 100
+  // Se IRC < 0, viene considerato come 0 (rischio irrilevante)
   const calcMircIRC = (D, E) => {
     const d = Number.isFinite(D) ? D : 0;
     const e = Number.isFinite(E) ? E : 0;
 
-    // IRC = 10^((D+E)/100)
-    const exponent = (d + e) / 100;
-    return Math.pow(10, exponent);
+    // IRC = (D + E) / 100
+    const irc = (d + e) / 100;
+
+    // Se negativo (fattori di riduzione molto efficaci), consideriamo 0
+    return Math.max(0, irc);
   };
 
-  // Classify M.I.R.C. IRC Level (3 levels INRS standard)
+  // Classify M.I.R.C. IRC Level according to INRS methodology
   const classifyMircRisk = (irc) => {
     const risk = Number.isFinite(irc) ? irc : 0;
 
-    // Classificazione INRS standard a 3 livelli
-    if (risk < 1.0) {
+    // Classificazione M.I.R.C. (INRS) a 5 livelli
+    if (risk <= 6.0) {
+      return {
+        level: 'irrilevante',
+        class: 'irr',
+        text: 'RISCHIO IRRILEVANTE (Basso)'
+      };
+    }
+    if (risk <= 12.0) {
       return {
         level: 'basso',
         class: 'irr',
-        text: 'RISCHIO BASSO (Accettabile)'
+        text: 'RISCHIO BASSO (Basso)'
       };
     }
-    if (risk < 10.0) {
+    if (risk <= 18.0) {
       return {
-        level: 'medio',
+        level: 'considerevole',
         class: 'unc',
-        text: 'RISCHIO MEDIO (Verificare misure)'
+        text: 'RISCHIO CONSIDEREVOLE (Non basso)'
       };
     }
+    if (risk <= 24.0) {
+      return {
+        level: 'importante',
+        class: 'sup',
+        text: 'RISCHIO IMPORTANTE (Non basso)'
+      };
+    }
+    // risk > 24.0
     return {
-      level: 'alto',
+      level: 'elevato',
       class: 'grave',
-      text: 'RISCHIO ALTO (Non tollerabile)'
+      text: 'RISCHIO ELEVATO (Non basso)'
     };
   };
 

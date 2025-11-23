@@ -173,15 +173,15 @@ const defaults = {
   flashPoint: null,
   autoIgnitionTemp: null,
 
-  // M.I.R.C. Fattori di Danno
-  A1: 0,  // Danno salute (H3xx, H4xx)
-  A2: 0,  // Danno sicurezza (H2xx fisici)
+  // M.I.R.C. Fattori di Danno (per la SICUREZZA)
+  A1: 0,  // Proprietà chimico-fisiche pericolose (esplosivi, infiammabili, comburenti, corrosivi)
+  A2: 0,  // Proprietà chimiche pericolose (reazioni pericolose)
 
-  // M.I.R.C. Fattori di Esposizione
-  B1: 0,  // Quantità utilizzata
-  B2: 0,  // Frequenza/Durata
-  B3: 0,  // Ventilazione/Contenimento
-  B4: 0,  // DPI e protezioni (può essere negativo)
+  // M.I.R.C. Fattori di Esposizione (per la SICUREZZA)
+  B1: 0,  // Modalità di lavoro
+  B2: 0,  // Frequenza e tempi di utilizzo
+  B3: 0,  // Quantitativi utilizzati
+  B4: 0,  // Fattori di riduzione (NEGATIVI: più misure = più sottrazioni)
 
   // M.I.R.C. Indici calcolati
   D_mirc: 0,   // D = A1 + A2
