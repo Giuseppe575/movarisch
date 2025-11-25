@@ -1,0 +1,98 @@
+═══════════════════════════════════════════════════════════════════════════
+    🧪 ISTRUZIONI RAPIDE PER TEST MANUALE
+═══════════════════════════════════════════════════════════════════════════
+
+✅ STATUS: index.html aperto nel browser
+
+📋 PROSSIMI PASSI:
+
+1. APRI LA CONSOLE DEL BROWSER
+   - Premi F12
+   - Vai al tab "Console"
+
+2. CARICA L'HELPER DI VALIDAZIONE (opzionale ma raccomandato)
+   - Apri il file: console-test-helper.js
+   - Copia tutto il contenuto
+   - Incolla nella console e premi ENTER
+   - Dovresti vedere: "✅ Helper caricato!"
+
+3. CARICA UNA SCHEDA PDF
+   - Clicca "Carica SDS (PDF)" nell'app
+   - Seleziona una scheda dalla cartella "schede di sicurezza test"
+   - Schede suggerite:
+     * 1690276_EN_MSDS.pdf
+     * 8MK.pdf
+     * c07100525.pdf
+
+4. VERIFICA NELLA CONSOLE
+   Dovresti vedere un log tipo:
+
+   [nome_file.pdf] EXTRACTION: {
+     healthCodes: [...],
+     physicalCodes: [...],
+     A1_calculated: X.X,
+     A2_calculated: X.X
+   }
+
+5. VALIDA I RISULTATI (se hai caricato l'helper)
+   - Nella console, esegui:
+     validateExtraction({
+       healthCodes: [...],  // Copia dal log
+       physicalCodes: [...],
+       A1_calculated: X.X,
+       A2_calculated: X.X
+     })
+
+   - L'helper ti dirà se ci sono errori!
+
+6. VERIFICA MANUALE VELOCE
+   ✅ Controlla che:
+   - EUH066, EUH070, EUH071 → in healthCodes (NON physicalCodes)
+   - Solo H2xx e EUH whitelist → in physicalCodes
+   - A1 = MAX(physical scores) / 10
+   - A2 = somma reazioni
+
+7. RIPETI PER 3-4 SCHEDE DIVERSE
+
+═══════════════════════════════════════════════════════════════════════════
+    🎯 COSA VERIFICARE PER OGNI SCHEDA
+═══════════════════════════════════════════════════════════════════════════
+
+❌ ERRORI DA CERCARE:
+- EUH066 in physicalCodes → ERRORE! Deve essere in healthCodes
+- EUH203, EUH204, EUH205, EUH208 in physicalCodes → ERRORE!
+- H3xx o H4xx in physicalCodes → ERRORE!
+- A1 non corrisponde a MAX(physical) / 10 → ERRORE!
+
+✅ VALORI CORRETTI:
+- H225 → A1 = 7.5 (75/10)
+- H260 → A1 = 7.0 (70/10), A2 = +3.0
+- H201 → A1 = 10.0 (100/10)
+- Solo H3xx/H4xx → A1 = 0, A2 = 0, D = 0
+
+═══════════════════════════════════════════════════════════════════════════
+    📚 FILE DI SUPPORTO
+═══════════════════════════════════════════════════════════════════════════
+
+GUIDA_TEST_MANUALE.md         → Guida completa con checklist dettagliate
+console-test-helper.js         → Script per validazione automatica in console
+BUGFIX_EUH_CLASSIFICATION.md   → Documentazione bug e correzioni
+test-hcode-classification.js   → Test automatico classificazione (già eseguito ✅)
+test-real-sds.js               → Test automatico calcoli (già eseguito ✅)
+
+═══════════════════════════════════════════════════════════════════════════
+    ✅ CRITERI DI SUCCESSO
+═══════════════════════════════════════════════════════════════════════════
+
+Il test è SUPERATO se per ogni scheda caricata:
+✅ Nessun EUH salute in physicalCodes
+✅ A1 calcolato correttamente
+✅ A2 calcolato correttamente
+✅ D = A1 + A2
+✅ Nessun errore nella console
+
+═══════════════════════════════════════════════════════════════════════════
+
+🚀 PRONTO! Segui i passi sopra e fammi sapere i risultati.
+
+Se trovi problemi, copia il log della console e condividilo.

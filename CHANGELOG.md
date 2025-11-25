@@ -4,6 +4,165 @@ Registro delle modifiche e miglioramenti al progetto MOVARISCH.
 
 ---
 
+## [2025-11-25] - Bugfix: Correzione Classificazione EUH per Calcoli M.I.R.C.
+
+### 🐛 Problemi Critici Risolti
+
+#### 1. Classificazione Errata EUH come Pericoli Fisici
+**Problema**: La funzione `separateHCodes()` classificava TUTTI i codici EUH come pericoli fisici, inclusi quelli per la salute (es. EUH066, EUH070, EUH071).
+
+**Impatto**:
+- EUH066 ("L'esposizione ripetuta può provocare secchezza o screpolature della pelle") veniva erroneamente considerato nei calcoli M.I.R.C. per la SICUREZZA
+- EUH per allergie/sensibilizzazione (EUH203-208) contribuivano erroneamente ai calcoli di rischio sicurezza
+- Calcoli A1, A2, D non conformi alla metodologia INRS
+
+**Soluzione**:
+- Implementata **whitelist esplicita** degli EUH per sicurezza secondo INRS:
+  - EUH001, EUH006, EUH014, EUH018, EUH019, EUH044 (esplosivi/reattivi)
+  - EUH209, EUH209A (infiammabili durante l'uso)
+  - EUH029, EUH031, EUH032 (gas tossici da reazioni)
+- Tutti gli altri EUH vengono classificati come pericoli per la SALUTE
+- File modificato: `app.js` (righe 416-456)
+
+```javascript
+// EUH per SICUREZZA (whitelist esplicita secondo INRS M.I.R.C.)
+const SAFETY_EUH = new Set([
+  'EUH001', 'EUH006', 'EUH014', 'EUH018', 'EUH019', 'EUH044',
+  'EUH209', 'EUH209A',
+  'EUH029', 'EUH031', 'EUH032'
+]);
+
+// Classificazione con controllo whitelist
+else if(/^EUH\d{3}[A-Z]?$/.test(baseCode)){
+  if(SAFETY_EUH.has(baseCode)){
+    physical.push(code);
+  } else {
+    health.push(code);  // EUH066, EUH070, EUH071, ecc. → salute
+  }
+}
+```
+
+#### 2. H_PHYSICAL_SCORE Conteneva EUH per la Salute
+**Problema**: La tabella `H_PHYSICAL_SCORE` includeva EUH per allergie/sensibilizzazione che NON sono pericoli fisici secondo INRS.
+
+**EUH erroneamente inclusi**:
+- EUH203 (Cromo VI - allergia)
+- EUH204 (Isocianati - allergia)
+- EUH205 (Epossidici - allergia)
+- EUH208 (Sensibilizzante - allergia)
+- EUH201, 202, 206, 207, 210, 401 (avvertimenti generici)
+
+**Impatto**: Prodotti con questi EUH contribuivano erroneamente ad A1 (es. EUH203 → A1 = +2.0)
+
+**Soluzione**:
+- Rimossi tutti gli EUH non conformi INRS
+- Mantenuti solo EUH209 e EUH209A (infiammabili durante l'uso)
+- File modificato: `app.js` (righe 69-76)
+
+```javascript
+// EUH - INFIAMMABILITÀ DURANTE L'USO (35)
+"EUH209":35, "EUH209A":30
+// NOTA: Rimossi EUH201-EUH208, EUH210, EUH401
+```
+
+#### 3. EUH070, EUH071 Mancanti in H_SCORE
+**Problema**: I codici EUH070 ("Tossico per contatto oculare") e EUH071 ("Corrosivo per le vie respiratorie") non avevano punteggi per i calcoli di rischio SALUTE.
+
+**Soluzione**:
+- Aggiunti EUH070 (5.00) e EUH071 (5.50) alla tabella H_SCORE
+- File modificato: `app.js` (riga 35)
+
+```javascript
+"H315":4.50,"H318":3.00,"H319":3.00,"EUH066":2.50,"EUH070":5.00,"EUH071":5.50,
+```
+
+### ✅ Validazione e Testing
+
+#### Test Automatici Implementati
+**File creati**:
+1. `test-hcode-classification.js` - Test classificazione H/EUH
+   - 98 test eseguiti
+   - **100% PASS**
+   - Verifica: H2xx, H3xx, H4xx, tutti gli EUH
+
+2. `test-real-sds.js` - Test calcoli M.I.R.C.
+   - 30 verifiche eseguite (6 casi × 5 controlli)
+   - **100% PASS**
+   - Casi testati: acetone, esplosivi, reattività acqua, gas tossici, solo salute, EUH infiammabili
+
+#### Risultati Test
+```
+📊 Test Classificazione H/EUH:
+✅ H-codes fisici (H2xx): 32/32
+✅ EUH per sicurezza: 11/11
+✅ H-codes salute (H3xx, H4xx): 38/38
+✅ EUH per salute: 15/15
+✅ H-codes con categorie: 3/3
+Total: 98/98 (100%)
+
+📊 Test Calcoli M.I.R.C.:
+✅ Acetone (H225, H319, H336, EUH066) → A1=7.5, A2=0, D=7.5
+✅ Reattività acqua (H260, H314, EUH014) → A1=7.0, A2=6.0, D=13.0
+✅ Esplosivo (H201, H315, H335) → A1=10.0, A2=0, D=10.0
+✅ Gas tossici (H220, H331, EUH029, EUH066) → A1=7.5, A2=2.0, D=9.5
+✅ Solo salute (H302, H315, H319, EUH066, EUH070) → A1=0, A2=0, D=0
+✅ EUH infiammabile (H226, H304, EUH209) → A1=7.5, A2=0, D=7.5
+Total: 30/30 (100%)
+```
+
+### 📁 File Modificati
+
+| File | Righe | Descrizione |
+|------|-------|-------------|
+| `app.js` | 416-456 | Funzione `separateHCodes()` con whitelist EUH |
+| `app.js` | 69-76 | Pulizia `H_PHYSICAL_SCORE` - rimossi EUH non INRS |
+| `app.js` | 35 | Aggiunti EUH070, EUH071 a `H_SCORE` |
+
+### 📚 File di Documentazione Creati
+
+| File | Scopo |
+|------|-------|
+| `BUGFIX_EUH_CLASSIFICATION.md` | Report completo bug, correzioni, validazione |
+| `test-hcode-classification.js` | Suite test automatici classificazione |
+| `test-real-sds.js` | Suite test automatici calcoli M.I.R.C. |
+| `GUIDA_TEST_MANUALE.md` | Guida testing manuale con checklist |
+| `console-test-helper.js` | Helper JavaScript per validazione console |
+| `TEST_INSTRUCTIONS.txt` | Istruzioni rapide per test |
+
+### 🎯 Impatto delle Correzioni
+
+**Prima**:
+- ❌ EUH066 classificato come "physical" → contribuiva erroneamente a calcoli sicurezza
+- ❌ EUH203-208 (allergie) contribuivano ad A1
+- ❌ EUH070, EUH071 non avevano punteggio salute
+
+**Dopo**:
+- ✅ EUH066 classificato come "health" → usa H_SCORE per calcoli salute
+- ✅ Solo EUH INRS conformi usati per calcoli M.I.R.C. sicurezza
+- ✅ EUH070, EUH071 hanno punteggi corretti per salute
+- ✅ Calcoli A1, A2, D conformi a metodologia INRS
+
+### 📖 Riferimenti
+
+**Documentazione INRS**:
+- File locale: `MIRC_Metodologia_Sicurezza.md` (sezione EUH: righe 419-428)
+
+**Fonti esterne**:
+- [EUH-phrases complete list](https://msds-eu.com/index.php/hazard-statements/96-list-of-euh-phrases)
+- [GHS/CLP Tabella di raccordo](https://www.studiobarbaracalvi.com/wp-content/uploads/2023/04/GHS-CLP-Tabella-di-raccordo-Rev.-2.0-2023.pdf)
+
+**EUH per SICUREZZA (secondo INRS)**:
+- Esplosivi/reattivi: EUH001, EUH006, EUH014, EUH018, EUH019, EUH044
+- Infiammabili: EUH209, EUH209A
+- Gas tossici da reazioni: EUH029, EUH031, EUH032
+
+**EUH per SALUTE**:
+- Irritazione/tossicità: EUH066, EUH070, EUH071
+- Allergie/sensibilizzazione: EUH203, EUH204, EUH205, EUH208
+- Avvertimenti: EUH201-202, EUH206-207, EUH210, EUH401, EUH059
+
+---
+
 ## [2025-01-22] - Fix Sincronizzazione Scheda Cumulativa
 
 ### Problemi Risolti
@@ -237,6 +396,14 @@ PDF SDS
 
 ## Cronologia Versioni
 
+### v1.3.0 (2025-11-25)
+- 🐛 **Bugfix critico**: Correzione classificazione EUH per calcoli M.I.R.C.
+- ✅ Whitelist esplicita EUH per sicurezza (conformità INRS)
+- ✅ Pulizia H_PHYSICAL_SCORE (rimossi EUH non conformi)
+- ✅ Aggiunti EUH070, EUH071 per calcoli salute
+- ✅ Suite test automatici: 128 test, 100% pass
+- 📚 Documentazione completa bug e correzioni
+
 ### v1.2.0 (2025-01-22)
 - Fix sincronizzazione scheda cumulativa
 - Sistema debug completo
@@ -254,6 +421,6 @@ PDF SDS
 
 ---
 
-**Ultimo aggiornamento**: 22 Gennaio 2025
+**Ultimo aggiornamento**: 25 Novembre 2025
 **Autore**: Giuseppe575 + Claude Code
 **Repository**: https://github.com/Giuseppe575/movarisch

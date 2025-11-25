@@ -32,7 +32,7 @@ const H_SCORE = {
   "H300":3.00,"H300 cat.1":3.00,"H300 cat.2":8.50,
   "EUH029":3.00,"EUH031":3.50,"EUH032":6.25,
   "H314":5.50,"H314 cat.1A":5.75,"H314 cat.1B":5.50,"H314 cat.1C":2.50,
-  "H315":4.50,"H318":3.00,"H319":3.00,"EUH066":2.50,
+  "H315":4.50,"H318":3.00,"H319":3.00,"EUH066":2.50,"EUH070":5.00,"EUH071":5.50,
   "H334":8.50,"H334 cat.1A":9.00,"H334 cat.1B":8.00,
   "H317":4.50,"H317 cat.1A":6.00,"H317 cat.1B":4.50,
   "H370":9.50,"H371":8.00,"H335":3.25,"H336":3.50,
@@ -69,10 +69,10 @@ const H_PHYSICAL_SCORE = {
   // EUH - PROPRIETÀ FISICHE (40)
   "EUH001":40, "EUH006":40, "EUH014":40, "EUH018":40, "EUH019":40, "EUH044":40,
 
-  // EUH - ELEMENTI ETICHETTA (20)
-  "EUH201":20, "EUH201A":20, "EUH202":20, "EUH203":20, "EUH204":20,
-  "EUH205":20, "EUH206":20, "EUH207":20, "EUH208":20, "EUH209":20,
-  "EUH209A":20, "EUH210":20, "EUH401":20
+  // EUH - INFIAMMABILITÀ DURANTE L'USO (35)
+  "EUH209":35, "EUH209A":30
+  // NOTA: Rimossi EUH201-EUH208, EUH210, EUH401 (non sono pericoli fisici secondo INRS)
+  // EUH203-EUH208 sono avvertimenti per allergie/sensibilizzazione (SALUTE, non SICUREZZA)
 };
 
 const UV_FALLBACK = ["H317","H335"]; // per UV/acrilati quando H non rilevate
@@ -207,27 +207,27 @@ const RISK_CLASSES = [
   {
     id:'irr',
     test:(r)=> r < 15,
-    get text(){ return t('legend.items.irr.text'); }
+    text: 'Irrilevante per la salute'  // Hardcoded per evitare race condition con i18n
   },
   {
     id:'unc',
     test:(r)=> r >= 15 && r < 21,
-    get text(){ return t('legend.items.unc.text'); }
+    text: 'Intervallo di incertezza - Rivedere misure e consultare medico competente'
   },
   {
     id:'sup',
     test:(r)=> r >= 21 && r <= 40,
-    get text(){ return t('legend.items.sup.text'); }
+    text: 'Rischio superiore al rischio chimico irrilevante per la salute'
   },
   {
     id:'elev',
     test:(r)=> r > 40 && r <= 80,
-    get text(){ return t('legend.items.elev.text'); }
+    text: 'Rischio elevato'
   },
   {
     id:'grave',
     test:(r)=> r > 80,
-    get text(){ return t('legend.items.grave.text'); }
+    text: 'Rischio grave - Riconsiderare misure di prevenzione'
   }
 ];
 
@@ -413,17 +413,32 @@ function findH(text){
   return out;
 }
 
-// Separa H-codes in salute (H3xx, H4xx) e fisici (H2xx, EUH)
+// Separa H-codes in salute (H3xx, H4xx) e fisici (H2xx, EUH specifici)
 function separateHCodes(allHCodes){
   const health = [];
   const physical = [];
 
+  // EUH per SICUREZZA (whitelist esplicita secondo INRS M.I.R.C.)
+  const SAFETY_EUH = new Set([
+    'EUH001', 'EUH006', 'EUH014', 'EUH018', 'EUH019', 'EUH044',  // Esplosivi/reattivi
+    'EUH209', 'EUH209A',  // Infiammabili durante l'uso
+    'EUH029', 'EUH031', 'EUH032'  // Gas tossici da reazioni (usati in A2)
+  ]);
+
   for(const code of allHCodes){
     const baseCode = code.split(' ')[0]; // Rimuove " cat.X" se presente
 
-    // H-codes fisici: H2xx (200-299) e EUH
-    if(/^H2\d{2}$/.test(baseCode) || /^EUH\d{3}$/.test(baseCode)){
+    // H-codes fisici: H2xx (200-299)
+    if(/^H2\d{2}$/.test(baseCode)){
       physical.push(code);
+    }
+    // EUH: solo quelli nella whitelist SAFETY per M.I.R.C. (supporta suffissi come EUH201A)
+    else if(/^EUH\d{3}[A-Z]?$/.test(baseCode)){
+      if(SAFETY_EUH.has(baseCode)){
+        physical.push(code);
+      } else {
+        health.push(code);  // Altri EUH (es. EUH066, EUH070, EUH071) vanno in salute
+      }
     }
     // H-codes salute: H3xx (300-399), H4xx (400-499)
     else if(/^H[34]\d{2}$/.test(baseCode)){
@@ -438,6 +453,54 @@ function separateHCodes(allHCodes){
   }
 
   return { health, physical };
+}
+
+// Calcola A1 (Proprietà chimico-fisiche pericolose) da H-codes fisici
+function calculateA1FromPhysicalCodes(physicalCodes){
+  if(!physicalCodes || !physicalCodes.length) return 0;
+
+  const scores = physicalCodes.map(code => {
+    const baseCode = code.split(' ')[0]; // Rimuove categorie
+    return H_PHYSICAL_SCORE[baseCode] || 0;
+  });
+
+  // A1 = massimo score tra gli H-codes fisici / 10 (normalizzato)
+  const maxScore = Math.max(...scores, 0);
+  return maxScore > 0 ? round(maxScore / 10, 2) : 0;
+}
+
+// Calcola A2 (Proprietà chimiche pericolose - reazioni) da H-codes fisici e EUH
+function calculateA2FromPhysicalCodes(physicalCodes){
+  if(!physicalCodes || !physicalCodes.length) return 0;
+
+  let score = 0;
+  const baseCodes = physicalCodes.map(c => c.split(' ')[0]);
+
+  // Reazioni esplosive/violente (priorità massima)
+  const explosiveReactions = ['EUH006', 'EUH014', 'EUH019', 'EUH044'];
+  if(baseCodes.some(c => explosiveReactions.includes(c))){
+    score += 3.0; // Reazione violenta/esplosiva
+  }
+
+  // Formazione gas infiammabili/pericolosi
+  const gasFormation = ['EUH029', 'EUH031', 'EUH032'];
+  if(baseCodes.some(c => gasFormation.includes(c))){
+    score += 2.0; // Formazione rapida gas pericolosi
+  }
+
+  // Formazione prodotti instabili
+  if(baseCodes.includes('EUH018')){
+    score += 2.5; // Formazione miscela vapor-aria esplosiva
+  }
+
+  // Reattività con acqua (formazione gas infiammabili)
+  if(baseCodes.includes('H260')){
+    score += 3.0; // Reagisce violentemente con acqua -> gas estremamente infiammabili
+  } else if(baseCodes.includes('H261')){
+    score += 2.0; // Reagisce con acqua -> gas infiammabili
+  }
+
+  return round(score, 2);
 }
 
 // Estrae punto di infiammabilità dalla Sezione 9
@@ -1587,12 +1650,18 @@ parseBtn.addEventListener('click', async ()=>{
           .trim();
       }
 
+      // Calcola A1 e A2 automaticamente dagli H-codes fisici
+      const calculatedA1 = calculateA1FromPhysicalCodes(hcodesPhysical);
+      const calculatedA2 = calculateA2FromPhysicalCodes(hcodesPhysical);
+
       // Log per debug (visibile in console)
       console.log(`[${file.name}] EXTRACTION:`, {
         healthCodes: hcodesHealth,
         physicalCodes: hcodesPhysical,
         flashPoint: flashPoint ? `${flashPoint}°C` : 'non trovato',
-        autoIgnitionTemp: autoIgnitionTemp ? `${autoIgnitionTemp}°C` : 'non trovato'
+        autoIgnitionTemp: autoIgnitionTemp ? `${autoIgnitionTemp}°C` : 'non trovato',
+        A1_calculated: calculatedA1,
+        A2_calculated: calculatedA2
       });
 
       const row = {
@@ -1624,6 +1693,22 @@ parseBtn.addEventListener('click', async ()=>{
         ventilation: defaults.ventilation,
         openFlames: defaults.openFlames,
         ignitionSources: defaults.ignitionSources,
+
+        // M.I.R.C. FIELDS (INRS Safety Risk Assessment)
+        A1: calculatedA1, // Proprietà chimico-fisiche pericolose (AUTO-CALCOLATO)
+        A2: calculatedA2, // Proprietà chimiche pericolose - reazioni (AUTO-CALCOLATO)
+        B1: defaults.B1, // Modalità di lavoro
+        B2: defaults.B2, // Frequenza e tempi di utilizzo
+        B3: defaults.B3, // Quantitativi utilizzati
+        B4: defaults.B4, // Fattori di riduzione (negativi)
+        D_mirc: 0,   // Calcolato da recalcRow()
+        E_mirc: 0,   // Calcolato da recalcRow()
+        IRC: 0,      // Calcolato da recalcRow()
+        mircLevel: 'irrilevante',
+        mircClass: 'irr',
+        mircText: '',
+
+        // Legacy fields (da rimuovere in futuro)
         PI: 10, IQ: 1, FCO: 1.0,
         RiskSafety: 10, SafetyLevel: 'basso', SafetyClass: 'irr',
         OverallRiskValue: 0, OverallClass: 'irr'
