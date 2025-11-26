@@ -20,23 +20,72 @@
   <main>
     <nav><a href="../index.html">← Torna alla dashboard</a></nav>
     <h1>Knowledge base MOVARISCH</h1>
-    <p>Benvenuto nella raccolta di guide operative curate dal team MOVARISCH. Qui trovi procedure rapide, FAQ e suggerimenti per sfruttare al massimo il parser SDS.</p>
+    <p>Benvenuto nella raccolta di guide operative curate dal team MOVARISCH. Qui trovi procedure rapide, FAQ e suggerimenti per sfruttare al massimo il parser SDS e comprendere le metodologie di valutazione del rischio chimico.</p>
     <div class="article-list">
+      <article id="intro">
+        <h2>Cos'è MOVARISCH</h2>
+        <p>MOVARISCH (MOdello di VAlutazione del RISchio CHimico) è uno strumento per la valutazione del rischio chimico per la salute dei lavoratori secondo il D.Lgs. 81/08. Permette di analizzare l'esposizione per inalazione e contatto cutaneo, generando un indice di rischio complessivo basato su parametri operativi specifici.</p>
+      </article>
       <article id="import">
         <h2>Importare correttamente le SDS</h2>
-        <p>Verifica che i PDF non siano protetti e abbiano testo selezionabile. Per serie di file rinomina i documenti con un codice progressivo e caricali nello stesso gruppo.</p>
+        <p>Verifica che i PDF non siano protetti e abbiano testo selezionabile. Per serie di file rinomina i documenti con un codice progressivo e caricali nello stesso gruppo. I PDF devono contenere le informazioni standard delle Schede di Dati di Sicurezza (SDS) secondo il regolamento REACH.</p>
+      </article>
+      <article id="h-codes">
+        <h2>Codici H e classificazione</h2>
+        <p>Il parser estrae automaticamente i codici H (indicazioni di pericolo) dalle SDS. I codici H2xx indicano pericoli fisici, H3xx pericoli per la salute e H4xx pericoli per l'ambiente. Gli EUH sono indicazioni supplementari di pericolo. Lo SCORE viene calcolato automaticamente in base ai codici H estratti e rappresenta la gravità intrinseca del pericolo.</p>
       </article>
       <article id="indices">
         <h2>Interpretare gli indici MOVARISCH</h2>
-        <p>Dopo l'elaborazione controlla i punteggi D, Q, U, C e T. Usa la legenda nella dashboard per confrontare le soglie e documenta le motivazioni di eventuali modifiche manuali.</p>
+        <p>Dopo l'elaborazione controlla i punteggi degli indici chiave:</p>
+        <ul style="margin-top: 8px; line-height: 1.7;">
+          <li><strong>D</strong> (Proprietà chimico-fisiche): dipende dallo stato fisico e dalla volatilità della sostanza</li>
+          <li><strong>Q</strong> (Quantità): quantità di sostanza utilizzata nel processo</li>
+          <li><strong>U</strong> (Tipologia d'uso): da sistema chiuso a uso dispersivo</li>
+          <li><strong>C</strong> (Controllo): misure di contenimento e ventilazione adottate</li>
+          <li><strong>T</strong> (Tempo): durata dell'esposizione giornaliera</li>
+          <li><strong>I</strong> (Livello di contatto): per via cutanea, da nessun contatto a contatto esteso</li>
+          <li><strong>d</strong> (Distanza): distanza operatore-sorgente di pericolo</li>
+        </ul>
+        <p style="margin-top: 12px;">Usa la legenda nella dashboard per confrontare le soglie e documenta le motivazioni di eventuali modifiche manuali.</p>
+      </article>
+      <article id="mirc">
+        <h2>Metodologia M.I.R.C. (INRS) per la Sicurezza</h2>
+        <p>Oltre alla valutazione del rischio per la salute (MOVARISCH), viene applicata la metodologia M.I.R.C. dell'INRS francese per valutare il rischio per la sicurezza (incendio, esplosione, reazioni pericolose). L'indice IRC viene calcolato come: <strong>IRC = D × E</strong>, dove:</p>
+        <ul style="margin-top: 8px; line-height: 1.7;">
+          <li><strong>D</strong> (Danno): somma di A1 (danno salute) e A2 (danno sicurezza) basati sui codici H fisici</li>
+          <li><strong>E</strong> (Esposizione): somma di B1 (quantità), B2 (frequenza), B3 (ventilazione) e B4 (DPI)</li>
+        </ul>
+        <p style="margin-top: 12px;">I codici H fisici come H220-H230 (infiammabili), H240-H250 (esplosivi) e H260-H270 (comburenti) determinano il punteggio A2. Il rischio viene classificato in: BASSO (IRC &lt; 10), MEDIO (10 ≤ IRC &lt; 50), ALTO (50 ≤ IRC &lt; 100), MOLTO ALTO (IRC ≥ 100).</p>
+      </article>
+      <article id="calculations">
+        <h2>Formule di calcolo</h2>
+        <p>Il rischio totale per la salute si calcola come: <strong>R<sub>tot</sub> = R<sub>inal</sub> + R<sub>cut</sub></strong></p>
+        <ul style="margin-top: 8px; line-height: 1.7;">
+          <li><strong>E<sub>inal</sub></strong> = D × Q × U × C × T × d (esposizione per inalazione)</li>
+          <li><strong>E<sub>cut</sub></strong> = D × Q × U × I (esposizione cutanea)</li>
+          <li><strong>R<sub>inal</sub></strong> = SCORE × E<sub>inal</sub></li>
+          <li><strong>R<sub>cut</sub></strong> = SCORE × E<sub>cut</sub></li>
+        </ul>
+        <p style="margin-top: 12px;">Il <strong>Rischio Complessivo</strong> tiene conto sia del rischio salute (MOVARISCH) che del rischio sicurezza (M.I.R.C./INRS).</p>
+      </article>
+      <article id="judgements">
+        <h2>Classificazione del giudizio di rischio</h2>
+        <p>In base al valore di R<sub>tot</sub>, il rischio viene classificato secondo queste soglie:</p>
+        <ul style="margin-top: 8px; line-height: 1.7;">
+          <li><strong>0,1 ≤ R &lt; 15</strong>: Irrilevante per la salute</li>
+          <li><strong>15 ≤ R &lt; 21</strong>: Intervallo di incertezza (rivedere misure di prevenzione)</li>
+          <li><strong>21 ≤ R ≤ 40</strong>: Rischio superiore all'irrilevante (applicare artt. 225, 226, 229, 230 D.Lgs 81/08)</li>
+          <li><strong>40 &lt; R ≤ 80</strong>: Rischio elevato</li>
+          <li><strong>R &gt; 80</strong>: Rischio grave (implementare misure di protezione aggiuntive)</li>
+        </ul>
       </article>
       <article id="export">
         <h2>Esportazione dei risultati</h2>
-        <p>Quando le schede sono complete puoi esportare in Excel o Word. Salva i file prodotti nella cartella del cliente insieme alle SDS originali per assicurare la tracciabilità.</p>
+        <p>Quando le schede sono complete puoi esportare in Excel o Word. Il file Excel contiene tutti i dati tabulari con gli indici di rischio calcolati. Il file Word genera una scheda riepilogativa formattata per ciascuna sostanza/miscela. Salva i file prodotti nella cartella del cliente insieme alle SDS originali per assicurare la tracciabilità e la conformità documentale.</p>
       </article>
       <article id="faq">
         <h2>FAQ rapide</h2>
-        <p><strong>Il test libreria non parte?</strong> Assicurati di avere la connessione attiva o usa la versione offline inclusa. <strong>Non trovi un codice H?</strong> Puoi aggiungerlo manualmente dalla tabella modificando la colonna dedicata.</p>
+        <p><strong>Il test libreria non parte?</strong> Assicurati di avere la connessione attiva o usa la versione offline inclusa. <strong>Non trovi un codice H?</strong> Puoi aggiungerlo manualmente dalla tabella modificando la colonna dedicata. <strong>Come modifico i parametri predefiniti?</strong> Dopo l'estrazione, clicca sui menu a tendina nella tabella per regolare gli indici in base al contesto operativo reale. <strong>Posso salvare il lavoro?</strong> Tutti i dati restano nel browser (localStorage) fino all'esportazione o puoi fare "Svuota" per ricominciare.</p>
       </article>
     </div>
   </main>
