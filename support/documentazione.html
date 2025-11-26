@@ -17,7 +17,8 @@
   <main>
     <nav><a href="../index.html">← Torna alla dashboard</a></nav>
     <h1>Documentazione tecnica</h1>
-    <p>Questa pagina raccoglie le informazioni operative essenziali per l'utilizzo del parser MOVARISCH nella valutazione del rischio chimico.</p>
+    <p>Questa pagina raccoglie la documentazione tecnica completa per l'utilizzo del parser MOVARISCH nella valutazione del rischio chimico, inclusi i riferimenti alla metodologia M.I.R.C. (INRS) e al sistema di classificazione dei codici H/EUH.</p>
+
     <section>
       <h2>Prerequisiti</h2>
       <ul>
@@ -26,22 +27,177 @@
         <li>Per l'esportazione Word è richiesta la connessione per caricare la libreria <code>docx</code>.</li>
       </ul>
     </section>
+
     <section>
       <h2>Flusso di lavoro</h2>
       <ol>
         <li>Carica uno o più PDF con il pulsante «Seleziona PDF».</li>
         <li>Avvia l'estrazione con «Estrai &amp; Calcola» per ottenere codici H e punteggi precompilati.</li>
         <li>Completa eventuali campi mancanti (quantità, durata esposizione, distanza).</li>
+        <li>Rivedi e modifica i parametri di esposizione in base al contesto operativo reale.</li>
         <li>Esporta il risultato in Excel o Word per archiviazione interna.</li>
       </ol>
     </section>
+
+    <section>
+      <h2>Metodologia MOVARISCH – Valutazione Rischio Salute</h2>
+      <p>MOVARISCH (MOdello di VAlutazione del RISchio CHimico) valuta il rischio per la salute secondo il D.Lgs. 81/08. Il modello considera due vie di esposizione:</p>
+      <h3>Esposizione per inalazione</h3>
+      <p><strong>E<sub>inal</sub> = D × Q × U × C × T × d</strong></p>
+      <ul>
+        <li><strong>D</strong>: Proprietà chimico-fisiche (stato fisico, volatilità)</li>
+        <li><strong>Q</strong>: Quantità in uso (da &lt;0,1 kg a &gt;100 kg)</li>
+        <li><strong>U</strong>: Tipologia d'uso (sistema chiuso → uso dispersivo)</li>
+        <li><strong>C</strong>: Tipologia di controllo (contenimento → manipolazione diretta)</li>
+        <li><strong>T</strong>: Tempo di esposizione (da &lt;15 min a &gt;6 ore)</li>
+        <li><strong>d</strong>: Distanza operatore-sorgente (da ≥10 m a &lt;1 m)</li>
+      </ul>
+      <h3>Esposizione cutanea</h3>
+      <p><strong>E<sub>cut</sub> = D × Q × U × I</strong></p>
+      <ul>
+        <li><strong>I</strong>: Livello di contatto cutaneo (nessun contatto → esteso)</li>
+      </ul>
+      <h3>Calcolo del rischio</h3>
+      <p>Il rischio viene calcolato moltiplicando lo SCORE (derivato dai codici H) per l'esposizione:</p>
+      <ul>
+        <li><strong>R<sub>inal</sub></strong> = SCORE × E<sub>inal</sub></li>
+        <li><strong>R<sub>cut</sub></strong> = SCORE × E<sub>cut</sub></li>
+        <li><strong>R<sub>tot</sub></strong> = R<sub>inal</sub> + R<sub>cut</sub></li>
+      </ul>
+      <p>Il giudizio finale dipende dalle soglie: Irrilevante (R&lt;15), Incertezza (15≤R&lt;21), Superiore all'irrilevante (21≤R≤40), Elevato (40&lt;R≤80), Grave (R&gt;80).</p>
+    </section>
+
+    <section>
+      <h2>Metodologia M.I.R.C. (INRS) – Valutazione Rischio Sicurezza</h2>
+      <p>Oltre al rischio salute, viene valutato il rischio per la sicurezza (incendio, esplosione, reazioni pericolose) secondo il metodo M.I.R.C. dell'Istituto Nazionale Francese (INRS).</p>
+      <h3>Indice di Rischio Chimico (IRC)</h3>
+      <p><strong>IRC = D × E</strong></p>
+      <ul>
+        <li><strong>D = A1 + A2</strong> (Fattore Danno Totale)
+          <ul>
+            <li><strong>A1</strong>: Danno per la salute (basato su codici H3xx)</li>
+            <li><strong>A2</strong>: Danno per la sicurezza (basato su codici H fisici H2xx)</li>
+          </ul>
+        </li>
+        <li><strong>E = B1 + B2 + B3 + B4</strong> (Fattore Esposizione)
+          <ul>
+            <li><strong>B1</strong>: Quantità utilizzata</li>
+            <li><strong>B2</strong>: Frequenza e durata d'uso</li>
+            <li><strong>B3</strong>: Ventilazione e contenimento</li>
+            <li><strong>B4</strong>: Dispositivi di Protezione Individuale</li>
+          </ul>
+        </li>
+      </ul>
+      <h3>Classificazione del rischio M.I.R.C.</h3>
+      <ul>
+        <li><strong>Rischio BASSO</strong>: IRC &lt; 10</li>
+        <li><strong>Rischio MEDIO</strong>: 10 ≤ IRC &lt; 50</li>
+        <li><strong>Rischio ALTO</strong>: 50 ≤ IRC &lt; 100</li>
+        <li><strong>Rischio MOLTO ALTO</strong>: IRC ≥ 100</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Codici H ed EUH – Classificazione CLP</h2>
+      <p>I codici H (Hazard statements) sono frasi standardizzate che descrivono la natura e il grado dei pericoli delle sostanze chimiche secondo il regolamento CLP (Classification, Labelling and Packaging).</p>
+      <h3>Classificazione dei codici H</h3>
+      <ul>
+        <li><strong>H2xx</strong>: Pericoli fisici (H200-H290)
+          <ul>
+            <li>H220-H230: Infiammabili e gas</li>
+            <li>H240-H250: Esplosivi e perossidi</li>
+            <li>H260-H270: Comburenti e reattivi</li>
+            <li>H280-H290: Gas compressi e corrosivi</li>
+          </ul>
+        </li>
+        <li><strong>H3xx</strong>: Pericoli per la salute (H300-H373)
+          <ul>
+            <li>H300-H330: Tossicità acuta (orale, cutanea, inalatoria)</li>
+            <li>H334-H335: Sensibilizzazione respiratoria e irritazione</li>
+            <li>H340-H350: Mutagenicità e cancerogenicità</li>
+            <li>H360-H373: Tossicità riproduttiva e organi bersaglio</li>
+          </ul>
+        </li>
+        <li><strong>H4xx</strong>: Pericoli per l'ambiente (H400-H420)</li>
+      </ul>
+      <h3>Codici EUH (Indicazioni supplementari)</h3>
+      <p>Gli EUH forniscono informazioni aggiuntive sui pericoli non coperte dai codici H standard:</p>
+      <ul>
+        <li><strong>EUH001-EUH006</strong>: Pericoli fisici supplementari (esplosivi)</li>
+        <li><strong>EUH014-EUH044</strong>: Reattività chimica</li>
+        <li><strong>EUH070-EUH071</strong>: Pericoli per salute (occhi, vie respiratorie)</li>
+        <li><strong>EUH201-EUH210</strong>: Pericoli ambientali supplementari</li>
+      </ul>
+      <p><strong>Nota</strong>: Gli EUH contribuiscono al calcolo dello SCORE con pesi differenziati in base alla gravità del pericolo.</p>
+    </section>
+
+    <section>
+      <h2>Calcoli MoVaRiSch – Parametri e Indici</h2>
+      <p>Il sistema utilizza tabelle parametriche per convertire le condizioni operative in indici numerici:</p>
+      <h3>Indice D (Proprietà chimico-fisiche)</h3>
+      <ul>
+        <li>Solido/nebbie grossolane: D = 1</li>
+        <li>Liquido bassa volatilità: D = 3</li>
+        <li>Liquido media/alta volatilità o polveri fini: D = 5</li>
+        <li>Stato gassoso: D = 10</li>
+      </ul>
+      <h3>Indice Q (Quantità)</h3>
+      <ul>
+        <li>&lt; 0,1 kg: Q = 1</li>
+        <li>0,1 – 1 kg: Q = 3</li>
+        <li>1 – 10 kg: Q = 5 (default)</li>
+        <li>10 – 100 kg: Q = 7</li>
+        <li>&gt; 100 kg: Q = 10</li>
+      </ul>
+      <h3>Indice U (Tipologia d'uso)</h3>
+      <ul>
+        <li>Sistema chiuso: U = 1</li>
+        <li>Inclusione in matrice: U = 3</li>
+        <li>Uso controllato: U = 5 (default)</li>
+        <li>Uso dispersivo: U = 10</li>
+      </ul>
+      <h3>Indice C (Controllo)</h3>
+      <ul>
+        <li>Contenimento completo: C = 1</li>
+        <li>Ventilazione localizzata: C = 3 (default)</li>
+        <li>Segregazione/separazione: C = 5</li>
+        <li>Ventilazione generale: C = 7</li>
+        <li>Manipolazione diretta: C = 10</li>
+      </ul>
+      <h3>Indice T (Tempo di esposizione)</h3>
+      <ul>
+        <li>&lt; 15 minuti: T = 1</li>
+        <li>15 min – 2 ore: T = 3 (default)</li>
+        <li>2 – 4 ore: T = 5</li>
+        <li>4 – 6 ore: T = 7</li>
+        <li>&gt; 6 ore: T = 10</li>
+      </ul>
+      <h3>Indice I (Contatto cutaneo)</h3>
+      <ul>
+        <li>Nessun contatto: I = 1 (default)</li>
+        <li>Accidentale: I = 3</li>
+        <li>Discontinuo: I = 5</li>
+        <li>Esteso: I = 10</li>
+      </ul>
+      <h3>Fattore d (Distanza)</h3>
+      <ul>
+        <li>&lt; 1 m: d = 1.00</li>
+        <li>1 – 3 m: d = 0.75 (default)</li>
+        <li>3 – 5 m: d = 0.50</li>
+        <li>5 – 10 m: d = 0.25</li>
+        <li>≥ 10 m: d = 0.10</li>
+      </ul>
+    </section>
+
     <section>
       <h2>Controlli qualità</h2>
       <p>Dopo ogni aggiornamento della libreria viene eseguito il pulsante «Test libreria» per verificare che l'estrazione dei codici H sia operativa. Il test utilizza un file di prova con i codici H317 e H335.</p>
+      <p>Si consiglia di verificare sempre i risultati dell'estrazione automatica e di confrontarli con la sezione 2 (Identificazione dei pericoli) e la sezione 3 (Composizione) della SDS.</p>
     </section>
+
     <section>
       <h2>Contatti</h2>
-      <p>Per segnalare bug o richiedere nuove funzionalità scrivi a <a href="mailto:supporto@movarisch.local">supporto@movarisch.local</a> indicando l'azienda cliente e allegando il PDF.</p>
+      <p>Per segnalare bug o richiedere nuove funzionalità scrivi a <a href="mailto:atis.giuseppe@gmail.com">atis.giuseppe@gmail.com</a> indicando l'azienda cliente e allegando il PDF.</p>
     </section>
   </main>
 </body>
