@@ -238,21 +238,42 @@
         <div class="info-label">Frasi H Fisiche</div>
         <div class="info-value" id="safetyHCodes">-</div>
       </div>
+      <!-- M.I.R.C. (INRS) Safety Risk Assessment -->
       <div class="info-item">
-        <div class="info-label">Pericolo Intrinseco (PI)</div>
-        <div class="info-value" id="safetyPI">-</div>
+        <div class="info-label">A1 - Danno chimico-fisico</div>
+        <div class="info-value" id="safetyA1">-</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Indice Quantità (IQ)</div>
-        <div class="info-value" id="safetyIQ">-</div>
+        <div class="info-label">A2 - Danno reazioni pericolose</div>
+        <div class="info-value" id="safetyA2">-</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Condizioni Operative (FCO)</div>
-        <div class="info-value" id="safetyFCO">-</div>
+        <div class="info-label">D - Danno totale (A1+A2)</div>
+        <div class="info-value" id="safetyD">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">B1 - Modalità di lavoro</div>
+        <div class="info-value" id="safetyB1">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">B2 - Frequenza e tempi</div>
+        <div class="info-value" id="safetyB2">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">B3 - Quantitativi</div>
+        <div class="info-value" id="safetyB3">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">B4 - Fattori riduzione</div>
+        <div class="info-value" id="safetyB4">-</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">E - Esposizione totale (B1+B2+B3+B4)</div>
+        <div class="info-value" id="safetyE">-</div>
       </div>
     </div>
     <div class="risk-box" style="margin-top: 20px;">
-      <h3>Indice Rischio Totale SICUREZZA</h3>
+      <h3>IRC - Indice Rischio Chimico SICUREZZA</h3>
       <div class="risk-value" id="safetyRiskValue" style="color: var(--mod);">-</div>
       <div id="safetyRiskBadge"></div>
     </div>
@@ -354,11 +375,21 @@ try{
         riskHealthTotal: row.Rtot || 0,
         healthLevel: row.GiudizioClass || 'irr',
         safetyHCodes: row.hcodesPhysical || [],
+        // M.I.R.C. (INRS) Safety Assessment
+        safetyA1: row.A1 || 0,  // Danno chimico-fisico
+        safetyA2: row.A2 || 0,  // Danno reazioni pericolose
+        safetyD: row.D_mirc || 0, // Danno totale (A1+A2)
+        safetyB1: row.B1 || 0,  // Modalità lavoro
+        safetyB2: row.B2 || 0,  // Frequenza/tempi
+        safetyB3: row.B3 || 0,  // Quantitativi
+        safetyB4: row.B4 || 0,  // Fattori riduzione
+        safetyE: row.E_mirc || 0, // Esposizione totale
+        riskSafetyTotal: row.IRC || 0, // IRC = (D+E)/100
+        safetyLevel: row.mircClass || 'irr',
+        // Legacy fields (backward compatibility)
         safetyPI: row.PI || 0,
         safetyIQ: row.IQ || 0,
         safetyFCO: row.FCO || 0,
-        riskSafetyTotal: row.RiskSafety || 0,
-        safetyLevel: row.SafetyClass || 'irr',
         overallRisk: row.OverallRiskValue || 0
       };
 
@@ -390,6 +421,14 @@ if(!substanceData){
     riskHealthTotal: 0,
     healthLevel: 'irr',
     safetyHCodes: [],
+    safetyA1: 0,
+    safetyA2: 0,
+    safetyD: 0,
+    safetyB1: 0,
+    safetyB2: 0,
+    safetyB3: 0,
+    safetyB4: 0,
+    safetyE: 0,
     safetyPI: 0,
     safetyIQ: 0,
     safetyFCO: 0,
@@ -423,15 +462,25 @@ console.log('🟢 UI - Rischio Totale SALUTE:', substanceData.riskHealthTotal.to
 // Populate safety risk
 const safetyHCodesText = substanceData.safetyHCodes.join(', ');
 document.getElementById('safetyHCodes').textContent = safetyHCodesText;
-document.getElementById('safetyPI').textContent = substanceData.safetyPI;
-document.getElementById('safetyIQ').textContent = substanceData.safetyIQ;
-document.getElementById('safetyFCO').textContent = substanceData.safetyFCO.toFixed(2);
+
+// M.I.R.C. (INRS) Safety Assessment values
+document.getElementById('safetyA1').textContent = substanceData.safetyA1.toFixed(2);
+document.getElementById('safetyA2').textContent = substanceData.safetyA2.toFixed(2);
+document.getElementById('safetyD').textContent = substanceData.safetyD.toFixed(2);
+document.getElementById('safetyB1').textContent = substanceData.safetyB1.toFixed(2);
+document.getElementById('safetyB2').textContent = substanceData.safetyB2.toFixed(2);
+document.getElementById('safetyB3').textContent = substanceData.safetyB3.toFixed(2);
+document.getElementById('safetyB4').textContent = substanceData.safetyB4.toFixed(2);
+document.getElementById('safetyE').textContent = substanceData.safetyE.toFixed(2);
 document.getElementById('safetyRiskValue').textContent = substanceData.riskSafetyTotal.toFixed(2);
+
 console.log('🟢 UI - H-codes SICUREZZA:', safetyHCodesText);
-console.log('🟢 UI - PI (Pericolo Intrinseco):', substanceData.safetyPI);
-console.log('🟢 UI - IQ (Indice Quantità):', substanceData.safetyIQ);
-console.log('🟢 UI - FCO (Condizioni Operative):', substanceData.safetyFCO.toFixed(2));
-console.log('🟢 UI - Rischio Totale SICUREZZA:', substanceData.riskSafetyTotal.toFixed(2));
+console.log('🟢 UI - A1 (Danno chimico-fisico):', substanceData.safetyA1);
+console.log('🟢 UI - A2 (Danno reazioni):', substanceData.safetyA2);
+console.log('🟢 UI - D (Danno totale):', substanceData.safetyD);
+console.log('🟢 UI - B1-B4 (Esposizione):', substanceData.safetyB1, substanceData.safetyB2, substanceData.safetyB3, substanceData.safetyB4);
+console.log('🟢 UI - E (Esposizione totale):', substanceData.safetyE);
+console.log('🟢 UI - IRC (Rischio SICUREZZA):', substanceData.riskSafetyTotal.toFixed(2));
 
 // Overall risk
 document.getElementById('overallRiskValue').textContent = substanceData.overallRisk.toFixed(2);

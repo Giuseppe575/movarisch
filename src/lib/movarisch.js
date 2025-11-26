@@ -90,40 +90,55 @@
   const classifyMircRisk = (irc) => {
     const risk = Number.isFinite(irc) ? irc : 0;
 
-    // Classificazione M.I.R.C. (INRS) a 5 livelli
+    // Classificazione M.I.R.C. (INRS) conforme alla metodologia francese
+    // Soglie da MIRC_Metodologia_Sicurezza.md
+
     if (risk <= 6.0) {
       return {
         level: 'irrilevante',
         class: 'irr',
-        text: 'RISCHIO IRRILEVANTE (Basso)'
+        text: 'RISCHIO IRRILEVANTE',
+        classification: 'BASSO'
       };
     }
-    if (risk <= 12.0) {
+    if (risk > 6.0 && risk <= 12.0) {
       return {
         level: 'basso',
         class: 'irr',
-        text: 'RISCHIO BASSO (Basso)'
+        text: 'RISCHIO BASSO',
+        classification: 'BASSO'
       };
     }
-    if (risk <= 18.0) {
+    if (risk > 12.0 && risk <= 18.0) {
       return {
         level: 'considerevole',
         class: 'unc',
-        text: 'RISCHIO CONSIDEREVOLE (Non basso)'
+        text: 'RISCHIO CONSIDEREVOLE',
+        classification: 'NON BASSO'
       };
     }
-    if (risk <= 24.0) {
+    if (risk > 18.0 && risk <= 24.0) {
       return {
         level: 'importante',
         class: 'sup',
-        text: 'RISCHIO IMPORTANTE (Non basso)'
+        text: 'RISCHIO IMPORTANTE',
+        classification: 'NON BASSO'
       };
     }
-    // risk > 24.0
+    if (risk > 24.0 && risk <= 33.5) {
+      return {
+        level: 'elevato',
+        class: 'grave',
+        text: 'RISCHIO ELEVATO',
+        classification: 'NON BASSO'
+      };
+    }
+    // risk > 33.5 - Non specificato da INRS, ma consideriamo "MOLTO ELEVATO"
     return {
-      level: 'elevato',
+      level: 'molto_elevato',
       class: 'grave',
-      text: 'RISCHIO ELEVATO (Non basso)'
+      text: 'RISCHIO MOLTO ELEVATO',
+      classification: 'NON BASSO'
     };
   };
 
