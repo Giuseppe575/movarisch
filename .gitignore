@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Backup files
+backup_*/
+*.zip
+
+# Test files
+test-*.html
+*.pdf
+schede di sicurezza test/
+
+# Sensitive data
+licenses-example.json
+*.docx
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Generated script (temporary)
+generate-excel-template.js
