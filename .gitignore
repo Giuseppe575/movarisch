@@ -1,6 +1,12 @@
 # Node modules
 node_modules/
 package-lock.json
+installer/node_modules/
+installer/package-lock.json
+
+# Build output
+installer/dist/
+installer/out/
 
 # Backup files
 backup_*/
@@ -23,3 +29,7 @@ Thumbs.db
 
 # Generated script (temporary)
 generate-excel-template.js
+
+# Electron cache
+.electron/
+.cache/
