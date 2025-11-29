@@ -78,6 +78,8 @@
       "icon": "build/icon.ico",
       "publisherName": "Giuseppe",
       "verifyUpdateCodeSignature": false,
+      "sign": null,
+      "signDlls": false,
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
