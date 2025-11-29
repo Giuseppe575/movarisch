@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOVARISCH - Generatore Licenze</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      color: #4ecca3;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #a0a0a0;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .warning {
+      background: #ff6b6b;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    input[type="number"] {
+      flex: 1;
+      min-width: 150px;
+      padding: 12px;
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 30px;
+      background: #4ecca3;
+      border: none;
+      border-radius: 8px;
+      color: #1a1a2e;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #45b393;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(78, 204, 163, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button.secondary {
+      background: #0f3460;
+      color: #4ecca3;
+    }
+    button.secondary:hover {
+      background: #1a4d7a;
+    }
+    .licenses-container {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .license-item {
+      background: #0f3460;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #4ecca3;
+    }
+    .license-key {
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      color: #4ecca3;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .copy-btn {
+      padding: 8px 15px;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      border-top: 3px solid #4ecca3;
+    }
+    .stat-value {
+      font-size: 32px;
+      color: #4ecca3;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      color: #a0a0a0;
+      font-size: 14px;
+    }
+    .empty-state {
+      text-align: center;
+      color: #a0a0a0;
+      padding: 40px;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1a1a2e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #4ecca3;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔑 MOVARISCH License Generator</h1>
+    <p class="subtitle">Generatore di chiavi di licenza per uso interno</p>
+
+    <div class="warning">
+      ⚠️ STRUMENTO AD USO INTERNO - Non distribuire questo file ai clienti
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="totalLicenses">0</div>
+        <div class="stat-label">Licenze Generate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="sessionLicenses">0</div>
+        <div class="stat-label">Questa Sessione</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <input type="number" id="quantity" value="1" min="1" max="100" placeholder="Quantità">
+      <button onclick="generateLicenses()">🎲 Genera Licenze</button>
+      <button class="secondary" onclick="exportLicenses()">📥 Esporta JSON</button>
+      <button class="secondary" onclick="clearAll()">🗑️ Cancella Tutto</button>
+    </div>
+
+    <div class="licenses-container" id="licensesContainer">
+      <div class="empty-state">
+        Nessuna licenza generata. Clicca su "Genera Licenze" per iniziare.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ ALGORITMO DI GENERAZIONE E VALIDAZIONE ============
+
+    const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Esclusi caratteri ambigui (I,O,0,1)
+
+    // Genera un blocco random di 4 caratteri
+    function generateBlock() {
+      let block = '';
+      for (let i = 0; i < 4; i++) {
+        block += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+      }
+      return block;
+    }
+
+    // Calcola checksum per validazione offline
+    function calculateChecksum(blocks) {
+      const data = blocks.join('');
+      let sum = 0;
+
+      for (let i = 0; i < data.length; i++) {
+        const charCode = data.charCodeAt(i);
+        sum += charCode * (i + 1); // Peso posizionale
+      }
+
+      // Genera 4 caratteri dal checksum
+      let checksum = '';
+      for (let i = 0; i < 4; i++) {
+        const index = (sum >> (i * 5)) % CHARSET.length;
+        checksum += CHARSET[index];
+        sum = sum * 31 + data.charCodeAt(i % data.length); // Mix per più entropia
+      }
+
+      return checksum;
+    }
+
+    // Genera una singola licenza
+    function generateSingleLicense() {
+      const block1 = generateBlock();
+      const block2 = generateBlock();
+      const block3 = generateBlock();
+      const checksum = calculateChecksum([block1, block2, block3]);
+
+      return `MOVA-${block1}-${block2}-${block3}-${checksum}`;
+    }
+
+    // Valida una licenza (per test)
+    function validateLicense(license) {
+      const parts = license.split('-');
+      if (parts.length !== 5 || parts[0] !== 'MOVA') {
+        return false;
+      }
+
+      const [_, block1, block2, block3, providedChecksum] = parts;
+      const calculatedChecksum = calculateChecksum([block1, block2, block3]);
+
+      return providedChecksum === calculatedChecksum;
+    }
+
+    // ============ GESTIONE STORAGE E UI ============
+
+    let licenses = [];
+    let sessionCount = 0;
+
+    // Carica licenze salvate
+    function loadLicenses() {
+      const saved = localStorage.getItem('movarisch_licenses');
+      if (saved) {
+        try {
+          licenses = JSON.parse(saved);
+        } catch (e) {
+          licenses = [];
+        }
+      }
+      updateUI();
+    }
+
+    // Salva licenze
+    function saveLicenses() {
+      localStorage.setItem('movarisch_licenses', JSON.stringify(licenses));
+    }
+
+    // Genera licenze
+    function generateLicenses() {
+      const quantity = parseInt(document.getElementById('quantity').value) || 1;
+      const newLicenses = [];
+
+      for (let i = 0; i < quantity; i++) {
+        let license;
+        let attempts = 0;
+
+        // Assicura unicità
+        do {
+          license = generateSingleLicense();
+          attempts++;
+        } while (licenses.includes(license) && attempts < 100);
+
+        if (!licenses.includes(license)) {
+          newLicenses.push(license);
+          licenses.push(license);
+          sessionCount++;
+        }
+      }
+
+      saveLicenses();
+      updateUI();
+
+      // Feedback visivo
+      if (newLicenses.length > 0) {
+        showNotification(`✅ ${newLicenses.length} licenz${newLicenses.length === 1 ? 'a generata' : 'e generate'}!`);
+      }
+    }
+
+    // Aggiorna interfaccia
+    function updateUI() {
+      document.getElementById('totalLicenses').textContent = licenses.length;
+      document.getElementById('sessionLicenses').textContent = sessionCount;
+
+      const container = document.getElementById('licensesContainer');
+
+      if (licenses.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nessuna licenza generata. Clicca su "Genera Licenze" per iniziare.</div>';
+        return;
+      }
+
+      container.innerHTML = licenses.map((license, index) => `
+        <div class="license-item">
+          <span class="license-key">${license}</span>
+          <button class="copy-btn" onclick="copyLicense('${license}')">📋 Copia</button>
+        </div>
+      `).reverse().join(''); // Mostra le più recenti in cima
+    }
+
+    // Copia licenza
+    function copyLicense(license) {
+      navigator.clipboard.writeText(license).then(() => {
+        showNotification('📋 Licenza copiata!');
+      });
+    }
+
+    // Esporta in JSON
+    function exportLicenses() {
+      if (licenses.length === 0) {
+        showNotification('⚠️ Nessuna licenza da esportare');
+        return;
+      }
+
+      const data = {
+        generated: new Date().toISOString(),
+        total: licenses.length,
+        licenses: licenses
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `movarisch-licenses-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showNotification('📥 File JSON esportato!');
+    }
+
+    // Cancella tutto
+    function clearAll() {
+      if (licenses.length === 0) return;
+
+      if (confirm(`Sei sicuro di voler cancellare tutte le ${licenses.length} licenze?`)) {
+        licenses = [];
+        sessionCount = 0;
+        saveLicenses();
+        updateUI();
+        showNotification('🗑️ Licenze cancellate');
+      }
+    }
+
+    // Notifiche
+    function showNotification(message) {
+      // Rimuovi notifiche esistenti
+      const existing = document.querySelector('.notification');
+      if (existing) existing.remove();
+
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      notification.textContent = message;
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4ecca3;
+        color: #1a1a2e;
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+        z-index: 1000;
+      `;
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+      }, 2000);
+    }
+
+    // Aggiungi animazioni CSS
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Inizializza
+    loadLicenses();
+  </script>
+</body>
+</html>

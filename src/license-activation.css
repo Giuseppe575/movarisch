@@ -1,0 +1,296 @@
+/* ============================================
+   MOVARISCH - Schermata di Attivazione Licenza
+   ============================================ */
+
+#licenseModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
+}
+
+#licenseModal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.license-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  padding: 50px 40px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  border: 2px solid #0f3460;
+  position: relative;
+  overflow: hidden;
+}
+
+.license-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4ecca3, #45b393, #4ecca3);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.license-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.license-container h1 {
+  color: #4ecca3;
+  font-size: 28px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.license-container .subtitle {
+  color: #a0a0a0;
+  font-size: 16px;
+  margin-bottom: 35px;
+  line-height: 1.5;
+}
+
+.license-input-group {
+  margin-bottom: 25px;
+  position: relative;
+}
+
+.license-input-group label {
+  display: block;
+  text-align: left;
+  color: #4ecca3;
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+#licenseInput {
+  width: 100%;
+  padding: 16px 20px;
+  background: #0f3460;
+  border: 2px solid #1a4d7a;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  letter-spacing: 2px;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+#licenseInput::placeholder {
+  color: #5a6c8f;
+  letter-spacing: 1px;
+}
+
+#licenseInput:focus {
+  outline: none;
+  border-color: #4ecca3;
+  box-shadow: 0 0 0 4px rgba(78, 204, 163, 0.1);
+  background: #16213e;
+}
+
+#licenseInput.error {
+  border-color: #ff6b6b;
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+.license-error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: 10px;
+  min-height: 20px;
+  display: block;
+  text-align: left;
+  padding-left: 5px;
+}
+
+.license-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.btn-activate {
+  padding: 16px 30px;
+  background: linear-gradient(135deg, #4ecca3, #45b393);
+  border: none;
+  border-radius: 10px;
+  color: #1a1a2e;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(78, 204, 163, 0.3);
+}
+
+.btn-activate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(78, 204, 163, 0.5);
+}
+
+.btn-activate:active {
+  transform: translateY(0);
+}
+
+.btn-activate:disabled {
+  background: #2a3f5f;
+  color: #5a6c8f;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-purchase {
+  padding: 12px 30px;
+  background: transparent;
+  border: 2px solid #4ecca3;
+  border-radius: 10px;
+  color: #4ecca3;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-purchase:hover {
+  background: rgba(78, 204, 163, 0.1);
+  transform: scale(1.02);
+}
+
+.license-help {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(78, 204, 163, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid #4ecca3;
+  text-align: left;
+}
+
+.license-help h3 {
+  color: #4ecca3;
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.license-help p {
+  color: #a0a0a0;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.license-help ul {
+  color: #a0a0a0;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 10px 0 0 20px;
+  padding: 0;
+}
+
+.license-format {
+  font-family: 'Courier New', monospace;
+  color: #4ecca3;
+  background: #0f3460;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+  margin: 10px 0;
+  letter-spacing: 2px;
+}
+
+/* Animazioni */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Success animation */
+.license-success {
+  animation: successPulse 0.6s ease;
+}
+
+@keyframes successPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Loading state */
+.btn-activate.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn-activate.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin-left: -10px;
+  margin-top: -10px;
+  border: 3px solid #1a1a2e;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .license-container {
+    padding: 40px 25px;
+  }
+
+  .license-container h1 {
+    font-size: 24px;
+  }
+
+  #licenseInput {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+}
