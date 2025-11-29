@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acquista MOVARISCH - Licenza Perpetua €100</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <nav class="container">
+      <a href="index.html" class="logo">MOVARISCH</a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="#caratteristiche">Caratteristiche</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section class="container" style="padding: 60px 20px;">
+    <div class="text-center mb-4">
+      <h1 style="font-size: 42px; color: var(--accent); margin-bottom: 20px;">Acquista MOVARISCH</h1>
+      <p style="color: var(--text-secondary); font-size: 18px; max-width: 600px; margin: 0 auto;">
+        Software professionale per l'analisi del rischio chimico. Licenza perpetua, nessun abbonamento.
+      </p>
+    </div>
+
+    <!-- RIEPILOGO PRODOTTO -->
+    <div style="max-width: 800px; margin: 50px auto;">
+      <div style="background: var(--bg-card); border: 2px solid var(--accent); border-radius: 20px; padding: 40px;">
+        <h2 style="color: var(--accent); margin-bottom: 30px; text-align: center;">Riepilogo Ordine</h2>
+
+        <div style="display: grid; gap: 20px; margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--bg-secondary); border-radius: 12px;">
+            <div>
+              <h3 style="color: var(--text-primary); margin-bottom: 10px;">MOVARISCH - Licenza Professionale Perpetua</h3>
+              <ul style="color: var(--text-secondary); font-size: 14px; list-style: none; padding: 0;">
+                <li>✓ Licenza perpetua (per sempre)</li>
+                <li>✓ 1 PC - Non trasferibile</li>
+                <li>✓ Tutte le funzionalità incluse</li>
+                <li>✓ Aggiornamenti gratuiti (v1.x)</li>
+                <li>✓ Assistenza tecnica email</li>
+              </ul>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 36px; font-weight: 700; color: var(--accent);">€100</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">IVA esclusa</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM DATI CLIENTE -->
+        <form id="purchaseForm">
+          <h3 style="color: var(--accent); margin-bottom: 20px;">Dati per Fatturazione</h3>
+
+          <div class="form-group">
+            <label for="nome">Nome *</label>
+            <input type="text" id="nome" name="nome" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cognome">Cognome *</label>
+            <input type="text" id="cognome" name="cognome" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" required>
+            <small>Riceverai la licenza e la fattura a questo indirizzo</small>
+          </div>
+
+          <div class="form-group">
+            <label for="azienda">Azienda (opzionale)</label>
+            <input type="text" id="azienda" name="azienda">
+          </div>
+
+          <div class="form-group">
+            <label for="piva">P.IVA o Codice Fiscale *</label>
+            <input type="text" id="piva" name="piva" required>
+            <small>Necessario per emissione fattura elettronica</small>
+          </div>
+
+          <div class="form-group">
+            <label for="indirizzo">Indirizzo Completo (opzionale)</label>
+            <input type="text" id="indirizzo" name="indirizzo">
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="privacy" required style="width: auto;">
+              <span>Accetto la <a href="privacy.html" target="_blank" style="color: var(--accent);">Privacy Policy</a>,
+              i <a href="termini.html" target="_blank" style="color: var(--accent);">Termini e Condizioni</a>
+              e la <a href="eula.html" target="_blank" style="color: var(--accent);">EULA</a> *</span>
+            </label>
+          </div>
+
+          <!-- METODI DI PAGAMENTO -->
+          <h3 style="color: var(--accent); margin: 40px 0 20px;">Metodo di Pagamento</h3>
+
+          <div style="display: grid; gap: 15px;">
+            <!-- PayPal -->
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <h4 style="color: var(--text-primary); margin: 0;">💳 PayPal</h4>
+                <span style="background: #0070ba; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 600;">CONSIGLIATO</span>
+              </div>
+              <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 15px;">
+                Pagamento sicuro con PayPal. Accettiamo carte di credito/debito e saldo PayPal.
+              </p>
+              <button type="button" class="btn btn-primary btn-block" onclick="alert('Integrazione PayPal in arrivo! Per ora contatta: atis.giuseppe@gmail.com')">
+                Paga con PayPal
+              </button>
+            </div>
+
+            <!-- Stripe -->
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--text-primary); margin: 0 0 10px;">💳 Carta di Credito (Stripe)</h4>
+              <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 15px;">
+                Pagamento sicuro con carta di credito tramite Stripe.
+              </p>
+              <button type="button" class="btn btn-secondary btn-block" onclick="alert('Integrazione Stripe in arrivo! Per ora contatta: atis.giuseppe@gmail.com')">
+                Paga con Carta
+              </button>
+            </div>
+
+            <!-- Bonifico -->
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--text-primary); margin: 0 0 10px;">🏦 Bonifico Bancario</h4>
+              <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 15px;">
+                Effettua un bonifico ai seguenti dati (licenza inviata dopo accredito, 1-3 giorni lavorativi):
+              </p>
+              <div style="background: var(--bg-primary); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px;">
+                <strong style="color: var(--accent);">Intestatario:</strong> Giuseppe<br>
+                <strong style="color: var(--accent);">IBAN:</strong> IT00 X000 0000 0000 0000 0000 000 <small style="color: var(--text-secondary);">(Da inserire)</small><br>
+                <strong style="color: var(--accent);">Importo:</strong> €100,00 + IVA se applicabile<br>
+                <strong style="color: var(--accent);">Causale:</strong> Licenza MOVARISCH - [TUO EMAIL]
+              </div>
+              <p style="color: var(--text-secondary); font-size: 12px; margin-top: 10px;">
+                Dopo il bonifico, invia ricevuta a <a href="mailto:atis.giuseppe@gmail.com" style="color: var(--accent);">atis.giuseppe@gmail.com</a>
+              </p>
+            </div>
+          </div>
+        </form>
+
+        <!-- NOTE IMPORTANTI -->
+        <div style="background: rgba(78, 204, 163, 0.1); border-left: 4px solid var(--accent); padding: 20px; margin-top: 30px; border-radius: 8px;">
+          <h4 style="color: var(--accent); margin-bottom: 10px;">📧 Cosa Riceverai</h4>
+          <ul style="color: var(--text-secondary); line-height: 1.8;">
+            <li><strong>Chiave di licenza:</strong> MOVA-XXXX-XXXX-XXXX-XXXX via email entro 24h</li>
+            <li><strong>Link download:</strong> Software MOVARISCH ultima versione</li>
+            <li><strong>Fattura elettronica:</strong> Inviata via email</li>
+            <li><strong>Istruzioni:</strong> Guida rapida all'attivazione</li>
+          </ul>
+        </div>
+
+        <div style="background: rgba(255, 107, 107, 0.1); border-left: 4px solid var(--error); padding: 20px; margin-top: 20px; border-radius: 8px;">
+          <h4 style="color: var(--error); margin-bottom: 10px;">⚠️ Diritto di Recesso</h4>
+          <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+            Hai <strong>14 giorni</strong> per richiedere il rimborso, <strong>a condizione che tu non abbia attivato la licenza</strong>.
+            Una volta inserita la chiave nel software, decade il diritto di recesso secondo la normativa sui beni digitali.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTATTO ALTERNATIVO -->
+    <div style="text-align: center; margin-top: 50px;">
+      <h3 style="color: var(--accent); margin-bottom: 15px;">Hai Domande?</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        Contattaci prima dell'acquisto per qualsiasi chiarimento
+      </p>
+      <a href="mailto:atis.giuseppe@gmail.com" class="btn btn-secondary">
+        ✉️ atis.giuseppe@gmail.com
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>MOVARISCH</h4>
+          <p style="color: var(--text-secondary);">Software professionale per l'analisi automatizzata del rischio chimico.</p>
+        </div>
+        <div class="footer-section">
+          <h4>Legale</h4>
+          <ul>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="termini.html">Termini e Condizioni</a></li>
+            <li><a href="eula.html">EULA</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 MOVARISCH - Tutti i diritti riservati</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
