@@ -7,15 +7,22 @@
     "name": "Giuseppe",
     "email": "atis.giuseppe@gmail.com"
   },
+  "homepage": "https://giuseppe575.github.io/movarisch-site/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/giuseppe575/movarisch.git"
+  },
   "license": "SEE LICENSE IN ../docs/eula.html",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win --x64",
     "build:dir": "electron-builder --win --x64 --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "publish": "electron-builder --win --x64 --publish always"
   },
   "dependencies": {
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "electron": "^28.0.0",
@@ -34,6 +41,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "updater.js",
       "../index.html",
       "../app.js",
       "../style.css",
@@ -103,6 +111,12 @@
       "include": "build/installer.nsh"
     },
     "compression": "maximum",
-    "asar": true
+    "asar": true,
+    "publish": {
+      "provider": "github",
+      "owner": "Giuseppe575",
+      "repo": "movarisch",
+      "releaseType": "release"
+    }
   }
 }

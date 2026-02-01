@@ -21,10 +21,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Flag per indicare che siamo in Electron
   isElectron: true,
 
-  // Funzioni utili per l'app (se necessario in futuro)
-  // Esempio:
-  // openExternal: (url) => ipcRenderer.invoke('open-external', url),
-  // saveFile: (data) => ipcRenderer.invoke('save-file', data),
+  // Listener per eventi di aggiornamento
+  onUpdateStatus: (callback) => {
+    ipcRenderer.on('update-status', (event, data) => callback(data));
+  },
+
+  // Rimuovi listener aggiornamento
+  removeUpdateListener: () => {
+    ipcRenderer.removeAllListeners('update-status');
+  }
 });
 
 /**
