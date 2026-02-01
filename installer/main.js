@@ -11,6 +11,7 @@
 const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { initUpdater, checkForUpdatesManual } = require('./updater');
 
 // Mantieni un riferimento globale alla finestra per evitare il garbage collection
 let mainWindow;
@@ -187,6 +188,13 @@ function createMenu() {
         },
         { type: 'separator' },
         {
+          label: 'Controlla aggiornamenti...',
+          click: () => {
+            checkForUpdatesManual(mainWindow);
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Informazioni su MOVARISCH',
           click: () => {
             dialog.showMessageBox(mainWindow, {
@@ -197,7 +205,7 @@ function createMenu() {
                 'Software professionale per l\'analisi automatizzata del rischio chimico.\n\n' +
                 'Sviluppato da: Giuseppe\n' +
                 'Email: atis.giuseppe@gmail.com\n' +
-                'Sito: https://giuseppe575.github.io/movarisch/\n\n' +
+                'Sito: https://giuseppe575.github.io/movarisch-site/\n\n' +
                 '© 2025 Giuseppe - Tutti i diritti riservati',
               buttons: ['OK']
             });
@@ -231,6 +239,9 @@ function createMenu() {
 // Quando Electron ha completato l'inizializzazione
 app.whenReady().then(() => {
   createWindow();
+
+  // Inizializza il sistema di aggiornamenti automatici
+  initUpdater(mainWindow);
 
   // Su macOS ricrea la finestra quando l'icona del dock viene cliccata
   app.on('activate', () => {
