@@ -31,7 +31,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: 'MOVARISCH v1.1.0',
+    title: 'MOVARISCH v1.2.0',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0b1220',
     webPreferences: {
@@ -200,7 +200,7 @@ function createMenu() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Informazioni su MOVARISCH',
-              message: 'MOVARISCH v1.1.0',
+              message: 'MOVARISCH v1.2.0',
               detail:
                 'Software professionale per l\'analisi automatizzata del rischio chimico.\n\n' +
                 'Sviluppato da: Giuseppe\n' +
