@@ -5,7 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MOVARISCH - Scheda Cumulativa Rischio Chimico</title>
 <link rel="stylesheet" href="style.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Chart.js: prima locale (funziona offline nel build), poi CDN come fallback -->
+<script>
+(function(){
+  var local = document.createElement('script');
+  local.src = 'src/lib/chart.umd.min.js';
+  local.onerror = function(){
+    var cdn = document.createElement('script');
+    cdn.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+    document.head.appendChild(cdn);
+  };
+  document.head.appendChild(local);
+})();
+</script>
 <style>
   .report-container {
     max-width: 1200px;
@@ -504,70 +516,75 @@ document.getElementById('healthRiskBadge').innerHTML = createBadge(substanceData
 document.getElementById('safetyRiskBadge').innerHTML = createBadge(substanceData.safetyLevel);
 document.getElementById('overallRiskBadge').innerHTML = createBadge(substanceData.safetyLevel); // use worst
 
-// Radar Chart
-const ctx = document.getElementById('radarChart');
-new Chart(ctx, {
-  type: 'radar',
-  data: {
-    labels: ['Pericolosità', 'Esposizione', 'Quantità', 'Condizioni Operative', 'Protezione'],
-    datasets: [{
-      label: 'RISCHIO SALUTE',
-      data: [
-        substanceData.healthScore * 10,
-        substanceData.riskInhal,
-        50,
-        30,
-        40
-      ],
-      backgroundColor: 'rgba(31, 178, 107, 0.2)',
-      borderColor: 'rgba(31, 178, 107, 1)',
-      borderWidth: 2
-    }, {
-      label: 'RISCHIO SICUREZZA',
-      data: [
-        substanceData.safetyPI,
-        substanceData.safetyIQ * 20,
-        substanceData.safetyFCO * 30,
-        60,
-        25
-      ],
-      backgroundColor: 'rgba(255, 97, 111, 0.2)',
-      borderColor: 'rgba(255, 97, 111, 1)',
-      borderWidth: 2
-    }]
-  },
-  options: {
-    scales: {
-      r: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          stepSize: 20,
-          color: '#9fb0cf'
-        },
-        grid: {
-          color: 'rgba(159, 176, 207, 0.2)'
-        },
-        pointLabels: {
-          color: '#e8eefc',
-          font: {
-            size: 14
-          }
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        labels: {
-          color: '#e8eefc',
-          font: {
-            size: 14
-          }
-        }
-      }
+// Radar Chart – renderizzato solo se Chart.js è disponibile
+function renderChart(){
+  if(typeof Chart === 'undefined'){
+    // Fallback testuale se Chart.js non è caricato (offline senza lib locale)
+    const container = document.querySelector('.chart-container');
+    if(container){
+      container.innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center;">📊 Grafico non disponibile (Chart.js non caricato).<br>Installa la versione con chart.js incluso.</div>';
     }
+    return;
   }
-});
+  try{
+    const ctx = document.getElementById('radarChart');
+    if(!ctx){ return; }
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['Pericolosità', 'Esposizione', 'Quantità', 'Condizioni Operative', 'Protezione'],
+        datasets: [{
+          label: 'RISCHIO SALUTE',
+          data: [
+            substanceData.healthScore * 10,
+            substanceData.riskInhal,
+            50,
+            30,
+            40
+          ],
+          backgroundColor: 'rgba(31, 178, 107, 0.2)',
+          borderColor: 'rgba(31, 178, 107, 1)',
+          borderWidth: 2
+        }, {
+          label: 'RISCHIO SICUREZZA',
+          data: [
+            substanceData.safetyPI,
+            substanceData.safetyIQ * 20,
+            substanceData.safetyFCO * 30,
+            60,
+            25
+          ],
+          backgroundColor: 'rgba(255, 97, 111, 0.2)',
+          borderColor: 'rgba(255, 97, 111, 1)',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { stepSize: 20, color: '#9fb0cf' },
+            grid: { color: 'rgba(159, 176, 207, 0.2)' },
+            pointLabels: { color: '#e8eefc', font: { size: 14 } }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#e8eefc', font: { size: 14 } } }
+        }
+      }
+    });
+  }catch(chartErr){
+    console.error('❌ Errore rendering grafico:', chartErr);
+  }
+}
+
+// Il chart richiede che Chart.js sia caricato – aspetta il caricamento asincrono
+if(typeof Chart !== 'undefined'){
+  renderChart();
+}else{
+  window.addEventListener('load', renderChart);
+}
 
 // DPI recommendations based on risk levels
 function generateDPIList() {

@@ -1,6 +1,6 @@
 {
   "name": "movarisch",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "MOVARISCH - Software professionale per l'analisi automatizzata del rischio chimico",
   "main": "main.js",
   "author": {
@@ -45,7 +45,9 @@
       "../index.html",
       "../app.js",
       "../style.css",
+      "../cumulative-report.html",
       "../src/**/*",
+      "../support/**/*",
       "../docs/**/*",
       "!../docs/acquista.html",
       "!../docs/index.html",
@@ -66,7 +68,9 @@
           "index.html",
           "app.js",
           "style.css",
+          "cumulative-report.html",
           "src/**/*",
+          "support/**/*",
           "docs/privacy.html",
           "docs/termini.html",
           "docs/eula.html",

@@ -4,6 +4,41 @@ Registro delle modifiche e miglioramenti al progetto MOVARISCH.
 
 ---
 
+## [v1.2.1] - 2026-04-14 - Hotfix: Scheda Cumulativa e Sezione Supporto
+
+### 🐛 Bug Critici Risolti
+
+#### 1. Scheda Cumulativa → pagina bianca nell'app installata
+**Causa**: `cumulative-report.html` non era incluso nella configurazione di build (`installer/package.json`). 
+Il file veniva trovato solo in modalità sviluppo, ma nell'app pacchettizzata risultava assente, causando una finestra bianca all'apertura.
+**Fix**: Aggiunto `cumulative-report.html` sia in `files` che in `extraResources.filter` del build config.
+
+#### 2. Knowledge Base / Licenza / Ticket / Documentazione → pagina bianca nell'app installata
+**Causa**: L'intera cartella `support/` (con `knowledge-base.html`, `licenza-uso.html`, `ticket.html`, ecc.) 
+non era inclusa nel pacchetto Electron. Stesso problema del punto 1.
+**Fix**: Aggiunto `support/**/*` sia in `files` che in `extraResources.filter`.
+
+#### 3. Grafico Radar nella Scheda Cumulativa → errore JS blocca la pagina
+**Causa**: `cumulative-report.html` caricava Chart.js esclusivamente da CDN esterno. In ambiente offline 
+(o con rete lenta), il caricamento falliva e la mancanza di `try-catch` bloccava l'esecuzione di tutto 
+lo script successivo (DPI, piano interventi).
+**Fix**: 
+- Aggiunto meccanismo di caricamento: prima `src/lib/chart.umd.min.js` (locale), poi CDN come fallback
+- Wrappato il rendering del grafico in `try-catch` con messaggio di fallback testuale
+- Il resto della pagina (identificazione, rischio salute/sicurezza, DPI) non viene più bloccato da errori del grafico
+
+### 🧹 Pulizia Codice
+
+#### Rimosso CSS di debug da style.css
+Rimossi i blocchi di test temporanei `/* === TEST VISIBILITA FORZATA ===*/` che contenevano stili 
+con colori vistosi (sfondo blu, testo giallo, bordi verde lime) destinati solo al debug della tabella.
+
+### 📦 Versione
+- `installer/package.json`: `1.2.0` → `1.2.1`
+- `installer/main.js`, `installer/preload.js`: aggiornati riferimenti versione
+
+---
+
 ## [2025-11-25] - Bugfix: Correzione Classificazione EUH per Calcoli M.I.R.C.
 
 ### 🐛 Problemi Critici Risolti

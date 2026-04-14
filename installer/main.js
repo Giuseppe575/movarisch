@@ -31,7 +31,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: 'MOVARISCH v1.2.0',
+    title: 'MOVARISCH v1.2.1',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0b1220',
     webPreferences: {
