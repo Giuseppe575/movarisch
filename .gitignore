@@ -47,3 +47,9 @@ NOTA_TECNICA_*.md
 screenshot-*.png
 schedaword.png
 dash.png
+
+# Generatore licenze — NON deve mai finire nel repo pubblico.
+# Contiene l'algoritmo di checksum identico a src/license-validator.js,
+# chi accede a questo file puo' generare licenze MOVARISCH valide.
+# Mantenuto solo localmente per uso del titolare.
+license-generator.html
