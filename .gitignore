@@ -33,3 +33,17 @@ generate-excel-template.js
 # Electron cache
 .electron/
 .cache/
+
+# Claude Code local config
+.claude/
+
+# Dati clienti (locali, mai committare)
+gestione-clienti-movarisch.xlsx
+
+# Note tecniche / personali locali
+NOTA_TECNICA_*.md
+
+# Screenshot e immagini di lavoro
+screenshot-*.png
+schedaword.png
+dash.png
