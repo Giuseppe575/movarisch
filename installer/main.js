@@ -31,7 +31,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: 'MOVARISCH v1.3.0',
+    title: 'MOVARISCH v1.3.1',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0b1220',
     webPreferences: {
@@ -72,13 +72,33 @@ function createWindow() {
     }
   });
 
-  // Gestisci apertura link esterni — blocca tutto tranne http/https espliciti
+  // Gestisci apertura link in nuova finestra
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Permetti solo URL http/https verso browser esterno; nega tutto il resto
+    // http/https -> browser esterno
     if (url.startsWith('https://') || url.startsWith('http://')) {
       shell.openExternal(url);
+      return { action: 'deny' };
     }
-    // Blocca esplicitamente: javascript:, data:, file:, blob: e qualsiasi schema sconosciuto
+    // file:// (pagine interne dell'app, es. support/*) -> nuova finestra Electron
+    // con preload + sandbox uguali al main window
+    if (url.startsWith('file://')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            enableRemoteModule: false,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            devTools: isDev
+          }
+        }
+      };
+    }
+    // Blocca esplicitamente: javascript:, data:, blob: e schemi sconosciuti
     return { action: 'deny' };
   });
 
@@ -203,7 +223,7 @@ function createMenu() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Informazioni su MOVARISCH',
-              message: 'MOVARISCH v1.3.0',
+              message: 'MOVARISCH v1.3.1',
               detail:
                 'Software professionale per l\'analisi automatizzata del rischio chimico.\n\n' +
                 'Sviluppato da: Giuseppe\n' +
@@ -246,10 +266,28 @@ app.on('web-contents-created', (_event, contents) => {
     event.preventDefault();
   });
 
-  // Blocca apertura di nuove finestre da contenuto renderer
+  // Blocca apertura di nuove finestre da contenuto renderer (sotto-finestre)
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) {
       shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    if (url.startsWith('file://')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            enableRemoteModule: false,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            devTools: isDev
+          }
+        }
+      };
     }
     return { action: 'deny' };
   });

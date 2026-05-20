@@ -44,7 +44,7 @@
         "text": "Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione."
       }
     },
-    "defaultNote": "Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto \"nessun contatto\", distanza 1 – 3 m (d = 0,75)",
+    "defaultNote": "Preset 1 (Laboratorio) → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto \"nessun contatto\", distanza 1 – 3 m (d = 0,75). • Preset 2 (Produzione rapida) → Uso controllato, ventilazione generale, esposizione < 15 min, quantità 1 – 10 kg, livello di contatto \"accidentale\", distanza 1 – 3 m (d = 0,75). Applica i preset con i bottoni P1 / P2 in tabella.",
     "defaultNote2": "Preset rapido → Uso controllato, ventilazione generale, esposizione < 15 min, quantità 1 – 10 kg, livello di contatto \"accidentale\", distanza 1 – 3 m (d = 0,75)",
     "normNote": "Conforme a MoVaRisCh 2026 (28/02/2026) e D.Lgs. 135/2024. Le sostanze classificate H340, H350/H350i, H360 e varianti (cat. 1A/1B) NON entrano nel calcolo P MoVaRisCh ma devono essere valutate separatamente ex Titolo IX Capo II D.Lgs. 81/08."
   },
