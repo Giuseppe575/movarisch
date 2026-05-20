@@ -2,6 +2,18 @@
  * MOVARISCH - Sistema di validazione licenze offline
  * Questo modulo gestisce la validazione e l'attivazione delle licenze
  * senza richiedere connessione a server esterni.
+ *
+ * MODELLO DI MINACCIA — SICUREZZA LICENZE:
+ * Questo sistema offre protezione anti-tampering casuale (deterrente per utenti
+ * occasionali), NON protezione crittografica robusta.
+ * Utenti motivati con accesso ai DevTools o al codice sorgente possono:
+ *   - Invertire calculateChecksum() per generare licenze valide (algoritmo pubblico).
+ *   - Sovrascrivere window.LicenseManager.isActivated nel renderer.
+ *   - Modificare manualmente il valore in localStorage/IndexedDB.
+ * MITIGAZIONE IN PRODUZIONE: DevTools è disabilitato (main.js: devTools: isDev).
+ * Il codice è incluso nell'asar — non direttamente accessibile senza strumenti dedicati.
+ * Questo è un livello di difesa accettabile per software desktop di nicchia professionale.
+ * NON usare questo schema per proteggere dati sensibili o logica critica di sicurezza.
  */
 
 (function(window) {

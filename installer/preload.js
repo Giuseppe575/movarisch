@@ -16,7 +16,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // Informazioni sull'app
   platform: process.platform,
-  version: '1.2.1',
+  version: '1.3.0',
 
   // Flag per indicare che siamo in Electron
   isElectron: true,
@@ -40,7 +40,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('electron-app');
 
   // Log di avvio (solo console, non visibile all'utente)
-  console.log('MOVARISCH v1.2.1 - Electron App');
+  console.log('MOVARISCH v1.3.0 - Electron App');
   console.log('Platform:', process.platform);
   console.log('Electron version:', process.versions.electron);
   console.log('Chrome version:', process.versions.chrome);

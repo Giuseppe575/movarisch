@@ -25,6 +25,15 @@ function describeError(err){
   catch(e){ return String(err); }
 }
 
+// =================== HEALTH HAZARD SCORES (P MoVaRisCh) ===================
+// Punteggi P aggiornati a MoVaRisCh 2026 (28/02/2026) e D.Lgs. 135/2024.
+// ESCLUSE dal calcolo P:
+//   - Cancerogeni/Mutageni cat. 1A/1B (H350, H350i, H340) -> Titolo IX Capo II
+//   - Reprotossici cat. 1A/1B (H360 e varianti)            -> Titolo IX Capo II (D.Lgs. 135/2024)
+// INCLUSE nel calcolo P (Titolo IX Capo I, art. 223):
+//   - Cancerogeni/Mutageni cat. 2 (H351, H341)
+//   - Reprotossici cat. 2 (H361 e varianti) - non coperti da D.Lgs. 135/2024
+//   - Effetti su allattamento (H362)
 const H_SCORE = {
   "H332":4.50,"H312":3.00,"H302":2.00,"H331":6.00,"H311":4.50,"H301":2.25,
   "H330":6.50,"H330 cat.1":6.50,"H330 cat.2":5.50,
@@ -37,10 +46,48 @@ const H_SCORE = {
   "H317":4.50,"H317 cat.1A":6.00,"H317 cat.1B":4.50,
   "H370":9.50,"H371":8.00,"H335":3.25,"H336":3.50,
   "H372":8.00,"H373":7.00,"H304":3.50,
-  "H360":10.00,"H360D":9.50,"H360Df":9.75,"H360F":9.50,"H360FD":10.00,
-  "H341":8.00,"H351":8.00,"H361":8.00,"H361d":7.50,"H361f":7.50,"H361fd":8.00,
+  // Cat. 2 cancerogeni/mutageni (restano in calcolo P)
+  "H341":8.00,"H351":8.00,
+  // Reprotossici cat. 2 (D.Lgs. 135/2024 non li equipara ai CMR -> restano in P)
+  "H361":8.00,"H361d":7.50,"H361f":7.50,"H361fd":8.00,
   "H362":6.00,
+  // Interferenti endocrini (introdotti da MoVaRisCh 2026)
+  "EUH380":10.00,"EUH381":8.00,
 };
+
+// =================== CMR FLAG (D.Lgs. 135/2024) ===================
+// Frasi H che identificano sostanze da valutare ex Titolo IX Capo II:
+// cancerogeni/mutageni cat. 1A/1B + reprotossiche cat. 1A/1B.
+// Queste NON contribuiscono al calcolo P MoVaRisCh ma vengono SEGNALATE
+// nel report perché richiedono valutazione separata (art. 234 e seg.).
+const H_CMR_CODES = new Set([
+  // Cancerogeni cat. 1A/1B
+  'H350', 'H350I',
+  // Mutageni cat. 1A/1B
+  'H340',
+  // Reprotossici cat. 1A/1B (D.Lgs. 135/2024)
+  'H360', 'H360D', 'H360F', 'H360FD', 'H360DF', 'H360FD', 'H360DF'
+]);
+// Nota: H360 varianti normalizzate in upper case sopra. Riempiamo con tutti
+// i casing reali che possono arrivare dalle SDS:
+['H360', 'H360D', 'H360F', 'H360FD', 'H360Df', 'H360Fd', 'H360fD', 'H350', 'H350i', 'H340']
+  .forEach(c => H_CMR_CODES.add(c.toUpperCase()));
+
+function isCmrSubstance(hcodes){
+  if(!Array.isArray(hcodes) || !hcodes.length) return false;
+  return hcodes.some(h => {
+    const base = (h || '').toString().split(' ')[0].toUpperCase();
+    return H_CMR_CODES.has(base);
+  });
+}
+
+function getCmrCodes(hcodes){
+  if(!Array.isArray(hcodes) || !hcodes.length) return [];
+  return hcodes.filter(h => {
+    const base = (h || '').toString().split(' ')[0].toUpperCase();
+    return H_CMR_CODES.has(base);
+  });
+}
 
 // =================== SAFETY HAZARDS (Physical H-codes) ===================
 const H_PHYSICAL_SCORE = {
@@ -156,17 +203,67 @@ const ECUT_MATRIX = {
   4: { 1:1, 2:7, 3:7, 4:10 }, // Uso dispersivo
 };
 
+// =================== PRESET INDICI (MoVaRisCh 2026) ===================
+// Due preset operativi pronti all'uso. Il Preset 1 e' anche il default applicato
+// alle nuove righe (compatibilita' con defaults). L'utente puo' scegliere tra
+// i due tramite i bottoni in tabella.
+const PRESETS = {
+  preset1: {
+    key: 'preset1',
+    labelKey: 'presets.preset1.label',
+    descKey: 'presets.preset1.desc',
+    sistema: 'controllato',
+    controlType: 'aspirazione_localizzata',
+    exposureTime: '15_120',
+    qtyBand: '1_10',
+    statoFisico: 'liquido_media_alta',
+    contactLevel: 'nessun_contatto',
+    distanceBand: '1_3',
+    DIS: 0.75,
+    Ecut: 1.0
+  },
+  preset2: {
+    key: 'preset2',
+    labelKey: 'presets.preset2.label',
+    descKey: 'presets.preset2.desc',
+    sistema: 'controllato',
+    controlType: 'ventilazione_generale',
+    exposureTime: 'lt_15',
+    qtyBand: '1_10',
+    statoFisico: 'liquido_media_alta',
+    contactLevel: 'accidentale',
+    distanceBand: '1_3',
+    DIS: 0.75,
+    Ecut: 1.0
+  }
+};
+
+function applyPreset(row, presetKey){
+  const preset = PRESETS[presetKey] || PRESETS.preset1;
+  row.sistema = preset.sistema;
+  row.controlType = preset.controlType;
+  row.exposureTime = preset.exposureTime;
+  row.qtyBand = preset.qtyBand;
+  row.statoFisico = preset.statoFisico;
+  row.contactLevel = preset.contactLevel;
+  row.distanceBand = preset.distanceBand;
+  row.DIS = preset.DIS;
+  row.Ecut = preset.Ecut;
+  row.activePreset = preset.key;
+  return row;
+}
+
 const defaults = {
-  // HEALTH defaults
-  sistema:'controllato',
-  controlType:'aspirazione_localizzata',
-  exposureTime:'15_120',
-  qtyBand:'1_10',
-  statoFisico:'liquido_media_alta',
-  contactLevel:'nessun_contatto',
-  distanceBand:'1_3',
-  DIS:0.75,
-  Ecut:1.0,
+  // HEALTH defaults (allineati a Preset 1)
+  sistema: PRESETS.preset1.sistema,
+  controlType: PRESETS.preset1.controlType,
+  exposureTime: PRESETS.preset1.exposureTime,
+  qtyBand: PRESETS.preset1.qtyBand,
+  statoFisico: PRESETS.preset1.statoFisico,
+  contactLevel: PRESETS.preset1.contactLevel,
+  distanceBand: PRESETS.preset1.distanceBand,
+  DIS: PRESETS.preset1.DIS,
+  Ecut: PRESETS.preset1.Ecut,
 
   // M.I.R.C. (INRS) SAFETY defaults
   hcodesPhysical: [],
@@ -235,6 +332,8 @@ const RISK_CLASSES = [
 const state = { files:[], rows:[] };
 const $ = s => document.querySelector(s);
 
+// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — workerSrc punta a unpkg.com. Stessa superficie
+// di rischio dei CDN sopra. Mitigazione: copiare pdf.worker.min.js in src/lib/ e usare path locale.
 if(window.pdfjsLib){
   try{
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -260,6 +359,12 @@ async function loadScript(src){
   });
 }
 
+// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — ensureXlsx carica xlsx da CDN esterni a runtime.
+// Se cdnjs.cloudflare.com o cdn.jsdelivr.net vengono compromessi (typosquatting, cache-poisoning,
+// BGP hijack) possono iniettare JS arbitrario nell'app. Mitigazione raccomandata:
+// - Bundlare xlsx.full.min.js localmente in src/lib/ e rimuovere questo loader.
+// - Finché rimane CDN, aggiungere Subresource Integrity (SRI) se si usa <script> statico.
+// Ref: OWASP A08:2021 – Software and Data Integrity Failures.
 async function ensureXlsx(){
   if(window.XLSX){ return window.XLSX; }
   const urls = [
@@ -282,6 +387,10 @@ async function ensureXlsx(){
   return window.XLSX;
 }
 
+// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — ensureDocx carica docx via dynamic import() da CDN.
+// dynamic import() da CDN esterno non supporta SRI. L'unica mitigazione efficace è
+// bundlare docx localmente (es. esbuild/rollup) ed eliminare questo loader.
+// Stessa superficie di rischio di ensureXlsx sopra. Ref: OWASP A08:2021.
 async function ensureDocx(){
   if(window.docxLib){ return window.docxLib; }
   const urls = [
@@ -305,6 +414,9 @@ async function ensureDocx(){
   return window.docxLib;
 }
 
+// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — il PDF worker viene caricato da CDN esterno.
+// Il worker gira in un thread separato ma ha accesso ai dati dei PDF utente.
+// Mitigazione: copiare pdf.worker.min.js in src/lib/ e puntare al path locale.
 const PDFJS_WORKER_CANDIDATES = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
@@ -919,7 +1031,11 @@ function render(){
       <td class="num"><b>${fmt(r.IRC)}</b></td>
       <td>${badge(r.mircText, r.mircClass)}</td>
       <td class="num"><b>${badge(fmt(r.OverallRiskValue), r.OverallClass)}</b></td>
-      <td><button class="btn" data-del="${i}" aria-label="${escapeHtml(deleteLabel)}">${escapeHtml(deleteLabel)}</button></td>`;
+      <td>
+        <button class="btn ${r.activePreset === 'preset1' ? 'btn-active' : ''}" data-preset="preset1" title="${escapeHtml(t('presets.preset1.desc'))}">P1</button>
+        <button class="btn ${r.activePreset === 'preset2' ? 'btn-active' : ''}" data-preset="preset2" title="${escapeHtml(t('presets.preset2.desc'))}">P2</button>
+        <button class="btn" data-del="${i}" aria-label="${escapeHtml(deleteLabel)}">${escapeHtml(deleteLabel)}</button>
+      </td>`;
 
     tr.querySelectorAll('.edit').forEach((cell)=>{
       cell.addEventListener('input', ()=>{
@@ -983,39 +1099,59 @@ function render(){
       });
     });
 
+    // Helper: ogni modifica manuale invalida il flag "preset attivo"
+    // cosi' il bottone evidenziato torna spento e l'utente capisce
+    // che lo stato e' divergente dai due preset.
+    const clearActivePreset = () => { r.activePreset = null; };
+
     tr.querySelector('[data-sistema]')?.addEventListener('change', (ev)=>{
       applySistema(r, ev.target.value);
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-controllo]')?.addEventListener('change', (ev)=>{
       r.controlType = ev.target.value || defaults.controlType;
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-exposure]')?.addEventListener('change', (ev)=>{
       r.exposureTime = ev.target.value || defaults.exposureTime;
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-qty]')?.addEventListener('change', (ev)=>{
       applyQuantity(r, ev.target.value);
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-stato]')?.addEventListener('change', (ev)=>{
       r.statoFisico = ev.target.value;
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-contact]')?.addEventListener('change', (ev)=>{
       r.contactLevel = ev.target.value || defaults.contactLevel;
+      clearActivePreset();
       render();
     });
 
     tr.querySelector('[data-distance]')?.addEventListener('change', (ev)=>{
       r.distanceBand = ev.target.value || defaults.distanceBand;
+      clearActivePreset();
       render();
+    });
+
+    // Bottoni preset MoVaRisCh
+    tr.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyPreset(r, btn.dataset.preset);
+        render();
+      });
     });
 
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
@@ -1226,6 +1362,8 @@ async function exportExcel(){
         Nome_commerciale:r.nome,
         Stato_fisico: STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico,
         Hcodes:r.hcodes.join(';'),
+        Hcodes_CMR_cat1A_1B: (r.cmrCodes || []).join(';'),
+        Sostanza_CMR_TitIX_CapoII: r.isCmr ? 'SI - valutare ex art. 234 D.Lgs. 81/08 (D.Lgs. 135/2024)' : 'NO',
         SCORE:r.SCORE,
         Sistema: getSistemaOption(r.sistema)?.label ?? r.sistema,
         Tipologia_di_controllo: controlInfo?.label ?? r.controlType,
@@ -1375,30 +1513,41 @@ async function exportWord(){
     };
 
     const sections = state.rows.map((r, index) => {
+      const sistemaInfo = getSistemaOption(r.sistema);
+      const propInfo = STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico);
+      const qtyInfo = getQuantityOption(r.qtyBand);
       const controlInfo = getControlOption(r.controlType);
       const exposureInfo = getExposureOption(r.exposureTime);
       const contactInfo = getContactOption(r.contactLevel);
       const distanceInfo = getDistanceOption(r.distanceBand);
 
+      // Helper: stampa "valore_numerico (descrizione_opzione)" per evitare
+      // l'incoerenza fra indice numerico e descrizione testuale nel Word.
+      const idx = (numeric, label) => {
+        const n = numeric != null && numeric !== '' ? String(numeric) : '—';
+        const l = label || '';
+        return l ? `${n}  (${l})` : n;
+      };
+
       // Dati della tabella (Campo | Valore)
       const tableData = [
         [docLabels.fields.file, r.file || ''],
         [docLabels.fields.tradeName, r.nome || ''],
-        [docLabels.fields.physicalState, STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico],
-        [docLabels.fields.hCodes, r.hcodes.join('; ')],
+        [docLabels.fields.physicalState, propInfo?.label ?? r.statoFisico],
+        [docLabels.fields.hCodes, (r.hcodes || []).join('; ')],
         [docLabels.fields.score, String(r.SCORE ?? '')],
-        [docLabels.fields.system, getSistemaOption(r.sistema)?.label ?? r.sistema],
+        [docLabels.fields.system, sistemaInfo?.label ?? r.sistema],
         [docLabels.fields.control, controlInfo?.label ?? r.controlType],
-        [docLabels.fields.controlIndex, String(controlInfo?.index ?? '')],
+        [docLabels.fields.controlIndex, idx(controlInfo?.index, controlInfo?.label)],
         [docLabels.fields.exposure, exposureInfo?.label ?? r.exposureTime],
-        [docLabels.fields.exposureIndex, String(exposureInfo?.index ?? '')],
-        [docLabels.fields.quantity, getQuantityOption(r.qtyBand)?.label ?? r.qty],
-        [docLabels.fields.quantityIndex, String(r.Q ?? '')],
+        [docLabels.fields.exposureIndex, idx(exposureInfo?.index, exposureInfo?.label)],
+        [docLabels.fields.quantity, qtyInfo?.label ?? r.qty],
+        [docLabels.fields.quantityIndex, idx(r.Q, qtyInfo?.label)],
         [docLabels.fields.contact, contactInfo?.label ?? r.contactLevel],
-        [docLabels.fields.contactIndex, String(r.contactIndex ?? '')],
-        [docLabels.fields.dIndex, String(r.D ?? '')],
-        [docLabels.fields.uIndex, String(r.U ?? '')],
-        [docLabels.fields.tIndex, String(r.T ?? '')],
+        [docLabels.fields.contactIndex, idx(r.contactIndex, contactInfo?.label)],
+        [docLabels.fields.dIndex, idx(r.D, propInfo?.label)],
+        [docLabels.fields.uIndex, idx(r.U, sistemaInfo?.label)],
+        [docLabels.fields.tIndex, idx(r.T, exposureInfo?.label)],
         [docLabels.fields.iIndex, String(r.I ?? '')],
         [docLabels.fields.distance, distanceInfo?.label ?? r.distanceBand],
         [docLabels.fields.distanceValue, String(r.DIS ?? '')],
@@ -1574,9 +1723,31 @@ async function exportWord(){
           })],
           alignment: AlignmentType.CENTER,
           spacing: { after: 400 }
-        }),
-        table
+        })
       ];
+
+      // WARNING CMR (D.Lgs. 135/2024): se la sostanza ha frasi H di
+      // cancerogenicita'/mutagenicita'/reprotossicita' cat. 1A/1B, va
+      // valutata ex Titolo IX Capo II e NON nel calcolo P MoVaRisCh.
+      if(r.isCmr && Array.isArray(r.cmrCodes) && r.cmrCodes.length){
+        const cmrWarningTitle = t('doc.cmrWarning.title');
+        const cmrWarningBody = t('doc.cmrWarning.body', { codes: r.cmrCodes.join(', ') });
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: cmrWarningTitle, bold: true, color: 'FFFFFF', size: 24 })],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 100, after: 100 },
+            shading: { type: ShadingType.SOLID, color: '8B0000', fill: '8B0000' }
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: cmrWarningBody, size: 20 })],
+            alignment: AlignmentType.LEFT,
+            spacing: { after: 300 }
+          })
+        );
+      }
+
+      children.push(table);
 
       // Aggiungi page break tra le sezioni (tranne l'ultima)
       if(index < state.rows.length - 1){
@@ -1586,11 +1757,99 @@ async function exportWord(){
       return children;
     });
 
-    // Crea il documento con tutte le sezioni
+    // =================== APPENDICE: GUIDA INDICI + RIFERIMENTI NORMATIVI ===
+    // Stampata UNA volta a fine documento. Serve ad allineare i valori
+    // numerici nelle tabelle con il loro significato operativo.
+    const guideRows = ['D','Q','U','C','T','I'].map(key => {
+      const name = t('doc.indexGuide.rows.' + key + '.name');
+      const meaning = t('doc.indexGuide.rows.' + key + '.meaning');
+      const lab = t('doc.indexGuide.rows.' + key + '.lab');
+      const prod = t('doc.indexGuide.rows.' + key + '.production');
+      return new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: key, bold: true, size: 24 })] })],
+            width: { size: 8, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: name, bold: true })] })],
+            width: { size: 20, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: meaning })] })],
+            width: { size: 32, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: lab, italics: true })] })],
+            width: { size: 20, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: prod, italics: true })] })],
+            width: { size: 20, type: WidthType.PERCENTAGE }
+          })
+        ]
+      });
+    });
+
+    // Riga intestazione della guida
+    const guideHeader = new TableRow({
+      tableHeader: true,
+      children: [
+        ['index', 8], ['name', 20], ['meaning', 32], ['labExample', 20], ['productionExample', 20]
+      ].map(([col, size]) => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text: t('doc.indexGuide.columns.' + col), bold: true, color: 'FFFFFF' })]
+        })],
+        width: { size, type: WidthType.PERCENTAGE },
+        shading: { type: ShadingType.SOLID, color: '1F4E78', fill: '1F4E78' }
+      }))
+    });
+
+    const guideTable = new Table({
+      rows: [guideHeader, ...guideRows],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    });
+
+    const appendix = [
+      new Paragraph({ pageBreakBefore: true }),
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.indexGuide.title'), bold: true, size: 28 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 }
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.indexGuide.intro'), size: 20 })],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 200 }
+      }),
+      guideTable,
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.indexGuide.formulaTitle'), bold: true, size: 22 })],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 300, after: 100 }
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.indexGuide.formula'), font: 'Consolas', size: 20 })],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 400 }
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.normReference.title'), bold: true, size: 22 })],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 100 }
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: t('doc.normReference.body'), size: 18, italics: true })],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 200 }
+      })
+    ];
+
+    // Crea il documento con tutte le sezioni + appendice normativa
     const doc = new Document({
       sections: [{
         properties: {},
-        children: sections.flat()
+        children: [...sections.flat(), ...appendix]
       }]
     });
 
@@ -1632,7 +1891,14 @@ parseBtn.addEventListener('click', async ()=>{
       const hcodesHealth = separated.health;
       const hcodesPhysical = separated.physical;
 
-      // Calcola score salute (solo da H-codes salute)
+      // Identifica frasi CMR cat. 1A/1B (H350, H340, H360 e varianti).
+      // Queste vanno valutate ex Titolo IX Capo II D.Lgs. 81/08 (art. 234 mod.
+      // dal D.Lgs. 135/2024) e NON contribuiscono al calcolo P MoVaRisCh.
+      const cmrCodes = getCmrCodes(hcodesHealth);
+      const isCmr = cmrCodes.length > 0;
+
+      // Calcola score salute (solo da H-codes salute). Le frasi CMR cat. 1A/1B
+      // non sono presenti in H_SCORE, quindi pickScore le ignora automaticamente.
       let score = hcodesHealth.length ? pickScore(hcodesHealth) : 0;
 
       // Estrai proprietà fisico-chimiche per sicurezza
@@ -1670,6 +1936,9 @@ parseBtn.addEventListener('click', async ()=>{
         nome: cleanedProductName,
         statoFisico: defaults.statoFisico,
         hcodes: hcodesHealth, // Solo H-codes salute
+        cmrCodes: cmrCodes,   // Frasi CMR cat. 1A/1B (escluse dal calcolo P)
+        isCmr: isCmr,         // Flag: sostanza da valutare ex Titolo IX Capo II
+        activePreset: 'preset1', // Preset attivo (default = Preset 1 = Laboratorio)
         SCORE: score,
         sistema: defaults.sistema,
         controlType: defaults.controlType,

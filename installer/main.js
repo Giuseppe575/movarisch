@@ -31,7 +31,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: 'MOVARISCH v1.2.1',
+    title: 'MOVARISCH v1.3.0',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0b1220',
     webPreferences: {
@@ -72,22 +72,25 @@ function createWindow() {
     }
   });
 
-  // Gestisci apertura link esterni
+  // Gestisci apertura link esterni — blocca tutto tranne http/https espliciti
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Apri link esterni nel browser predefinito
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    // Permetti solo URL http/https verso browser esterno; nega tutto il resto
+    if (url.startsWith('https://') || url.startsWith('http://')) {
       shell.openExternal(url);
-      return { action: 'deny' };
     }
-    return { action: 'allow' };
+    // Blocca esplicitamente: javascript:, data:, file:, blob: e qualsiasi schema sconosciuto
+    return { action: 'deny' };
   });
 
-  // Previeni navigazione non autorizzata
+  // Previeni navigazione non autorizzata — blocca tutto ciò che non è file:// locale
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const indexUrl = mainWindow.webContents.getURL();
-    if (!url.startsWith(indexUrl) && !url.startsWith('file://')) {
+    // Consenti solo la navigazione a file:// (app locale). Tutto il resto viene bloccato.
+    if (!url.startsWith('file://')) {
       event.preventDefault();
-      shell.openExternal(url);
+      // Apri nel browser di sistema solo se è http/https, ignora altri schemi
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url);
+      }
     }
   });
 
@@ -200,7 +203,7 @@ function createMenu() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Informazioni su MOVARISCH',
-              message: 'MOVARISCH v1.2.0',
+              message: 'MOVARISCH v1.3.0',
               detail:
                 'Software professionale per l\'analisi automatizzata del rischio chimico.\n\n' +
                 'Sviluppato da: Giuseppe\n' +
@@ -235,6 +238,32 @@ function createMenu() {
 /**
  * Gestione eventi del ciclo di vita dell'app
  */
+
+// Blocca webview non autorizzati e nuovi BrowserWindow creati da contenuto web
+app.on('web-contents-created', (_event, contents) => {
+  // Disabilita la creazione di <webview> tag (vettore di attacco noto in Electron)
+  contents.on('will-attach-webview', (event) => {
+    event.preventDefault();
+  });
+
+  // Blocca apertura di nuove finestre da contenuto renderer
+  contents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  // Blocca navigazione a URL non-file dall'interno del renderer
+  contents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault();
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url);
+      }
+    }
+  });
+});
 
 // Quando Electron ha completato l'inizializzazione
 app.whenReady().then(() => {

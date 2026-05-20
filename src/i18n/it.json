@@ -44,7 +44,21 @@
         "text": "Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione."
       }
     },
-    "defaultNote": "Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto \"nessun contatto\", distanza 1 – 3 m (d = 0,75)"
+    "defaultNote": "Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto \"nessun contatto\", distanza 1 – 3 m (d = 0,75)",
+    "defaultNote2": "Preset rapido → Uso controllato, ventilazione generale, esposizione < 15 min, quantità 1 – 10 kg, livello di contatto \"accidentale\", distanza 1 – 3 m (d = 0,75)",
+    "normNote": "Conforme a MoVaRisCh 2026 (28/02/2026) e D.Lgs. 135/2024. Le sostanze classificate H340, H350/H350i, H360 e varianti (cat. 1A/1B) NON entrano nel calcolo P MoVaRisCh ma devono essere valutate separatamente ex Titolo IX Capo II D.Lgs. 81/08."
+  },
+  "presets": {
+    "title": "Preset operativi",
+    "apply": "Applica preset",
+    "preset1": {
+      "label": "🔹 Preset 1 – Laboratorio",
+      "desc": "Uso controllato · Ventilazione localizzata · 15 min – 2 h · 1 – 10 kg · Nessun contatto · 1 – 3 m"
+    },
+    "preset2": {
+      "label": "🔹 Preset 2 – Produzione rapida",
+      "desc": "Uso controllato · Ventilazione generale · < 15 min · 1 – 10 kg · Contatto accidentale · 1 – 3 m"
+    }
   },
   "table": {
     "headers": {
@@ -287,6 +301,65 @@
       "IRC": "IRC - Indice Rischio Chimico M.I.R.C.",
       "safetyLevel": "Livello Rischio Sicurezza (M.I.R.C.)",
       "overallRisk": "Rischio Complessivo (Salute + Sicurezza)"
+    },
+    "cmrWarning": {
+      "title": "⚠ ATTENZIONE — Sostanza CMR (cat. 1A/1B)",
+      "body": "La sostanza presenta classificazione cancerogena, mutagena o tossica per la riproduzione di categoria 1A o 1B (frasi H rilevate: {codes}). Ai sensi del D.Lgs. 135/2024 (mod. Titolo IX Capo II D.Lgs. 81/08, art. 234), tali sostanze NON rientrano nel calcolo MOVARISCH dell'indice di pericolosità P e DEVONO essere valutate separatamente come agenti cancerogeni/mutageni/tossici per la riproduzione. Applicare gli articoli 235 e seguenti: sostituzione, ciclo chiuso, sorveglianza sanitaria, registro esposti."
+    },
+    "normReference": {
+      "title": "Riferimenti normativi",
+      "body": "Calcolo eseguito secondo MoVaRisCh 2026 (Regioni Emilia-Romagna, Toscana, Lombardia – agg. 28/02/2026) e D.Lgs. 81/08 art. 222-232, come modificato dal D.Lgs. 135/2024 (recepimento Direttiva UE 2022/431). Classificazione H secondo Regolamento (CE) 1272/2008 (CLP) e 22° ATP (Reg. UE 2024/2564)."
+    },
+    "indexGuide": {
+      "title": "Guida agli indici MOVARISCH",
+      "intro": "Significato degli indici utilizzati nel calcolo del rischio per la salute (Titolo IX Capo I D.Lgs. 81/08).",
+      "columns": {
+        "index": "Indice",
+        "name": "Nome",
+        "meaning": "Cosa misura",
+        "labExample": "Esempio Laboratorio",
+        "productionExample": "Esempio Produzione"
+      },
+      "rows": {
+        "D": {
+          "name": "Proprietà chimico-fisiche",
+          "meaning": "Stato fisico della sostanza e tendenza all'aerodispersione (volatilità per liquidi, pulverulenza per solidi).",
+          "lab": "Solvente organico volatile (acetone) usato in piccoli volumi → D=3 (liquido media/alta volatilità).",
+          "production": "Granulato pellettizzato a bassa polverosità → D=1 (solido/nebbie grossolane)."
+        },
+        "Q": {
+          "name": "Quantità in uso",
+          "meaning": "Massa o volume della sostanza manipolata per singola operazione o per turno.",
+          "lab": "Pesata di 50 mg di standard analitico → Q=1 (< 0,1 kg).",
+          "production": "Travaso di 25 kg di additivo da fusto → Q=4 (10 – 100 kg)."
+        },
+        "U": {
+          "name": "Tipologia d'uso (sistema)",
+          "meaning": "Grado di confinamento del processo: chiuso, in matrice, controllato, dispersivo.",
+          "lab": "Reattore chiuso con prelievo da setto → U=1 (sistema chiuso).",
+          "production": "Verniciatura a spruzzo manuale → U=4 (uso dispersivo)."
+        },
+        "C": {
+          "name": "Tipologia di controllo (ventilazione)",
+          "meaning": "Misure tecniche di controllo dell'esposizione: contenimento, aspirazione localizzata, ventilazione generale, manipolazione diretta.",
+          "lab": "Operazione sotto cappa chimica → C=2 (aspirazione localizzata).",
+          "production": "Locale con sola ventilazione generale ambientale → C=4 (ventilazione generale)."
+        },
+        "T": {
+          "name": "Tempo di esposizione",
+          "meaning": "Durata cumulativa dell'esposizione dell'operatore nella giornata lavorativa.",
+          "lab": "Pesata e preparazione campione, 10 min → T=1 (< 15 minuti).",
+          "production": "Linea produttiva continua 6 ore → T=4 (4 – 6 ore)."
+        },
+        "I": {
+          "name": "Indice di intensità di esposizione",
+          "meaning": "Intensità dell'esposizione normalizzata, calcolata come I = f(D × Q × U × C) con soglie MOVARISCH. Più alto = esposizione più intensa.",
+          "lab": "Tipico: bassa intensità (I ≤ 3) per attività analitiche con buon contenimento.",
+          "production": "Tipico: intensità medio-alta (I = 5 – 10) per cicli produttivi non confinati."
+        }
+      },
+      "formulaTitle": "Formula MOVARISCH applicata",
+      "formula": "R_inal = P × E_inal = P × (I × d)\nR_cut = P × E_cut\nR_tot = √(R_inal² + R_cut²)\ndove P = punteggio massimo delle frasi H della sostanza (esclusi CMR cat. 1A/1B)."
     }
   },
   "test": {

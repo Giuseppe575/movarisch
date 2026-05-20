@@ -1,10 +1,43 @@
 # MOVARISCH - Progress e Stato del Progetto
 
-**Ultimo aggiornamento:** 1 Febbraio 2026
+**Ultimo aggiornamento:** 20 Maggio 2026
 
 ---
 
-## Stato Attuale: v1.2.0 ✅
+## Stato Attuale: v1.3.0 ✅ (in build)
+
+### Novità v1.3.0 — adeguamento normativo + UX + security
+
+**Adeguamento MoVaRisCh 2026 e D.Lgs. 135/2024 (in vigore 11/10/2024):**
+- Rimosse dal calcolo P: H360, H360D, H360F, H360FD, H360Df, H360Fd (Repr. 1A/1B → ora trattate ex Titolo IX Capo II, art. 234 mod.).
+- Mantenute nel calcolo P: H341, H351, H361, H361d, H361f, H361fd, H362 (cat. 2 / allattamento, NON coperte dal D.Lgs. 135/2024).
+- Aggiunte: EUH380=10.00, EUH381=8.00 (interferenti endocrini, MoVaRisCh 28/02/2026).
+- Nuovo flag `isCmr` + lista `cmrCodes` su ogni riga; warning rosso esplicito nel Word + nuova colonna `Sostanza_CMR_TitIX_CapoII` nell'Excel.
+
+**Preset operativi:**
+- Aggiunto `PRESETS.preset2` (Produzione rapida: ventilazione generale, <15min, contatto accidentale).
+- `PRESETS.preset1` (Laboratorio) resta default.
+- Bottoni "P1"/"P2" in tabella per riga; il bottone si spegne se l'utente modifica manualmente un dropdown.
+
+**Coerenza Word ↔ Calcolo:**
+- Indici nel report Word ora stampati come "valore_numerico (descrizione_opzione)" — niente più ambiguità.
+- Appendice fissa "Guida agli indici MOVARISCH" (D/Q/U/C/T/I) con esempi laboratorio vs produzione + formula + riferimento normativo.
+
+**Security hardening (Electron):**
+- CSP `<meta http-equiv="Content-Security-Policy">` in index.html.
+- `setWindowOpenHandler` e `will-navigate` resi restrittivi (blocca `javascript:`, `data:`, `blob:` ecc.).
+- Handler `web-contents-created` blocca `<webview>` e nuove finestre non autorizzate.
+- Documentate limitazioni note: `sign:null`, `verifyUpdateCodeSignature:false`, license checksum reversibile.
+- TODO supply-chain annotati nei loader CDN (xlsx, docx, pdfjs).
+
+### Cose da fare prima del build effettivo
+- Aggiornare `en.json` con le nuove chiavi i18n (CMR warning, indexGuide, presets).
+- Bundle locale per docx/xlsx/pdfjs (TODO_PRIORITY_ALTA, rinviato a v1.3.1).
+- Test aggiuntivi: H360 deve NON contribuire a SCORE; H361 deve contribuire; preset apply/clear.
+
+---
+
+## Stato Precedente: v1.2.0 ✅
 
 ### Repository
 - **GitHub Programma:** https://github.com/Giuseppe575/movarisch
