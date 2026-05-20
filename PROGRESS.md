@@ -4,9 +4,13 @@
 
 ---
 
-## Stato Attuale: v1.3.0 ✅ (in build)
+## Stato Attuale: v1.3.1 ✅ (rilasciata)
 
-### Novità v1.3.0 — adeguamento normativo + UX + security
+### v1.3.1 — fix UI dopo hardening v1.3.0
+- **Link "Supporto rapido" funzionanti di nuovo**: `setWindowOpenHandler` consente `file://` per le pagine interne (`support/*.html`) con sandbox sicura (preload + contextIsolation + nodeIntegration:false).
+- **Nota legenda aggiornata** ai 2 preset: "P1 (Laboratorio) + P2 (Produzione rapida)" con rinvio ai bottoni in tabella.
+
+### v1.3.0 — adeguamento normativo + UX + security
 
 **Adeguamento MoVaRisCh 2026 e D.Lgs. 135/2024 (in vigore 11/10/2024):**
 - Rimosse dal calcolo P: H360, H360D, H360F, H360FD, H360Df, H360Fd (Repr. 1A/1B → ora trattate ex Titolo IX Capo II, art. 234 mod.).
