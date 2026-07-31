@@ -1,0 +1,49 @@
+name: Release draft firmata
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag esistente, nel formato vX.Y.Z
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    environment: production-release
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      WINDOWS_SIGNING_SUBJECT: ${{ secrets.WINDOWS_SIGNING_SUBJECT }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: installer/package-lock.json
+      - name: Verifica che il tag esista già
+        shell: pwsh
+        run: git rev-parse --verify "refs/tags/$env:RELEASE_TAG"
+      - name: Installa e testa
+        working-directory: installer
+        run: npm ci && npm test
+      - name: Compila, firma e verifica gli artefatti
+        working-directory: installer
+        run: npm run release:build
+      - name: Crea esclusivamente una bozza protetta
+        shell: pwsh
+        run: >-
+          gh release create "$env:RELEASE_TAG"
+          installer/dist/latest.yml
+          "installer/dist/MOVARISCH-Setup-$($env:RELEASE_TAG.TrimStart('v')).exe"
+          "installer/dist/MOVARISCH-Setup-$($env:RELEASE_TAG.TrimStart('v')).exe.blockmap"
+          --verify-tag --draft --generate-notes --title "MOVARISCH $env:RELEASE_TAG"

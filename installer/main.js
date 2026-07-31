@@ -15,12 +15,60 @@ const { initUpdater, checkForUpdatesManual } = require('./updater');
 
 // Mantieni un riferimento globale alla finestra per evitare il garbage collection
 let mainWindow;
+const childWindows = new Set();
 
 // Configurazione percorsi
 const isDev = !app.isPackaged;
 const appPath = isDev
   ? path.join(__dirname, '..')
   : path.join(process.resourcesPath, 'app');
+const {
+  classifyNavigation,
+  isAllowedAppFileUrl,
+  isAllowedExternalUrl
+} = require(path.join(appPath, 'src', 'electron-security-policy.js'));
+
+function secureWebPreferences() {
+  return {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true,
+    enableRemoteModule: false,
+    webSecurity: true,
+    allowRunningInsecureContent: false,
+    navigateOnDragDrop: false,
+    safeDialogs: true,
+    devTools: isDev
+  };
+}
+
+function openApprovedExternal(url) {
+  if (!isAllowedExternalUrl(url)) return;
+  shell.openExternal(url).catch((error) => {
+    console.error('Impossibile aprire il collegamento esterno approvato:', error.message);
+  });
+}
+
+function openInternalPage(relativePath, title) {
+  const targetPath = path.join(appPath, relativePath);
+  const targetUrl = require('url').pathToFileURL(targetPath).href;
+  if (!isAllowedAppFileUrl(targetUrl, appPath)) return;
+
+  const childWindow = new BrowserWindow({
+    width: 1100,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    title,
+    autoHideMenuBar: true,
+    parent: mainWindow || undefined,
+    webPreferences: secureWebPreferences()
+  });
+  childWindows.add(childWindow);
+  childWindow.on('closed', () => childWindows.delete(childWindow));
+  childWindow.loadFile(targetPath);
+}
 
 /**
  * Crea la finestra principale dell'applicazione
@@ -31,18 +79,10 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: 'MOVARISCH v1.3.1',
+    title: `MOVARISCH v${app.getVersion()}`,
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0b1220',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      enableRemoteModule: false,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      devTools: isDev // Abilita DevTools solo in sviluppo
-    },
+    webPreferences: secureWebPreferences(),
     show: false, // Non mostrare finché non è pronta
     autoHideMenuBar: false
   });
@@ -69,48 +109,6 @@ function createWindow() {
     // Apri DevTools solo in modalità sviluppo
     if (isDev) {
       mainWindow.webContents.openDevTools();
-    }
-  });
-
-  // Gestisci apertura link in nuova finestra
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // http/https -> browser esterno
-    if (url.startsWith('https://') || url.startsWith('http://')) {
-      shell.openExternal(url);
-      return { action: 'deny' };
-    }
-    // file:// (pagine interne dell'app, es. support/*) -> nuova finestra Electron
-    // con preload + sandbox uguali al main window
-    if (url.startsWith('file://')) {
-      return {
-        action: 'allow',
-        overrideBrowserWindowOptions: {
-          autoHideMenuBar: true,
-          webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            enableRemoteModule: false,
-            webSecurity: true,
-            allowRunningInsecureContent: false,
-            devTools: isDev
-          }
-        }
-      };
-    }
-    // Blocca esplicitamente: javascript:, data:, blob: e schemi sconosciuti
-    return { action: 'deny' };
-  });
-
-  // Previeni navigazione non autorizzata — blocca tutto ciò che non è file:// locale
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    // Consenti solo la navigazione a file:// (app locale). Tutto il resto viene bloccato.
-    if (!url.startsWith('file://')) {
-      event.preventDefault();
-      // Apri nel browser di sistema solo se è http/https, ignora altri schemi
-      if (url.startsWith('https://') || url.startsWith('http://')) {
-        shell.openExternal(url);
-      }
     }
   });
 
@@ -181,13 +179,13 @@ function createMenu() {
         {
           label: 'Documentazione',
           click: () => {
-            shell.openExternal('https://giuseppe575.github.io/movarisch/');
+            openApprovedExternal('https://giuseppe575.github.io/movarisch/');
           }
         },
         {
           label: 'Segnala un problema',
           click: () => {
-            shell.openExternal('mailto:atis.giuseppe@gmail.com?subject=MOVARISCH%20-%20Segnalazione');
+            openApprovedExternal('mailto:atis.giuseppe@gmail.com?subject=MOVARISCH%20-%20Segnalazione');
           }
         },
         { type: 'separator' },
@@ -196,7 +194,7 @@ function createMenu() {
           click: () => {
             const privacyPath = path.join(appPath, 'docs', 'privacy.html');
             if (fs.existsSync(privacyPath)) {
-              shell.openPath(privacyPath);
+              openInternalPage(path.join('docs', 'privacy.html'), 'Privacy Policy - MOVARISCH');
             }
           }
         },
@@ -205,7 +203,7 @@ function createMenu() {
           click: () => {
             const eulaPath = path.join(appPath, 'docs', 'eula.html');
             if (fs.existsSync(eulaPath)) {
-              shell.openPath(eulaPath);
+              openInternalPage(path.join('docs', 'eula.html'), 'EULA - MOVARISCH');
             }
           }
         },
@@ -223,7 +221,7 @@ function createMenu() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Informazioni su MOVARISCH',
-              message: 'MOVARISCH v1.3.1',
+              message: `MOVARISCH v${app.getVersion()}`,
               detail:
                 'Software professionale per l\'analisi automatizzata del rischio chimico.\n\n' +
                 'Sviluppato da: Giuseppe\n' +
@@ -268,39 +266,34 @@ app.on('web-contents-created', (_event, contents) => {
 
   // Blocca apertura di nuove finestre da contenuto renderer (sotto-finestre)
   contents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://') || url.startsWith('http://')) {
-      shell.openExternal(url);
+    const disposition = classifyNavigation(url, appPath);
+    if (disposition === 'external') {
+      openApprovedExternal(url);
       return { action: 'deny' };
     }
-    if (url.startsWith('file://')) {
+    if (disposition === 'internal') {
       return {
         action: 'allow',
         overrideBrowserWindowOptions: {
           autoHideMenuBar: true,
-          webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            enableRemoteModule: false,
-            webSecurity: true,
-            allowRunningInsecureContent: false,
-            devTools: isDev
-          }
+          webPreferences: secureWebPreferences()
         }
       };
     }
     return { action: 'deny' };
   });
 
-  // Blocca navigazione a URL non-file dall'interno del renderer
-  contents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file://')) {
-      event.preventDefault();
-      if (url.startsWith('https://') || url.startsWith('http://')) {
-        shell.openExternal(url);
-      }
-    }
-  });
+  const enforceNavigationPolicy = (event, url) => {
+    const disposition = classifyNavigation(url, appPath);
+    if (disposition === 'internal') return;
+
+    event.preventDefault();
+    if (disposition === 'external') openApprovedExternal(url);
+  };
+
+  // Applica la stessa policy sia alle navigazioni dirette sia ai redirect.
+  contents.on('will-navigate', enforceNavigationPolicy);
+  contents.on('will-redirect', enforceNavigationPolicy);
 });
 
 // Quando Electron ha completato l'inizializzazione

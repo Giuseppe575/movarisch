@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://api.github.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';" />
 <title data-i18n="meta.title">MOVARISCH – SDS Parser (PDF → Tabella → Excel)</title>
 <link rel="stylesheet" href="style.css" />
-<!-- Librerie: SheetJS e PDF.js (UMD). -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<!-- Dipendenze UMD distribuite con l'app: nessun codice viene caricato da CDN. -->
+<script src="src/lib/xlsx.full.min.js"></script>
+<script src="src/lib/pdf.bundle.js"></script>
+<script src="src/lib/docx.umd.js"></script>
 </head>
 <body>
 <header>
@@ -105,6 +106,17 @@
     </div>
   </section>
 
+  <section class="card review-section" id="sdsReviewSection" hidden>
+    <div class="review-heading">
+      <div>
+        <h2>Revisione tecnica dell'estrazione SDS</h2>
+        <p>Confronta i dati delle sezioni 2, 3 e 16. Il calcolo e gli export diventano definitivi soltanto dopo la conferma dell'esperto.</p>
+      </div>
+      <span class="review-global-status" id="reviewGlobalStatus">Da confermare</span>
+    </div>
+    <div id="sdsReviewList" class="review-list"></div>
+  </section>
+
   <section class="card" style="margin-top:14px">
     <div class="table-wrapper">
       <table id="tbl">
@@ -164,6 +176,13 @@
 
 <script src="src/i18n/index.js"></script>
 <script src="src/lib/movarisch.js"></script>
+<script src="src/lib/sds/text-layout.js"></script>
+<script src="src/lib/sds/section-parser.js"></script>
+<script src="src/lib/sds/hazard-parser.js"></script>
+<script src="src/lib/sds/ingredient-parser.js"></script>
+<script src="src/lib/sds/review-workflow.js"></script>
+<script src="src/data/movarisch-health-2026.js"></script>
+<script src="src/lib/movarisch-health-engine.js"></script>
 <script src="app.js"></script>
 <script src="src/support.js"></script>
 </body>

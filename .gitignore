@@ -1,8 +1,7 @@
 # Node modules
 node_modules/
-package-lock.json
 installer/node_modules/
-installer/package-lock.json
+!installer/package-lock.json
 
 # Build output
 installer/dist/

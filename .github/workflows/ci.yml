@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: installer/package-lock.json
+      - name: Test motore applicativo
+        run: npm test
+      - name: Installa dipendenze Electron bloccate
+        working-directory: installer
+        run: npm ci
+      - name: Test e gate configurazione updater
+        working-directory: installer
+        run: npm test && npm run verify:config
+      - name: Build non pubblicabile
+        working-directory: installer
+        run: npm run build:dir

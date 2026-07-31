@@ -3,21 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';" />
 <title>MOVARISCH - Scheda Cumulativa Rischio Chimico</title>
 <link rel="stylesheet" href="style.css" />
-<!-- Chart.js: prima locale (funziona offline nel build), poi CDN come fallback -->
-<script>
-(function(){
-  var local = document.createElement('script');
-  local.src = 'src/lib/chart.umd.min.js';
-  local.onerror = function(){
-    var cdn = document.createElement('script');
-    cdn.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-    document.head.appendChild(cdn);
-  };
-  document.head.appendChild(local);
-})();
-</script>
+<!-- Chart.js è distribuito con l'app e funziona completamente offline. -->
+<script src="src/lib/chart.umd.min.js"></script>
 <style>
   .report-container {
     max-width: 1200px;
@@ -328,18 +318,15 @@
 </div>
 
 <script>
-console.log('🟢 INIZIO caricamento cumulative-report.html');
-
 // Recupera dati reali da localStorage
 let cumulativeData = null;
 let substanceData = null;
 
 try{
-  console.log('🟢 Tentativo lettura da localStorage...');
   const stored = localStorage.getItem('movarisch_cumulative_data');
-
-  console.log('🟢 Raw string da localStorage:', stored);
-  console.log('🟢 Lunghezza string:', stored ? stored.length : 'NULL');
+  // Il passaggio al report è monouso: evita che dati di valutazione restino
+  // persistenti nel profilo dopo l'apertura della scheda cumulativa.
+  localStorage.removeItem('movarisch_cumulative_data');
 
   if(!stored){
     console.error('❌ ERRORE CRITICO: localStorage è VUOTO!');
@@ -348,34 +335,22 @@ try{
 
   if(stored){
     cumulativeData = JSON.parse(stored);
-    console.log('🟢 Dati PARSATI da localStorage:', cumulativeData);
-    console.log('🟢 Timestamp dei dati:', cumulativeData.timestamp);
-    console.log('🟢 Numero di righe (rows.length):', cumulativeData.rows ? cumulativeData.rows.length : 'NO ROWS');
+    if(!Array.isArray(cumulativeData?.rows) || !cumulativeData.timestamp){
+      throw new Error('Formato dati cumulativi non valido');
+    }
 
     // Verifica che i dati siano recenti (max 5 minuti fa)
     if(cumulativeData.timestamp){
       const dataAge = new Date() - new Date(cumulativeData.timestamp);
       const ageMinutes = Math.floor(dataAge / 60000);
-      console.log('🟢 Età dei dati:', ageMinutes, 'minuti');
-      if(ageMinutes > 5){
-        console.warn('⚠️ ATTENZIONE: I dati hanno più di 5 minuti!');
+      if(!Number.isFinite(dataAge) || ageMinutes < 0 || ageMinutes > 5){
+        throw new Error('Dati cumulativi scaduti');
       }
     }
 
     // Usa la prima sostanza se presente, altrimenti usa dati di default
     if(cumulativeData.rows && cumulativeData.rows.length > 0){
       const row = cumulativeData.rows[0]; // Prima sostanza
-      console.log('🟢 PRIMA RIGA estratta (row):', row);
-      console.log('🟢 row.nome:', row.nome);
-      console.log('🟢 row.hcodes:', row.hcodes);
-      console.log('🟢 row.SCORE:', row.SCORE);
-      console.log('🟢 row.Rinal:', row.Rinal);
-      console.log('🟢 row.Rcut:', row.Rcut);
-      console.log('🟢 row.Rtot:', row.Rtot);
-      console.log('🟢 row.hcodesPhysical:', row.hcodesPhysical);
-      console.log('🟢 row.PI:', row.PI);
-      console.log('🟢 row.RiskSafety:', row.RiskSafety);
-      console.log('🟢 row.OverallRiskValue:', row.OverallRiskValue);
 
       substanceData = {
         name: row.nome || 'N/A',
@@ -404,8 +379,6 @@ try{
         safetyFCO: row.FCO || 0,
         overallRisk: row.OverallRiskValue || 0
       };
-
-      console.log('🟢 substanceData CREATO:', substanceData);
     } else {
       console.warn('⚠️ cumulativeData.rows è VUOTO o non esiste');
     }
@@ -451,12 +424,9 @@ if(!substanceData){
 }
 
 // Populate identification
-console.log('🟢 POPOLAZIONE UI - Inizio');
 document.getElementById('substanceName').textContent = substanceData.name;
 document.getElementById('casNumber').textContent = substanceData.cas;
 document.getElementById('assessmentDate').textContent = new Date().toLocaleDateString('it-IT');
-console.log('🟢 UI - Nome:', substanceData.name);
-console.log('🟢 UI - CAS:', substanceData.cas);
 
 // Populate health risk
 const healthHCodesText = substanceData.healthHCodes.join(', ');
@@ -465,11 +435,6 @@ document.getElementById('healthScore').textContent = substanceData.healthScore.t
 document.getElementById('riskInhal').textContent = substanceData.riskInhal.toFixed(2);
 document.getElementById('riskDermal').textContent = substanceData.riskDermal.toFixed(2);
 document.getElementById('healthRiskValue').textContent = substanceData.riskHealthTotal.toFixed(2);
-console.log('🟢 UI - H-codes SALUTE:', healthHCodesText);
-console.log('🟢 UI - SCORE:', substanceData.healthScore.toFixed(2));
-console.log('🟢 UI - Rischio Inalatorio:', substanceData.riskInhal.toFixed(2));
-console.log('🟢 UI - Rischio Cutaneo:', substanceData.riskDermal.toFixed(2));
-console.log('🟢 UI - Rischio Totale SALUTE:', substanceData.riskHealthTotal.toFixed(2));
 
 // Populate safety risk
 const safetyHCodesText = substanceData.safetyHCodes.join(', ');
@@ -486,18 +451,8 @@ document.getElementById('safetyB4').textContent = substanceData.safetyB4.toFixed
 document.getElementById('safetyE').textContent = substanceData.safetyE.toFixed(2);
 document.getElementById('safetyRiskValue').textContent = substanceData.riskSafetyTotal.toFixed(2);
 
-console.log('🟢 UI - H-codes SICUREZZA:', safetyHCodesText);
-console.log('🟢 UI - A1 (Danno chimico-fisico):', substanceData.safetyA1);
-console.log('🟢 UI - A2 (Danno reazioni):', substanceData.safetyA2);
-console.log('🟢 UI - D (Danno totale):', substanceData.safetyD);
-console.log('🟢 UI - B1-B4 (Esposizione):', substanceData.safetyB1, substanceData.safetyB2, substanceData.safetyB3, substanceData.safetyB4);
-console.log('🟢 UI - E (Esposizione totale):', substanceData.safetyE);
-console.log('🟢 UI - IRC (Rischio SICUREZZA):', substanceData.riskSafetyTotal.toFixed(2));
-
 // Overall risk
 document.getElementById('overallRiskValue').textContent = substanceData.overallRisk.toFixed(2);
-console.log('🟢 UI - RISCHIO COMPLESSIVO:', substanceData.overallRisk.toFixed(2));
-console.log('🟢 POPOLAZIONE UI - Fine');
 
 // Risk badges
 function createBadge(level) {

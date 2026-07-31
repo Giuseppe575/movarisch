@@ -34,26 +34,13 @@ function describeError(err){
 //   - Cancerogeni/Mutageni cat. 2 (H351, H341)
 //   - Reprotossici cat. 2 (H361 e varianti) - non coperti da D.Lgs. 135/2024
 //   - Effetti su allattamento (H362)
-const H_SCORE = {
-  "H332":4.50,"H312":3.00,"H302":2.00,"H331":6.00,"H311":4.50,"H301":2.25,
-  "H330":6.50,"H330 cat.1":6.50,"H330 cat.2":5.50,
-  "H310":3.00,"H310 cat.1":3.00,"H310 cat.2":2.50,
-  "H300":3.00,"H300 cat.1":3.00,"H300 cat.2":8.50,
-  "EUH029":3.00,"EUH031":3.50,"EUH032":6.25,
-  "H314":5.50,"H314 cat.1A":5.75,"H314 cat.1B":5.50,"H314 cat.1C":2.50,
-  "H315":4.50,"H318":3.00,"H319":3.00,"EUH066":2.50,"EUH070":5.00,"EUH071":5.50,
-  "H334":8.50,"H334 cat.1A":9.00,"H334 cat.1B":8.00,
-  "H317":4.50,"H317 cat.1A":6.00,"H317 cat.1B":4.50,
-  "H370":9.50,"H371":8.00,"H335":3.25,"H336":3.50,
-  "H372":8.00,"H373":7.00,"H304":3.50,
-  // Cat. 2 cancerogeni/mutageni (restano in calcolo P)
-  "H341":8.00,"H351":8.00,
-  // Reprotossici cat. 2 (D.Lgs. 135/2024 non li equipara ai CMR -> restano in P)
-  "H361":8.00,"H361d":7.50,"H361f":7.50,"H361fd":8.00,
-  "H362":6.00,
-  // Interferenti endocrini (introdotti da MoVaRisCh 2026)
-  "EUH380":10.00,"EUH381":8.00,
-};
+const H_SCORE = (() => {
+  const rows = window.MoVaRisChHealth2026?.HEALTH_SCORE_ROWS || [];
+  return Object.fromEntries(rows.map(row => [
+    row.code + (row.category ? ` cat.${row.category}` : ''),
+    row.score
+  ]));
+})();
 
 // =================== CMR FLAG (D.Lgs. 135/2024) ===================
 // Frasi H che identificano sostanze da valutare ex Titolo IX Capo II:
@@ -332,147 +319,42 @@ const RISK_CLASSES = [
 const state = { files:[], rows:[] };
 const $ = s => document.querySelector(s);
 
-// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — workerSrc punta a unpkg.com. Stessa superficie
-// di rischio dei CDN sopra. Mitigazione: copiare pdf.worker.min.js in src/lib/ e usare path locale.
+// Il worker PDF è distribuito insieme all'app e non richiede accesso alla rete.
 if(window.pdfjsLib){
   try{
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'src/lib/pdf.worker.min.mjs';
   }catch(e){}
 }
 
-// =================== LIB LOADER + ALERT ===================
+// =================== LIBRERIE LOCALI + ALERT ===================
 function showAlert(msg){ const el=$('#alert'); el.textContent=msg; el.style.display='block'; }
 function clearAlert(){ const el=$('#alert'); el.textContent=''; el.style.display='none'; }
 
-async function loadScript(src){
-  return new Promise((resolve, reject)=>{
-    const s = document.createElement('script');
-    s.src = src;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = (err) => {
-      s.remove();
-      const msg = t('errors.loadScript', { src });
-      reject(err || new Error(msg));
-    };
-    document.head.appendChild(s);
-  });
-}
-
-// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — ensureXlsx carica xlsx da CDN esterni a runtime.
-// Se cdnjs.cloudflare.com o cdn.jsdelivr.net vengono compromessi (typosquatting, cache-poisoning,
-// BGP hijack) possono iniettare JS arbitrario nell'app. Mitigazione raccomandata:
-// - Bundlare xlsx.full.min.js localmente in src/lib/ e rimuovere questo loader.
-// - Finché rimane CDN, aggiungere Subresource Integrity (SRI) se si usa <script> statico.
-// Ref: OWASP A08:2021 – Software and Data Integrity Failures.
 async function ensureXlsx(){
-  if(window.XLSX){ return window.XLSX; }
-  const urls = [
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
-  ];
-  let lastErr;
-  for(const url of urls){
-    try{
-      await loadScript(url);
-      if(window.XLSX){ break; }
-    }catch(err){
-      lastErr = err;
-    }
-  }
   if(!window.XLSX){
-    const msg = t('errors.loadXlsx');
-    throw lastErr || new Error(msg);
+    throw new Error(t('errors.loadXlsx'));
   }
   return window.XLSX;
 }
 
-// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — ensureDocx carica docx via dynamic import() da CDN.
-// dynamic import() da CDN esterno non supporta SRI. L'unica mitigazione efficace è
-// bundlare docx localmente (es. esbuild/rollup) ed eliminare questo loader.
-// Stessa superficie di rischio di ensureXlsx sopra. Ref: OWASP A08:2021.
 async function ensureDocx(){
-  if(window.docxLib){ return window.docxLib; }
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/docx@8.5.0/+esm',
-    'https://unpkg.com/docx@8.5.0/+esm'
-  ];
-  let lastErr;
-  for(const url of urls){
-    try{
-      const module = await import(url);
-      window.docxLib = module;
-      if(window.docxLib){ break; }
-    }catch(err){
-      lastErr = err;
-    }
+  if(!window.docx){
+    throw new Error(t('errors.loadDocx'));
   }
-  if(!window.docxLib){
-    const msg = t('errors.loadDocx');
-    throw lastErr || new Error(msg);
-  }
-  return window.docxLib;
+  return window.docx;
 }
 
-// TODO_PRIORITY_ALTA: SUPPLY-CHAIN CDN — il PDF worker viene caricato da CDN esterno.
-// Il worker gira in un thread separato ma ha accesso ai dati dei PDF utente.
-// Mitigazione: copiare pdf.worker.min.js in src/lib/ e puntare al path locale.
-const PDFJS_WORKER_CANDIDATES = [
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
-];
 let pdfWorkerConfigured = false;
 
 async function configurePdfWorker(pdfjs){
-  if(!pdfjs || pdfWorkerConfigured){
-    if(pdfjs && pdfjs.GlobalWorkerOptions && pdfjs.GlobalWorkerOptions.workerSrc){
-      return;
-    }
-    if(pdfjs && pdfjs.disableWorker && typeof location !== 'undefined' && location.protocol === 'file:'){
-      try{ pdfjs.disableWorker = true; }catch(e){}
-    }
-    return;
-  }
+  if(!pdfjs || pdfWorkerConfigured){ return; }
   pdfWorkerConfigured = true;
-
-  if(typeof location !== 'undefined' && location.protocol === 'file:'){
-    try{ pdfjs.disableWorker = true; }catch(e){}
-    return;
+  if(pdfjs.GlobalWorkerOptions){
+    pdfjs.GlobalWorkerOptions.workerSrc = 'src/lib/pdf.worker.min.mjs';
   }
-
-  for(const url of PDFJS_WORKER_CANDIDATES){
-    try{
-      if(typeof fetch === 'function'){
-        const res = await fetch(url, { method:'HEAD', mode:'cors' });
-        if(!res.ok) continue;
-      }
-      if(pdfjs.GlobalWorkerOptions){
-        pdfjs.GlobalWorkerOptions.workerSrc = url;
-      }
-      return;
-    }catch(err){
-      // Prova il prossimo URL
-    }
-  }
-
-  try{ pdfjs.disableWorker = true; }catch(e){}
 }
 
 async function ensurePdfJs(){
-  if(window.pdfjsLib){
-    await configurePdfWorker(window.pdfjsLib);
-    return window.pdfjsLib;
-  }
-  const urls = [
-    'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
-  ];
-  for(const u of urls){
-    try{
-      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=u; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-      if(window.pdfjsLib){ break; }
-    }catch(e){}
-  }
   if(!window.pdfjsLib){ throw new Error(t('errors.loadPdf')); }
   await configurePdfWorker(window.pdfjsLib);
   return window.pdfjsLib;
@@ -488,7 +370,7 @@ function readAsArrayBuffer(file){
   });
 }
 
-async function pdfToText(file){
+async function pdfToDocument(file){
   const pdfjs = await ensurePdfJs();
   // Evita fetch su blob:URL (può fallire nel sandbox) passando i bytes direttamente
   const data = await readAsArrayBuffer(file);
@@ -500,14 +382,251 @@ async function pdfToText(file){
     try{ pdfjs.disableWorker = true; }catch(e){}
     pdf = await pdfjs.getDocument({data}).promise;
   }
-  let full = '';
+  const rawPages = [];
   for(let p=1; p<=pdf.numPages; p++){
     const page = await pdf.getPage(p);
     const txt = await page.getTextContent();
-    const str = txt.items.map(it=>it.str).join(' ');
-    full += '\n'+str;
+    const viewport = page.getViewport({ scale: 1 });
+    rawPages.push({
+      pageNumber: p,
+      width: viewport.width,
+      height: viewport.height,
+      textContent: txt
+    });
   }
-  return full;
+  if(!window.SdsTextLayout?.layoutPages){
+    throw new Error('Modulo layout SDS non disponibile.');
+  }
+  const pages = window.SdsTextLayout.layoutPages(rawPages);
+  return {
+    pages,
+    text: pages.map(page => page.text).join('\n\f\n')
+  };
+}
+
+function formatHazardCode(hazard){
+  if(!hazard) return '';
+  return hazard.code + (hazard.category ? ` cat.${hazard.category}` : '');
+}
+
+function dedupeHazardsPreferCategory(hazards){
+  const selected = new Map();
+  for(const hazard of hazards || []){
+    const key = String(hazard.code || '').toUpperCase();
+    if(!key) continue;
+    const current = selected.get(key);
+    if(!current || (!current.category && hazard.category)){
+      selected.set(key, hazard);
+    }
+  }
+  return Array.from(selected.values());
+}
+
+function detectSdsPhysicalPhase(section9){
+  const text = String(section9?.text || '');
+  const stateLine = text.match(/(?:stato\s+fisico|physical\s+state|forma\s+fisica)[^\n]{0,160}/i)?.[0] || '';
+  if(/\b(?:gas|gassoso|gaseous)\b/i.test(stateLine)) return 'gas';
+  if(/\b(?:liquido|liquid)\b/i.test(stateLine)) return 'liquid';
+  if(/\b(?:solido|solid|polvere|powder|aerosol|nebbia|mist)\b/i.test(stateLine)) return 'solid';
+  return null;
+}
+
+function analyzeSdsDocument(document){
+  const parser = window.MovarischSds;
+  const engine = window.MoVaRisChHealthEngine;
+  if(!parser?.parseSdsSections || !parser?.parseHazards || !engine?.evaluateHealthRisk){
+    throw new Error('Moduli di analisi SDS/MoVaRisCh 2026 non disponibili.');
+  }
+
+  const parsed = parser.parseSdsSections(document);
+  const section2 = parsed.sections['2'];
+  const section3 = parsed.sections['3'];
+  const section9 = parsed.sections['9'];
+  const section16 = parsed.sections['16'];
+  const productHazards = dedupeHazardsPreferCategory(
+    section2 ? parser.parseHazards(section2, { section: 2 }) : []
+  );
+  const ingredientHazards = dedupeHazardsPreferCategory(
+    section3 ? parser.parseHazards(section3, { section: 3 }) : []
+  );
+  const referenceHazards = dedupeHazardsPreferCategory(
+    section16 ? parser.parseHazards(section16, { section: 16 }) : []
+  );
+  const ingredientAnalysis = section3 && parser.parseSection3Ingredients
+    ? parser.parseSection3Ingredients(section3)
+    : { ingredients: [], warnings: [], status: section3 ? 'needs_review' : 'missing' };
+  const section3Text = section3?.text || '';
+  const isMixture = /\b(?:miscel[ae]|mixtures?)\b/i.test(section3Text) || /\b3\.2\b/.test(section3Text);
+  const productClassified = productHazards.length > 0;
+  const ingredients = ingredientAnalysis.ingredients.length
+    ? ingredientAnalysis.ingredients
+    : section3 && ingredientHazards.length
+      ? [{
+          name: 'Ingredienti SDS - sezione 3 non strutturata',
+          hazards: ingredientHazards,
+          needsReview: true,
+          reviewReasons: ['SECTION3_STRUCTURED_INGREDIENTS_NOT_AVAILABLE']
+        }]
+      : [];
+  const mixturePhase = detectSdsPhysicalPhase(section9);
+  const health = engine.evaluateHealthRisk({
+    productHazards,
+    ingredients,
+    isMixture,
+    productClassified,
+    mixturePhase,
+    // La sezione 3 di una SDS elenca normalmente solo gli ingredienti soggetti
+    // a comunicazione: non prova da sola l'assenza assoluta di sostanze pericolose.
+    compositionComplete: false
+  });
+
+  return {
+    methodologyId: window.MoVaRisChHealth2026?.METADATA?.edition || '2026-02-28',
+    sections: parsed.sections,
+    productHazards,
+    ingredientHazards,
+    ingredients,
+    ingredientParsingStatus: ingredientAnalysis.status,
+    referenceHazards,
+    isMixture,
+    mixturePhase,
+    health,
+    warnings: [
+      ...parsed.warnings.filter(warning => warning.code !== 'DUPLICATE_SECTION'),
+      ...ingredientAnalysis.warnings,
+      ...health.warnings
+    ]
+  };
+}
+
+function reviewHazardText(hazards){
+  return (hazards || []).map(formatHazardCode).filter(Boolean).join('; ');
+}
+
+function parseReviewHazards(value, section){
+  const parser = window.MovarischSds;
+  return dedupeHazardsPreferCategory(parser.parseHazards(String(value || ''), { section }));
+}
+
+function concentrationText(ingredient){
+  const concentration = ingredient?.concentration;
+  if(ingredient?.concentrationPercent != null) return String(ingredient.concentrationPercent);
+  if(concentration?.raw) return String(concentration.raw);
+  if(concentration && concentration.lower != null && concentration.upper != null){
+    if(concentration.lower === concentration.upper) return String(concentration.lower);
+    return `${concentration.lower}-${concentration.upper}`;
+  }
+  return '';
+}
+
+function concentrationBasisValue(ingredient){
+  const value = ingredient?.concentrationBasis || ingredient?.concentration?.basis || '';
+  if(/mass|peso|weight|w\/w|p\/p/i.test(value)) return 'mass';
+  if(/vol|v\/v/i.test(value)) return 'volume';
+  return '';
+}
+
+function ingredientSummary(ingredients){
+  return (ingredients || []).map(ingredient => {
+    const identity = [ingredient.name || 'Ingrediente non denominato', ingredient.CAS || ingredient.cas ? `CAS ${ingredient.CAS || ingredient.cas}` : ''].filter(Boolean).join(' - ');
+    const concentration = concentrationText(ingredient);
+    const basis = concentrationBasisValue(ingredient);
+    const hazards = reviewHazardText(ingredient.hazards || []);
+    return [identity, concentration ? `${concentration}%${basis ? ` ${basis === 'mass' ? 'p/p' : 'v/v'}` : ''}` : 'concentrazione non determinata', hazards || 'nessuna frase H rilevata'].join(' | ');
+  }).join('\n');
+}
+
+function reviewAuditText(review){
+  return (review?.audit || []).map(item => `${item.timestamp} - ${item.field}: "${item.before}" -> "${item.after}"`).join('\n');
+}
+
+function reportRuleDescription(ruleId){
+  const descriptions = {
+    PRODUCT_SECTION_2_MAX_SCORE: 'Punteggio massimo della classificazione del prodotto riportata nella Sezione 2 della SDS.',
+    CLASSIFIED_MIXTURE_PRODUCT_LT4_INGREDIENT_GE8: 'Punteggio generico per miscela classificata con controllo degli ingredienti previsto dal metodo MoVaRisCh.',
+    PRODUCT_CMR_CATEGORY_1_TITLE_IX_CAPO_II: 'Prodotto CMR categoria 1A/1B: valutazione da effettuare secondo il Titolo IX, Capo II.',
+    PROFESSIONAL_MANUAL_OVERRIDE: 'Punteggio definito e motivato dal professionista a seguito della revisione dei dati SDS.'
+  };
+  if(descriptions[ruleId]) return descriptions[ruleId];
+  if(/^UNCLASSIFIED_MIXTURE_/.test(String(ruleId || ''))){
+    return 'Punteggio generico per miscela non classificata, determinato applicando le regole MoVaRisCh agli ingredienti pertinenti.';
+  }
+  return 'Regola MoVaRisCh verificata dal professionista durante la revisione tecnica.';
+}
+
+function reportSection3Summary(row){
+  const rule = String(row.healthRuleId || '');
+  if(/INGREDIENT|UNCLASSIFIED_MIXTURE/.test(rule)){
+    return 'Sezione 3 esaminata dal professionista e utilizzata esclusivamente secondo la specifica regola MoVaRisCh applicabile alla miscela.';
+  }
+  return 'Sezione 3 esaminata dal professionista. Le classificazioni dei singoli ingredienti non sono state trasferite automaticamente alla miscela e non hanno determinato lo score.';
+}
+
+function reportWarningSummary(row){
+  if(row.healthAssessmentStatus === 'manual_override'){
+    return 'Le incertezze di estrazione sono state risolte mediante valutazione professionale motivata.';
+  }
+  if(row.healthAssessmentStatus === 'excluded_cmr'){
+    return 'Classificazione CMR del prodotto verificata: applicare il percorso del Titolo IX, Capo II.';
+  }
+  return 'Nessuna avvertenza bloccante per il risultato. Le segnalazioni tecniche del parser sono state esaminate dal professionista in fase di revisione.';
+}
+
+function recomputeReviewedHealth(row){
+  const evidence = row.sdsEvidence || {};
+  const engine = window.MoVaRisChHealthEngine;
+  let result = engine.evaluateHealthRisk({
+    productHazards: evidence.productHazards || [],
+    ingredients: evidence.ingredients || [],
+    isMixture: evidence.isMixture === true,
+    productClassified: (evidence.productHazards || []).length > 0,
+    mixturePhase: evidence.mixturePhase || null,
+    compositionComplete: false
+  });
+
+  const manualScore = Number(row.review?.manualScore);
+  if(result.status === 'needs_review' && Number.isFinite(manualScore) && manualScore > 0){
+    result = {
+      ...result,
+      status: 'manual_override',
+      score: manualScore,
+      ruleId: 'PROFESSIONAL_MANUAL_OVERRIDE',
+      warnings: [...(result.warnings || []), 'PUNTEGGIO_DEFINITO_DAL_PROFESSIONISTA']
+    };
+  }
+
+  const codes = (evidence.productHazards || []).map(formatHazardCode);
+  const separated = separateHCodes(codes);
+  row.hcodes = separated.health;
+  row.hcodesPhysical = separated.physical;
+  row.A1 = calculateA1FromPhysicalCodes(row.hcodesPhysical);
+  row.A2 = calculateA2FromPhysicalCodes(row.hcodesPhysical);
+  row.healthAssessmentStatus = result.status;
+  row.healthRuleId = result.ruleId;
+  row.SCORE = typeof result.score === 'number' ? result.score : 0;
+  row.isCmr = result.status === 'excluded_cmr';
+  row.cmrCodes = row.isCmr && result.determiningHazard?.code ? [result.determiningHazard.code] : [];
+  row.analysisWarnings = Array.from(new Set([
+    ...(row.baseAnalysisWarnings || []),
+    ...(result.warnings || [])
+  ]));
+  recalcRow(row);
+  return result;
+}
+
+function recordReviewChange(row, field, before, after){
+  const workflow = window.MovarischReviewWorkflow;
+  row.review = workflow.recordChange(row.review, { field, before, after });
+  recomputeReviewedHealth(row);
+}
+
+function reviewErrorMessage(code){
+  return ({
+    REVIEWER_REQUIRED: 'Inserisci il nominativo del professionista che esegue la revisione.',
+    ACCEPTANCE_REQUIRED: 'Seleziona la dichiarazione di conferma prima di proseguire.',
+    CORRECTION_REASON_REQUIRED: 'Hai modificato dati estratti: indica la motivazione della correzione.',
+    UNRESOLVED_HEALTH_RESULT: 'Il risultato resta ambiguo. Inserisci un punteggio professionale motivato oppure completa i dati mancanti.'
+  })[code] || 'Revisione non completabile: controlla i dati inseriti.';
 }
 
 function findH(text){
@@ -877,7 +996,12 @@ function guessUV(fileName, text){
 
 function pickScore(hcodes){
   if(!hcodes.length) return 0;
-  const scores = hcodes.map(h=> H_SCORE[h] ?? H_SCORE[h.split(' ')[0]] ).filter(v=>typeof v==='number');
+  const scores = hcodes.map(h => {
+    const direct = H_SCORE[h];
+    if(typeof direct === 'number') return direct;
+    const category = h.match(/cat\.?\s*(1A|1B|1C|1|2)/i)?.[1];
+    return window.MoVaRisChHealth2026?.getHealthScore(h, category);
+  }).filter(v=>typeof v==='number');
   return scores.length ? Math.max(...scores) : 0;
 }
 
@@ -894,6 +1018,26 @@ function recalcRow(row){
   const risk = classifyRisk(row.Rtot);
   row.Giudizio = risk.text;
   row.GiudizioClass = risk.id;
+  if(row.healthAssessmentStatus === 'needs_review'){
+    row.Rinal = 0;
+    row.Rcut = 0;
+    row.Rtot = 0;
+    row.Giudizio = 'DA VERIFICARE - dati SDS insufficienti o ambigui';
+    row.GiudizioClass = 'unc';
+  }else if(row.healthAssessmentStatus === 'excluded_cmr'){
+    row.Rinal = 0;
+    row.Rcut = 0;
+    row.Rtot = 0;
+    row.Giudizio = 'CMR 1A/1B - valutazione Titolo IX Capo II richiesta';
+    row.GiudizioClass = 'grave';
+  }
+  if(row.review && row.review.status !== 'confirmed'){
+    row.Rinal = 0;
+    row.Rcut = 0;
+    row.Rtot = 0;
+    row.Giudizio = 'RISULTATO PROVVISORIO - confermare la revisione SDS';
+    row.GiudizioClass = 'unc';
+  }
 
   // M.I.R.C. (INRS) SAFETY calculations
   if (!row.hcodesPhysical) row.hcodesPhysical = [];
@@ -928,26 +1072,16 @@ function recalcRow(row){
   const overallClassIndex = Math.max(healthClass, safetyClass);
   row.OverallClass = overallClassIndex >= 0 ? RISK_CLASSES[overallClassIndex].id : 'irr';
   row.OverallRiskValue = Math.max(healthRiskNumeric, safetyRiskNumeric);
+  if(row.review && row.review.status !== 'confirmed'){
+    row.OverallClass = 'unc';
+    row.OverallRiskValue = 0;
+  }
 }
 
 function render(){
-  console.log('🔄 render() chiamata - state.rows.length:', state.rows.length);
   const tb = document.querySelector('#tbl tbody');
-  console.log('📋 tbody trovato:', tb);
   tb.innerHTML = '';
   state.rows.forEach((r,i)=>{
-    console.log('➕ Creando riga', i, 'per:', r.file);
-    console.log('📊 Dati completi riga:', JSON.stringify(r, null, 2));
-    console.log('🔍 Campi chiave:', {
-      file: r.file,
-      nome: r.nome,
-      statoFisico: r.statoFisico,
-      hcodes: r.hcodes,
-      SCORE: r.SCORE,
-      sistema: r.sistema,
-      controlType: r.controlType,
-      exposureTime: r.exposureTime
-    });
     try{
     recalcRow(r);
     if(!r.statoFisico){ r.statoFisico = defaults.statoFisico; }
@@ -976,12 +1110,6 @@ function render(){
     const contactOptions = buildOptions(CONTACT_LEVEL_OPTIONS, r.contactLevel);
     const distanceOptions = buildOptions(DISTANCE_OPTIONS, r.distanceBand);
 
-    console.log('🔧 Options generate:', {
-      statoOptions: statoOptions.substring(0, 100),
-      sistemaOptions: sistemaOptions.substring(0, 100),
-      controlOptions: controlOptions.substring(0, 100)
-    });
-
     const controlTitle = t('table.tooltips.controlIndex', { index: controlInfo?.index ?? '-' });
     const exposureTitle = t('table.tooltips.exposureIndex', { index: exposureInfo?.index ?? '-' });
     const dTitle = t('table.tooltips.dIndex');
@@ -995,8 +1123,8 @@ function render(){
       <td>${escapeHtml(r.file)}</td>
       <td class="edit" data-field="nome" contenteditable>${escapeHtml(r.nome)}</td>
       <td><select data-stato>${statoOptions}</select></td>
-      <td class="edit" data-field="hcodes" contenteditable>${escapeHtml(r.hcodes.join(';'))}</td>
-      <td class="num edit" data-field="SCORE" contenteditable>${fmt(r.SCORE)}</td>
+      <td>${escapeHtml(r.hcodes.join(';'))}</td>
+      <td class="num">${fmt(r.SCORE)}</td>
       <td><select data-sistema>${sistemaOptions}</select></td>
       <td><select data-controllo title="${escapeHtml(controlTitle)}">${controlOptions}</select></td>
       <td><select data-exposure title="${escapeHtml(exposureTitle)}">${exposureOptions}</select></td>
@@ -1047,6 +1175,9 @@ function render(){
           const parsed = parseNumeric(value);
           if(isFinite(parsed)){
             r.SCORE = round(parsed, 2);
+            r.healthAssessmentStatus = 'manual_override';
+            r.healthRuleId = 'MANUAL_OVERRIDE';
+            r.analysisWarnings = Array.from(new Set([...(r.analysisWarnings || []), 'Punteggio modificato manualmente']));
           }
           render();
         }
@@ -1156,15 +1287,225 @@ function render(){
 
     tr.querySelector('[data-del]')?.addEventListener('click',()=>{ state.rows.splice(i,1); render(); });
     tb.appendChild(tr);
-    console.log('✅ Riga', i, 'aggiunta al DOM');
     }catch(err){
       console.error('❌ ERRORE creando riga', i, ':', err);
       console.error('Stack:', err.stack);
     }
   });
-  document.querySelector('#exportBtn').disabled = state.rows.length===0;
-  document.querySelector('#exportWordBtn').disabled = state.rows.length===0;
-  document.querySelector('#cumulativeBtn').disabled = state.rows.length===0;
+  renderSdsReviews();
+  const confirmed = window.MovarischReviewWorkflow.allConfirmed(state.rows);
+  document.querySelector('#exportBtn').disabled = !confirmed;
+  document.querySelector('#exportWordBtn').disabled = !confirmed;
+  document.querySelector('#cumulativeBtn').disabled = !confirmed;
+}
+
+function evidenceList(hazards){
+  const items = (hazards || []).map(hazard => {
+    const page = hazard.page != null ? `pag. ${hazard.page}` : 'pagina non rilevata';
+    const source = hazard.sourceText ? ` - ${hazard.sourceText}` : '';
+    return `<li><strong>${escapeHtml(formatHazardCode(hazard))}</strong> · ${escapeHtml(page + source)}</li>`;
+  });
+  return items.length ? `<ul class="review-evidence">${items.join('')}</ul>` : '<p class="ingredient-empty">Nessuna frase H rilevata.</p>';
+}
+
+function warningLabel(warning){
+  if(typeof warning === 'string') return warning;
+  if(!warning || typeof warning !== 'object') return String(warning || '');
+  return [warning.code, warning.message, warning.section ? `sezione ${warning.section}` : ''].filter(Boolean).join(' - ');
+}
+
+function ingredientReviewHtml(ingredient, rowIndex, ingredientIndex){
+  const hazards = reviewHazardText(ingredient.hazards || []);
+  const basis = concentrationBasisValue(ingredient);
+  const reasons = (ingredient.reviewReasons || []).map(warningLabel).filter(Boolean);
+  const evidence = evidenceList(ingredient.hazards || []);
+  const summary = [ingredient.name || 'Ingrediente non denominato', ingredient.CAS || ingredient.cas || '', concentrationText(ingredient) ? `${concentrationText(ingredient)}%` : 'concentrazione da verificare'].filter(Boolean).join(' - ');
+  return `<details class="ingredient-card" data-ingredient-row="${rowIndex}" data-ingredient-index="${ingredientIndex}">
+    <summary><span>${escapeHtml(summary)}</span><span class="ingredient-status${reasons.length ? ' needs-review' : ''}">${reasons.length ? 'controllo richiesto' : 'estratto'}</span></summary>
+    <div class="ingredient-card-body"><div class="ingredient-edit">
+    <label>Ingrediente<input type="text" value="${escapeHtml(ingredient.name || '')}" data-ingredient-name></label>
+    <label>CAS<input type="text" value="${escapeHtml(ingredient.CAS || ingredient.cas || '')}" data-ingredient-cas></label>
+    <label>Concentrazione %<input type="text" value="${escapeHtml(concentrationText(ingredient))}" placeholder="es. 0,1 oppure 0,05-0,2" data-ingredient-concentration></label>
+    <label>Base<select data-ingredient-basis>
+      <option value=""${basis ? '' : ' selected'}>da verificare</option>
+      <option value="mass"${basis === 'mass' ? ' selected' : ''}>p/p (massa)</option>
+      <option value="volume"${basis === 'volume' ? ' selected' : ''}>v/v (volume)</option>
+    </select></label>
+    <label>Frasi H<input type="text" value="${escapeHtml(hazards)}" data-ingredient-hazards></label>
+  </div>${reasons.length ? `<div class="review-warnings">${escapeHtml(reasons.join('\n'))}</div>` : ''}${evidence}</div></details>`;
+}
+
+function renderSdsReviews(){
+  const section = document.querySelector('#sdsReviewSection');
+  const list = document.querySelector('#sdsReviewList');
+  const globalStatus = document.querySelector('#reviewGlobalStatus');
+  if(!section || !list || !globalStatus) return;
+  if(!state.rows.length){
+    section.hidden = true;
+    list.innerHTML = '';
+    return;
+  }
+
+  section.hidden = false;
+  const allConfirmed = window.MovarischReviewWorkflow.allConfirmed(state.rows);
+  globalStatus.textContent = allConfirmed ? 'Tutte le estrazioni confermate' : 'Conferma richiesta';
+  globalStatus.classList.toggle('confirmed', allConfirmed);
+
+  list.innerHTML = state.rows.map((row, rowIndex) => {
+    const evidence = row.sdsEvidence || {};
+    const review = row.review || window.MovarischReviewWorkflow.createReviewState();
+    row.review = review;
+    const confirmed = review.status === 'confirmed';
+    const ingredients = evidence.ingredients || [];
+    const warnings = Array.from(new Set((row.analysisWarnings || []).map(warningLabel).filter(Boolean)));
+    const audit = review.audit || [];
+    return `<article class="review-card" data-review-card="${rowIndex}">
+      <div class="review-card-head">
+        <h3>${escapeHtml(row.nome || row.file)} <small>(${escapeHtml(row.file)})</small></h3>
+        <span class="review-status${confirmed ? ' confirmed' : ''}">${confirmed ? `Confermato il ${escapeHtml(new Date(review.confirmedAt).toLocaleString('it-IT'))}` : 'Da confermare'}</span>
+      </div>
+      <div class="review-panels">
+        <section class="review-panel">
+          <h4>Sezione 2 - classificazione del prodotto</h4>
+          <textarea data-review-product data-row="${rowIndex}" aria-label="Frasi H sezione 2">${escapeHtml(reviewHazardText(evidence.productHazards))}</textarea>
+          ${evidenceList(evidence.productHazards)}
+          <p class="review-note">Queste frasi determinano lo score ordinario del prodotto.</p>
+        </section>
+        <section class="review-panel review-ingredients-panel">
+          <h4>Sezione 3 - ingredienti</h4>
+          <p class="review-note">Dettaglio tecnico interno: apri soltanto l'ingrediente che vuoi controllare o correggere.</p>
+          ${ingredients.length ? ingredients.map((ingredient, index) => ingredientReviewHtml(ingredient, rowIndex, index)).join('') : '<p class="ingredient-empty">Nessun ingrediente strutturato rilevato. Verificare la SDS.</p>'}
+          <p class="review-note">Gli ingredienti incidono solo tramite le regole specifiche MoVaRisCh per le miscele.</p>
+        </section>
+        <section class="review-panel">
+          <h4>Sezione 16 - riferimento informativo</h4>
+          <textarea data-review-reference data-row="${rowIndex}" aria-label="Frasi H sezione 16">${escapeHtml(reviewHazardText(evidence.referenceHazards))}</textarea>
+          ${evidenceList(evidence.referenceHazards)}
+          <p class="review-note"><strong>Non utilizzata direttamente per lo score.</strong></p>
+        </section>
+      </div>
+      <div class="review-rule">
+        <span><strong>Regola:</strong> ${escapeHtml(row.healthRuleId || 'non determinata')}</span>
+        <span><strong>Score provvisorio:</strong> ${row.healthAssessmentStatus === 'excluded_cmr' ? 'non applicabile - Capo II' : escapeHtml(fmt(row.SCORE))}</span>
+        <span><strong>Stato parser ingredienti:</strong> ${escapeHtml(evidence.ingredientParsingStatus || 'non disponibile')}</span>
+      </div>
+      ${warnings.length ? `<div class="review-warnings"><strong>Avvertenze da verificare</strong>\n${escapeHtml(warnings.join('\n'))}</div>` : ''}
+      <div class="review-controls">
+        <label>Nominativo del professionista <strong>(obbligatorio)</strong><input type="text" value="${escapeHtml(review.reviewer || '')}" data-reviewer data-row="${rowIndex}" placeholder="Nome e cognome" required aria-describedby="review-error-${rowIndex}"></label>
+        <label>Motivazione delle eventuali correzioni<textarea data-review-reason data-row="${rowIndex}" placeholder="Obbligatoria se sono stati modificati dati estratti">${escapeHtml(review.correctionReason || '')}</textarea></label>
+        <label>Punteggio professionale manuale (solo per risultato sospeso)<input type="text" value="${review.manualScore ?? ''}" data-review-score data-row="${rowIndex}" placeholder="es. 5,5"></label>
+      </div>
+      <div class="review-confirm">
+        <label><input type="checkbox" data-review-accept data-row="${rowIndex}"${review.accepted ? ' checked' : ''} aria-describedby="review-error-${rowIndex}"> Confermo di aver verificato la classificazione del prodotto, gli ingredienti rilevanti, le avvertenze e la regola applicata.</label>
+        <button type="button" class="btn primary" data-review-confirm data-row="${rowIndex}">${confirmed ? 'Riconferma revisione' : 'Conferma e calcola'}</button>
+      </div>
+      <div class="review-inline-error" id="review-error-${rowIndex}" data-review-error role="alert" hidden></div>
+      <div class="review-audit"><strong>Registro modifiche:</strong> ${audit.length ? audit.map(item => `${escapeHtml(new Date(item.timestamp).toLocaleString('it-IT'))} - ${escapeHtml(item.field)}: “${escapeHtml(item.before)}” → “${escapeHtml(item.after)}”`).join('<br>') : 'nessuna correzione manuale'}</div>
+    </article>`;
+  }).join('');
+
+  const clearInlineError = target => {
+    const card = target.closest('[data-review-card]');
+    const error = card?.querySelector('[data-review-error]');
+    if(error){ error.hidden = true; error.textContent = ''; }
+    card?.querySelectorAll('[aria-invalid="true"]').forEach(element => element.removeAttribute('aria-invalid'));
+  };
+
+  list.querySelectorAll('[data-reviewer]').forEach(input => input.addEventListener('input', event => {
+    state.rows[Number(event.target.dataset.row)].review.reviewer = event.target.value;
+    clearInlineError(event.target);
+  }));
+  list.querySelectorAll('[data-review-reason]').forEach(input => input.addEventListener('input', event => {
+    state.rows[Number(event.target.dataset.row)].review.correctionReason = event.target.value;
+    clearInlineError(event.target);
+  }));
+  list.querySelectorAll('[data-review-accept]').forEach(input => input.addEventListener('change', event => {
+    state.rows[Number(event.target.dataset.row)].review.accepted = event.target.checked;
+    clearInlineError(event.target);
+  }));
+  list.querySelectorAll('[data-review-product]').forEach(input => input.addEventListener('change', event => {
+    const row = state.rows[Number(event.target.dataset.row)];
+    const before = reviewHazardText(row.sdsEvidence.productHazards);
+    row.sdsEvidence.productHazards = parseReviewHazards(event.target.value, 2);
+    recordReviewChange(row, 'section2.productHazards', before, reviewHazardText(row.sdsEvidence.productHazards));
+    render();
+  }));
+  list.querySelectorAll('[data-review-reference]').forEach(input => input.addEventListener('change', event => {
+    const row = state.rows[Number(event.target.dataset.row)];
+    const before = reviewHazardText(row.sdsEvidence.referenceHazards);
+    row.sdsEvidence.referenceHazards = parseReviewHazards(event.target.value, 16);
+    recordReviewChange(row, 'section16.referenceHazards', before, reviewHazardText(row.sdsEvidence.referenceHazards));
+    render();
+  }));
+  list.querySelectorAll('[data-review-score]').forEach(input => input.addEventListener('change', event => {
+    const row = state.rows[Number(event.target.dataset.row)];
+    const before = row.review.manualScore ?? '';
+    const parsed = parseNumeric(event.target.value);
+    row.review.manualScore = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    recordReviewChange(row, 'health.manualScore', before, row.review.manualScore ?? '');
+    render();
+  }));
+  list.querySelectorAll('[data-ingredient-row]').forEach(container => {
+    const row = state.rows[Number(container.dataset.ingredientRow)];
+    const ingredientIndex = Number(container.dataset.ingredientIndex);
+    const ingredient = row.sdsEvidence.ingredients[ingredientIndex];
+    const bind = (selector, field, transform) => {
+      container.querySelector(selector)?.addEventListener('change', event => {
+        const before = field === 'hazards' ? reviewHazardText(ingredient.hazards) : ingredient[field] ?? '';
+        ingredient[field] = transform ? transform(event.target.value) : event.target.value;
+        const after = field === 'hazards' ? reviewHazardText(ingredient.hazards) : ingredient[field] ?? '';
+        recordReviewChange(row, `section3.ingredients[${ingredientIndex}].${field}`, before, after);
+        render();
+      });
+    };
+    bind('[data-ingredient-name]', 'name');
+    bind('[data-ingredient-cas]', 'CAS');
+    bind('[data-ingredient-concentration]', 'concentrationPercent');
+    bind('[data-ingredient-basis]', 'concentrationBasis');
+    bind('[data-ingredient-hazards]', 'hazards', value => parseReviewHazards(value, 3));
+  });
+  list.querySelectorAll('[data-review-confirm]').forEach(button => button.addEventListener('click', event => {
+    const row = state.rows[Number(event.target.dataset.row)];
+    recomputeReviewedHealth(row);
+    const workflow = window.MovarischReviewWorkflow;
+    const confirmation = workflow.confirm(row.review, {
+      healthStatus: row.healthAssessmentStatus,
+      score: row.healthAssessmentStatus === 'excluded_cmr' ? null : (Number.isFinite(row.SCORE) && row.SCORE > 0 ? row.SCORE : null),
+      snapshot: {
+        productHazards: row.sdsEvidence.productHazards,
+        ingredients: row.sdsEvidence.ingredients,
+        referenceHazards: row.sdsEvidence.referenceHazards,
+        ruleId: row.healthRuleId,
+        score: row.SCORE,
+        methodologyId: row.methodologyId
+      }
+    });
+    if(!confirmation.ok){
+      const message = reviewErrorMessage(confirmation.error);
+      const card = event.target.closest('[data-review-card]');
+      const inlineError = card?.querySelector('[data-review-error]');
+      const selector = ({
+        REVIEWER_REQUIRED: '[data-reviewer]',
+        ACCEPTANCE_REQUIRED: '[data-review-accept]',
+        CORRECTION_REASON_REQUIRED: '[data-review-reason]',
+        UNRESOLVED_HEALTH_RESULT: '[data-review-score]'
+      })[confirmation.error];
+      const invalidField = selector ? card?.querySelector(selector) : null;
+      if(inlineError){
+        inlineError.textContent = message;
+        inlineError.hidden = false;
+        inlineError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if(invalidField){
+        invalidField.setAttribute('aria-invalid', 'true');
+        invalidField.focus({ preventScroll: true });
+      }
+      showAlert(message);
+      return;
+    }
+    clearAlert();
+    render();
+  }));
 }
 
 function badge(text, cls){
@@ -1341,6 +1682,14 @@ function rowsToCsv(rows){
   return lines.join('\r\n');
 }
 
+function reviewsReadyForExport(){
+  const ready = window.MovarischReviewWorkflow.allConfirmed(state.rows);
+  if(!ready){
+    showAlert('Conferma la revisione tecnica di tutte le SDS prima di esportare o creare la scheda cumulativa.');
+  }
+  return ready;
+}
+
 async function exportExcel(){
   let flatRows;
   try{
@@ -1348,6 +1697,7 @@ async function exportExcel(){
       showAlert(t('alerts.noRows'));
       return;
     }
+    if(!reviewsReadyForExport()) return;
     const XLSX = await ensureXlsx();
     if(!XLSX?.utils){
       throw new Error(t('errors.xlsxInvalid'));
@@ -1362,6 +1712,16 @@ async function exportExcel(){
         Nome_commerciale:r.nome,
         Stato_fisico: STATO_FISICO_OPTIONS.find(opt=>opt.value===r.statoFisico)?.label ?? r.statoFisico,
         Hcodes:r.hcodes.join(';'),
+        Sezione_2_classificazione_prodotto:reviewHazardText(r.sdsEvidence?.productHazards),
+        Sezione_3_ingredienti:ingredientSummary(r.sdsEvidence?.ingredients),
+        Sezione_16_solo_informativa:reviewHazardText(r.sdsEvidence?.referenceHazards),
+        Regola_MoVaRisCh:r.healthRuleId || '',
+        Stato_revisione:r.review?.status || 'pending',
+        Validato_da:r.review?.reviewer || '',
+        Data_validazione:r.review?.confirmedAt || '',
+        Motivazione_correzioni:r.review?.correctionReason || '',
+        Registro_correzioni:reviewAuditText(r.review),
+        Avvertenze_analisi:(r.analysisWarnings || []).map(warningLabel).join('; '),
         Hcodes_CMR_cat1A_1B: (r.cmrCodes || []).join(';'),
         Sostanza_CMR_TitIX_CapoII: r.isCmr ? 'SI - valutare ex art. 234 D.Lgs. 81/08 (D.Lgs. 135/2024)' : 'NO',
         SCORE:r.SCORE,
@@ -1436,6 +1796,7 @@ async function exportWord(){
       showAlert(t('alerts.noRows'));
       return;
     }
+    if(!reviewsReadyForExport()) return;
 
     // Assicurati che i18n sia inizializzato prima di procedere
     if(!window.i18n || !window.i18n.isReady || !window.i18n.isReady()){
@@ -1747,7 +2108,43 @@ async function exportWord(){
         );
       }
 
-      children.push(table);
+      const validationText = r.review?.status === 'confirmed'
+        ? `Confermata da ${r.review?.reviewer || 'professionista'} il ${r.review?.confirmedAt ? new Date(r.review.confirmedAt).toLocaleString('it-IT') : ''}.`
+        : 'Non confermata.';
+      const methodData = [
+        ['Sezione 2 - classificazione del prodotto', 'Fonte utilizzata per determinare le indicazioni di pericolo del prodotto e lo score riportato nella scheda di valutazione.'],
+        ['Sezione 3 - composizione/informazioni sugli ingredienti', reportSection3Summary(r)],
+        ['Sezione 16 - altre informazioni', 'Consultata esclusivamente come riferimento informativo. Le frasi H richiamate in questa sezione non sono state utilizzate direttamente per determinare lo score.'],
+        ['Criterio applicato', reportRuleDescription(r.healthRuleId)],
+        ['Controllo dei dati', reportWarningSummary(r)],
+        ['Validazione professionale', validationText],
+        ['Correzioni manuali', r.review?.audit?.length ? `Presenti e motivate: ${r.review?.correctionReason || 'motivazione registrata dal professionista'}.` : 'Nessuna.']
+      ];
+      const methodRows = methodData.map(([label, value]) => new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: label, bold: true })] })],
+            width: { size: 38, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: value })] })],
+            width: { size: 62, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER
+          })
+        ]
+      }));
+      const methodTable = new Table({ rows: methodRows, width: { size: 100, type: WidthType.PERCENTAGE } });
+
+      children.push(
+        table,
+        new Paragraph({
+          pageBreakBefore: true,
+          children: [new TextRun({ text: 'Nota metodologica sull\'uso delle sezioni SDS', bold: true, size: 22 })],
+          spacing: { after: 120 }
+        }),
+        methodTable
+      );
 
       // Aggiungi page break tra le sezioni (tranne l'ultima)
       if(index < state.rows.length - 1){
@@ -1880,26 +2277,37 @@ parseBtn.addEventListener('click', async ()=>{
   if(!state.files.length) return;
   clearAlert();
   state.rows = [];
+  const extractionMessages = [];
   try{
     for(const file of state.files){
-      const text = await pdfToText(file);
-      let allHCodes = findH(text);
-      if(!allHCodes.length && guessUV(file.name, text)) allHCodes = UV_FALLBACK.slice();
+      const document = await pdfToDocument(file);
+      const text = document.text;
+      const sdsAnalysis = analyzeSdsDocument(document);
+      let productCodes = sdsAnalysis.productHazards.map(formatHazardCode);
+      if(!productCodes.length && guessUV(file.name, text)){
+        productCodes = UV_FALLBACK.slice();
+        extractionMessages.push(`${file.name}: applicato fallback UV; verifica manuale obbligatoria.`);
+      }
 
-      // Separa H-codes in salute vs fisici
-      const separated = separateHCodes(allHCodes);
+      // Solo la classificazione del prodotto in sezione 2 alimenta il calcolo ordinario.
+      const separated = separateHCodes(productCodes);
       const hcodesHealth = separated.health;
       const hcodesPhysical = separated.physical;
 
-      // Identifica frasi CMR cat. 1A/1B (H350, H340, H360 e varianti).
-      // Queste vanno valutate ex Titolo IX Capo II D.Lgs. 81/08 (art. 234 mod.
-      // dal D.Lgs. 135/2024) e NON contribuiscono al calcolo P MoVaRisCh.
-      const cmrCodes = getCmrCodes(hcodesHealth);
-      const isCmr = cmrCodes.length > 0;
-
-      // Calcola score salute (solo da H-codes salute). Le frasi CMR cat. 1A/1B
-      // non sono presenti in H_SCORE, quindi pickScore le ignora automaticamente.
-      let score = hcodesHealth.length ? pickScore(hcodesHealth) : 0;
+      const healthResult = sdsAnalysis.health;
+      const cmrCodes = healthResult.status === 'excluded_cmr' && healthResult.determiningHazard
+        ? [healthResult.determiningHazard.code]
+        : [];
+      const isCmr = healthResult.status === 'excluded_cmr';
+      const score = typeof healthResult.score === 'number' ? healthResult.score : 0;
+      if(healthResult.status !== 'calculated'){
+        extractionMessages.push(`${file.name}: ${healthResult.status === 'excluded_cmr'
+          ? 'classificazione CMR 1A/1B - usare il percorso Titolo IX Capo II.'
+          : 'calcolo salute sospeso: controllare sezioni 2 e 3 della SDS.'}`);
+      }
+      if(sdsAnalysis.referenceHazards.length){
+        extractionMessages.push(`${file.name}: ${sdsAnalysis.referenceHazards.length} frasi della sezione 16 escluse dal calcolo.`);
+      }
 
       // Estrai proprietà fisico-chimiche per sicurezza
       const flashPoint = extractFlashPoint(text);
@@ -1920,16 +2328,6 @@ parseBtn.addEventListener('click', async ()=>{
       const calculatedA1 = calculateA1FromPhysicalCodes(hcodesPhysical);
       const calculatedA2 = calculateA2FromPhysicalCodes(hcodesPhysical);
 
-      // Log per debug (visibile in console)
-      console.log(`[${file.name}] EXTRACTION:`, {
-        healthCodes: hcodesHealth,
-        physicalCodes: hcodesPhysical,
-        flashPoint: flashPoint ? `${flashPoint}°C` : 'non trovato',
-        autoIgnitionTemp: autoIgnitionTemp ? `${autoIgnitionTemp}°C` : 'non trovato',
-        A1_calculated: calculatedA1,
-        A2_calculated: calculatedA2
-      });
-
       const row = {
         // HEALTH fields
         file: file.name,
@@ -1938,6 +2336,21 @@ parseBtn.addEventListener('click', async ()=>{
         hcodes: hcodesHealth, // Solo H-codes salute
         cmrCodes: cmrCodes,   // Frasi CMR cat. 1A/1B (escluse dal calcolo P)
         isCmr: isCmr,         // Flag: sostanza da valutare ex Titolo IX Capo II
+        healthAssessmentStatus: healthResult.status,
+        healthRuleId: healthResult.ruleId,
+        methodologyId: sdsAnalysis.methodologyId,
+        analysisWarnings: sdsAnalysis.warnings,
+        baseAnalysisWarnings: sdsAnalysis.warnings,
+        sdsEvidence: {
+          productHazards: sdsAnalysis.productHazards,
+          ingredientHazards: sdsAnalysis.ingredientHazards,
+          ingredients: sdsAnalysis.ingredients,
+          ingredientParsingStatus: sdsAnalysis.ingredientParsingStatus,
+          referenceHazards: sdsAnalysis.referenceHazards,
+          isMixture: sdsAnalysis.isMixture,
+          mixturePhase: sdsAnalysis.mixturePhase
+        },
+        review: window.MovarischReviewWorkflow.createReviewState(),
         activePreset: 'preset1', // Preset attivo (default = Preset 1 = Laboratorio)
         SCORE: score,
         sistema: defaults.sistema,
@@ -1983,10 +2396,11 @@ parseBtn.addEventListener('click', async ()=>{
         OverallRiskValue: 0, OverallClass: 'irr'
       };
       state.rows.push(row);
-      console.log('✅ Riga aggiunta a state.rows. Totale righe:', state.rows.length);
     }
-    console.log('🎯 Estrazione completata. Chiamo render() con', state.rows.length, 'righe');
     render();
+    if(extractionMessages.length){
+      showAlert(extractionMessages.join('\n'));
+    }
   }catch(err){
     showAlert(t('errors.pdfParse', { error: describeError(err) }));
   }
@@ -1999,10 +2413,7 @@ clearBtn.addEventListener('click', ()=>{ state.rows=[]; render(); clearAlert(); 
 // Scheda Cumulativa - salva dati in localStorage prima di aprire
 document.querySelector('#cumulativeBtn').addEventListener('click', ()=>{
   try{
-    console.log('🔵 CLICK Scheda Cumulativa');
-    console.log('🔵 state.rows PRIMA del salvataggio:', state.rows);
-    console.log('🔵 state.rows.length:', state.rows.length);
-
+    if(!reviewsReadyForExport()) return;
     // Salva tutti i dati della tabella in localStorage
     const dataToSave = {
       rows: state.rows,
@@ -2010,24 +2421,15 @@ document.querySelector('#cumulativeBtn').addEventListener('click', ()=>{
       count: state.rows.length
     };
 
-    console.log('🔵 Dati DA SALVARE in localStorage:', dataToSave);
-
     // CANCELLA vecchi dati prima di salvare nuovi (evita contaminazione)
     localStorage.removeItem('movarisch_cumulative_data');
-    console.log('🔵 Vecchi dati cancellati da localStorage');
 
     // Salva i nuovi dati
     localStorage.setItem('movarisch_cumulative_data', JSON.stringify(dataToSave));
 
-    // Verifica immediatamente cosa è stato salvato
-    const verificaSalvato = localStorage.getItem('movarisch_cumulative_data');
-    console.log('🔵 Verifica DOPO salvataggio - localStorage contiene:', verificaSalvato);
-    console.log('🔵 Verifica PARSED:', JSON.parse(verificaSalvato));
-
     // Apri la scheda cumulativa con timestamp per evitare cache
     const timestamp = new Date().getTime();
     const url = `cumulative-report.html?t=${timestamp}`;
-    console.log('🔵 Apertura finestra:', url);
     window.open(url, '_blank');
   }catch(err){
     console.error('❌ ERRORE salvataggio dati cumulativi:', err);

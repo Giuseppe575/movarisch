@@ -7,13 +7,62 @@
 
 const { autoUpdater } = require('electron-updater');
 const { app, dialog, BrowserWindow } = require('electron');
+const fs = require('fs');
+const path = require('path');
+const {
+  clampProgress,
+  isTransientNetworkError,
+  sanitizeUpdateError
+} = require('./lib/updater-policy');
 
 // Configurazione
 autoUpdater.autoDownload = false; // Non scaricare automaticamente
 autoUpdater.autoInstallOnAppQuit = true; // Installa quando l'app si chiude
+autoUpdater.allowPrerelease = false;
+autoUpdater.allowDowngrade = false;
+autoUpdater.fullChangelog = false;
 
-// Log per debug (rimuovere in produzione se necessario)
-autoUpdater.logger = require('electron').app.isPackaged ? null : console;
+let initialized = false;
+let checkInProgress = null;
+
+function createUpdaterLogger() {
+  if (!app.isPackaged) return console;
+
+  const logDirectory = path.join(app.getPath('userData'), 'logs');
+  const logPath = path.join(logDirectory, 'updater.log');
+  const maxLogBytes = 512 * 1024;
+
+  try {
+    fs.mkdirSync(logDirectory, { recursive: true });
+    if (fs.existsSync(logPath) && fs.statSync(logPath).size > maxLogBytes) {
+      fs.renameSync(logPath, `${logPath}.old`);
+    }
+  } catch {
+    // Un errore di logging non deve bloccare l'app o gli aggiornamenti.
+  }
+
+  const write = (level, values) => {
+    const message = values
+      .map((value) => value instanceof Error ? sanitizeUpdateError(value) : String(value))
+      .join(' ');
+    const line = `${new Date().toISOString()} ${level} ${message}\n`;
+    try {
+      fs.appendFileSync(logPath, line, { encoding: 'utf8', mode: 0o600 });
+    } catch {
+      // Logging best-effort e privo di contenuti delle schede/documenti utente.
+    }
+  };
+
+  return {
+    info: (...values) => write('INFO', values),
+    warn: (...values) => write('WARN', values),
+    error: (...values) => write('ERROR', values),
+    debug: (...values) => write('DEBUG', values)
+  };
+}
+
+const log = (...values) => autoUpdater.logger?.info(...values);
+const logError = (...values) => autoUpdater.logger?.error(...values);
 
 /**
  * Inizializza il sistema di aggiornamenti
@@ -26,14 +75,18 @@ function initUpdater(mainWindow) {
     return;
   }
 
+  if (initialized) return;
+  initialized = true;
+  autoUpdater.logger = createUpdaterLogger();
+
   // Evento: Controllo aggiornamenti in corso
   autoUpdater.on('checking-for-update', () => {
-    console.log('Updater: Controllo aggiornamenti...');
+    log('Updater: controllo aggiornamenti');
   });
 
   // Evento: Aggiornamento disponibile
   autoUpdater.on('update-available', (info) => {
-    console.log('Updater: Aggiornamento disponibile:', info.version);
+    log('Updater: aggiornamento disponibile', info.version);
 
     dialog.showMessageBox(mainWindow, {
       type: 'info',
@@ -46,7 +99,9 @@ function initUpdater(mainWindow) {
     }).then((result) => {
       if (result.response === 0) {
         // L'utente ha scelto di scaricare
-        autoUpdater.downloadUpdate();
+        autoUpdater.downloadUpdate().catch((error) => {
+          logError('Updater: download fallito', sanitizeUpdateError(error));
+        });
 
         // Notifica l'utente che il download è iniziato
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -61,16 +116,21 @@ function initUpdater(mainWindow) {
 
   // Evento: Nessun aggiornamento disponibile
   autoUpdater.on('update-not-available', (info) => {
-    console.log('Updater: Nessun aggiornamento disponibile');
+    log('Updater: nessun aggiornamento disponibile', info?.version || 'versione sconosciuta');
   });
 
   // Evento: Errore durante il controllo/download
   autoUpdater.on('error', (err) => {
-    console.error('Updater: Errore:', err);
+    logError('Updater: errore', sanitizeUpdateError(err));
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitle('MOVARISCH v' + app.getVersion());
+      mainWindow.webContents.send('update-status', { status: 'error' });
+    }
 
     // Non mostrare errori all'utente per problemi di rete minori
     // Mostra solo errori critici
-    if (err.message && !err.message.includes('net::ERR')) {
+    if (!isTransientNetworkError(err)) {
       dialog.showErrorBox(
         'Errore aggiornamento',
         'Si è verificato un errore durante il controllo degli aggiornamenti.\n\n' +
@@ -81,8 +141,8 @@ function initUpdater(mainWindow) {
 
   // Evento: Progresso download
   autoUpdater.on('download-progress', (progressObj) => {
-    const percent = Math.round(progressObj.percent);
-    console.log(`Updater: Download ${percent}%`);
+    const percent = clampProgress(progressObj.percent);
+    log(`Updater: download ${percent}%`);
 
     // Invia progresso alla finestra
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -101,7 +161,7 @@ function initUpdater(mainWindow) {
 
   // Evento: Download completato
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('Updater: Download completato, versione:', info.version);
+    log('Updater: download completato', info.version);
 
     // Ripristina il titolo
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -149,11 +209,19 @@ function checkForUpdates() {
     return;
   }
 
-  try {
-    autoUpdater.checkForUpdates();
-  } catch (err) {
-    console.error('Updater: Errore nel controllo:', err);
-  }
+  if (checkInProgress) return checkInProgress;
+
+  checkInProgress = Promise.resolve()
+    .then(() => autoUpdater.checkForUpdates())
+    .catch((error) => {
+      logError('Updater: controllo fallito', sanitizeUpdateError(error));
+      return null;
+    })
+    .finally(() => {
+      checkInProgress = null;
+    });
+
+  return checkInProgress;
 }
 
 /**
