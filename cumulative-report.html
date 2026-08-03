@@ -4,25 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MOVARISCH - Scheda cumulativa multi-prodotto</title>
+<script src="src/lib/docx.umd.js"></script>
+<script src="src/data/hazard-statements-it.js"></script>
 <style>
-:root{--bg:#081120;--card:#101c31;--line:#2a3b59;--ink:#edf3ff;--muted:#aab9d2;--accent:#78a1ff;--ok:#36c987;--warn:#f0b44c;--danger:#ff6878;--purple:#c184ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,Segoe UI,Arial,sans-serif}.page{max-width:1320px;margin:0 auto;padding:28px}.toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px}.btn{border:1px solid #45628f;background:#172746;color:var(--ink);padding:10px 15px;border-radius:9px;text-decoration:none;cursor:pointer;font-weight:700}.btn.primary{background:var(--accent);color:#071021;border-color:var(--accent)}header{padding:24px;background:linear-gradient(135deg,#142745,#0e1930);border:1px solid var(--line);border-radius:16px}h1{margin:0;font-size:28px}header p{margin:8px 0 0;color:var(--muted)}.section{margin-top:18px;padding:20px;background:var(--card);border:1px solid var(--line);border-radius:14px}.section h2{margin:0 0 15px;font-size:20px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px}.metric{padding:15px;background:#0b172a;border:1px solid var(--line);border-radius:11px}.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.metric strong{display:block;margin-top:5px;font-size:25px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:950px;background:#0b172a}th,td{padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}th{position:sticky;top:0;background:#1a3152;color:#fff;font-size:12px;text-transform:uppercase}tbody tr:last-child td{border-bottom:0}.badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:800}.ok{background:#123b2b;color:#78e0ac}.warn{background:#3c2c11;color:#ffd17a}.danger{background:#451821;color:#ffadb6}.purple{background:#321c48;color:#dbb5ff}.muted{background:#243047;color:#c3cee0}.dpi-grid{display:grid;gap:12px}.dpi-card{padding:14px;border:1px solid var(--line);border-radius:11px;background:#0b172a}.dpi-card h3{margin:0 0 10px;font-size:16px}.dpi-table{min-width:760px}.dpi-table td:first-child{width:190px}.dpi-table td:nth-child(2){width:210px}.dpi-source{color:#cbd6e9;font-size:13px}.notice{padding:12px 14px;border-left:4px solid var(--warn);background:#2b2518;color:#ffe1a2;border-radius:7px}.interventions{margin:0;padding-left:22px}.interventions li{margin:8px 0}.empty{color:var(--muted);font-style:italic}.footer-note{color:var(--muted);font-size:12px;margin-top:14px}@media(max-width:800px){.page{padding:14px}.metrics{grid-template-columns:1fr 1fr}.toolbar{flex-wrap:wrap}}@media print{body{background:#fff;color:#111}.page{max-width:none;padding:0}.toolbar{display:none}header,.section{background:#fff;border-color:#aaa;break-inside:avoid}.metric,.dpi-card,table{background:#fff;border-color:#aaa}th{position:static;background:#e8edf5;color:#111}.muted,.ok,.warn,.danger,.purple{background:#eee;color:#111}.notice{background:#fff3d5;color:#111}.table-wrap{overflow:visible}table{min-width:0;font-size:10px}.dpi-source,.footer-note,header p{color:#333}}
+:root{--bg:#172235;--card:#202c43;--line:#405475;--ink:#f3f6fc;--muted:#c0cbdd;--accent:#8eaeef;--ok:#36c987;--warn:#f0b44c;--danger:#ff6878;--purple:#c184ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,Segoe UI,Arial,sans-serif}.page{max-width:1320px;margin:0 auto;padding:28px}.toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px}.toolbar-actions{display:flex;gap:10px;flex-wrap:wrap}.btn{border:1px solid #607aa5;background:#2b3b58;color:var(--ink);padding:10px 15px;border-radius:9px;text-decoration:none;cursor:pointer;font-weight:700}.btn:hover{background:#354a6c}.btn.primary{background:var(--accent);color:#101827;border-color:var(--accent)}.btn:disabled{opacity:.55;cursor:wait}header{padding:24px;background:linear-gradient(135deg,#2d4263,#22334f);border:1px solid var(--line);border-radius:16px}h1{margin:0;font-size:28px}header p{margin:8px 0 0;color:var(--muted)}.section{margin-top:18px;padding:20px;background:var(--card);border:1px solid var(--line);border-radius:14px}.section h2{margin:0 0 15px;font-size:20px}.section-lead{margin:-7px 0 14px;color:var(--muted)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px}.metric{padding:15px;background:#293851;border:1px solid var(--line);border-radius:11px}.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.metric strong{display:block;margin-top:5px;font-size:25px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:950px;background:#26354e}th,td{padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}th{position:sticky;top:0;background:#365174;color:#fff;font-size:12px;text-transform:uppercase}tbody tr:last-child td{border-bottom:0}small{color:var(--muted)}.badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:800}.ok{background:#123b2b;color:#78e0ac}.warn{background:#3c2c11;color:#ffd17a}.danger{background:#451821;color:#ffadb6}.purple{background:#321c48;color:#dbb5ff}.muted{background:#34435b;color:#d6deeb}.hazard-table{min-width:760px}.hazard-table td:first-child{width:28%}.hazard-table td:nth-child(2){width:18%;font-weight:800}.dpi-table{min-width:980px}.dpi-table td:nth-child(1){width:20%}.dpi-table td:nth-child(2){width:16%}.dpi-table td:nth-child(3){width:19%}.dpi-table td:nth-child(4){width:45%}.dpi-summary{color:#eef3fb}.dpi-ref{display:block;margin-top:4px;color:var(--muted);font-size:12px}.notice{padding:12px 14px;border-left:4px solid var(--warn);background:#3b3424;color:#ffe1a2;border-radius:7px}.interventions{margin:0;padding-left:22px}.interventions li{margin:8px 0}.empty{color:var(--muted);font-style:italic}.footer-note{color:var(--muted);font-size:12px;margin-top:14px}.export-status{min-height:20px;margin:8px 0 0;color:var(--muted);font-size:13px}
+@media(max-width:800px){.page{padding:14px}.metrics{grid-template-columns:1fr 1fr}.toolbar{flex-wrap:wrap}.toolbar-actions{width:100%}.toolbar-actions .btn{flex:1}}
+@media print{body{background:#fff;color:#111}.page{max-width:none;padding:0}.toolbar{display:none}header,.section{background:#fff;border-color:#aaa;break-inside:avoid}.metric,table{background:#fff;border-color:#aaa}th{position:static;background:#e8edf5;color:#111}.muted,.ok,.warn,.danger,.purple{background:#eee;color:#111}.notice{background:#fff3d5;color:#111}.table-wrap{overflow:visible}table{min-width:0;font-size:9px}.dpi-summary,.footer-note,.dpi-ref,header p,small{color:#333}}
 </style>
 </head>
 <body>
 <main class="page">
-  <div class="toolbar"><a class="btn" href="index.html">← Torna alla valutazione</a><button class="btn primary" type="button" onclick="window.print()">Stampa / Salva PDF</button></div>
-  <header><h1>Scheda cumulativa del rischio chimico</h1><p>Riepilogo multi-prodotto basato sulle valutazioni confermate e sulle indicazioni DPI riportate nella Sezione 8 delle SDS.</p></header>
+  <div class="toolbar">
+    <a class="btn" href="index.html">← Torna alla valutazione</a>
+    <div class="toolbar-actions">
+      <button class="btn" id="exportCumulativeWordBtn" type="button">Esporta Word modificabile</button>
+      <button class="btn primary" type="button" onclick="window.print()">Stampa / Salva PDF</button>
+    </div>
+  </div>
+  <header><h1>Scheda cumulativa del rischio chimico</h1><p>Riepilogo multi-prodotto delle valutazioni confermate, delle frasi H considerate e delle indicazioni DPI riportate nella Sezione 8 delle SDS.</p><div class="export-status" id="exportStatus" role="status"></div></header>
   <div id="report"></div>
 </main>
 <script>
 (function(){
   'use strict';
   const report = document.getElementById('report');
+  const exportStatus = document.getElementById('exportStatus');
+  const exportButton = document.getElementById('exportCumulativeWordBtn');
   const raw = localStorage.getItem('movarisch_cumulative_data');
   localStorage.removeItem('movarisch_cumulative_data');
 
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const text = value => String(value == null ? '' : value).replace(/\s+/g,' ').trim();
   const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const fmt = value => number(value).toFixed(2);
   const list = value => Array.isArray(value) ? value : [];
@@ -35,7 +48,33 @@
     if(n>=15)return {label:'Intervallo di incertezza',css:'warn'};
     return {label:'Irrilevante per la salute',css:'ok'};
   };
-  const badge = (text,css) => `<span class="badge ${css}">${esc(text)}</span>`;
+  const badge = (value,css) => `<span class="badge ${css}">${esc(value)}</span>`;
+  const safeExcerpt = (value,maxLength=280) => {
+    const normalized=text(value);
+    if(normalized.length<=maxLength)return normalized;
+    const shortened=normalized.slice(0,maxLength+1).replace(/\s+\S*$/,'').replace(/[\s,;:.-]+$/,'');
+    return `${shortened||normalized.slice(0,maxLength)}…`;
+  };
+  const dpiSummary = item => safeExcerpt(item?.technicalSummary || item?.sourceText || 'Nessuna indicazione strutturata rilevata.');
+  const hazardApi = window.MovarischHazardStatementsIt || {};
+  const normalizeHazard = value => hazardApi.normalizeCode ? hazardApi.normalizeCode(value) : (text(value).match(/\b(?:EUH|H)\s*\d{3}[A-Z]{0,2}\b/i)?.[0]||'').replace(/\s+/g,'').toUpperCase();
+  const formatHazard = hazard => hazard?.code ? `${hazard.code}${hazard.category?` cat.${hazard.category}`:''}` : text(hazard);
+  const hazardDescription = hazard => {
+    const official=hazardApi.descriptionFor ? hazardApi.descriptionFor(hazard?.code||hazard) : '';
+    if(official)return official;
+    const source=text(hazard?.sourceText).replace(new RegExp(`^.*?${String(hazard?.code||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*[-–—:;,.]*\\s*`,'i'),'');
+    return safeExcerpt(source||'Descrizione non disponibile: verificare la Sezione 2 della SDS.',240);
+  };
+  const productHazards = row => {
+    const evidence=list(row.sdsEvidence?.productHazards);
+    const fallback=[...list(row.hcodes),...list(row.hcodesPhysical)].map(code=>({code:text(code).split(/\s+cat\./i)[0],category:text(code).match(/cat\.\s*([123](?:[ABC])?)/i)?.[1]||null}));
+    const selected=new Map();
+    for(const hazard of evidence.length?evidence:fallback){
+      const key=normalizeHazard(hazard?.code||hazard);
+      if(key&&!selected.has(key))selected.set(key,hazard);
+    }
+    return [...selected.values()];
+  };
 
   let data;
   try{
@@ -43,6 +82,7 @@
     const age=Date.now()-new Date(data?.timestamp).getTime();
     if(!Array.isArray(data?.rows)||!data.rows.length||!Number.isFinite(age)||age<0||age>300000)throw new Error('Dati assenti o scaduti');
   }catch(error){
+    exportButton.disabled=true;
     report.innerHTML=`<section class="section"><h2>Dati non disponibili</h2><p>Apri questa scheda dal pulsante “Scheda cumulativa” dopo aver confermato le SDS.</p></section>`;
     return;
   }
@@ -55,29 +95,36 @@
   const reviewers=[...new Set(rows.map(row=>row.review?.reviewer).filter(Boolean))];
   const confirmed=rows.filter(row=>row.review?.status==='confirmed').length;
   const cmr=rows.filter(row=>row.isCmr).length;
+  const generatedAt=new Date();
+  const reportVersion=text(data.version||window.electronAPI?.version||'web');
 
   const productRows=rows.map((row,index)=>{
     const health=risk(row.Rtot);
     return `<tr><td>${index+1}</td><td><strong>${esc(row.nome||row.file)}</strong><br><small>${esc(row.file)}</small></td><td>${esc(list(row.hcodes).join(', ')||'—')}</td><td>${fmt(row.SCORE)}</td><td>${fmt(row.Rtot)}<br>${badge(health.label,health.css)}</td><td>${esc(list(row.hcodesPhysical).join(', ')||'—')}</td><td>${fmt(row.IRC)}<br>${esc(row.mircText||row.mircLevel||'—')}</td><td>${fmt(row.OverallRiskValue)}</td></tr>`;
   }).join('');
 
+  const hazardEntries=rows.flatMap(row=>{
+    const hazards=productHazards(row);
+    if(!hazards.length)return [{product:row.nome||row.file,file:row.file,code:'—',description:'Nessuna frase H rilevata nella classificazione del prodotto in Sezione 2.'}];
+    return hazards.map(hazard=>({product:row.nome||row.file,file:row.file,code:formatHazard(hazard),description:hazardDescription(hazard)}));
+  });
+  const hazardRows=hazardEntries.map(item=>`<tr><td><strong>${esc(item.product)}</strong><br><small>${esc(item.file)}</small></td><td>${esc(item.code)}</td><td>${esc(item.description)}</td></tr>`).join('');
+
   const categories=[
-    ['hands','Protezione delle mani'],['eyesFace','Protezione occhi/viso'],['body','Protezione pelle/corpo'],['respiratory','Protezione respiratoria']
+    ['hands','Mani / guanti'],['eyesFace','Occhi e viso'],['body','Pelle e corpo'],['respiratory','Vie respiratorie']
   ];
   const outcome={
-    required:['Indicato dalla SDS','danger'],recommended:['Consigliato dalla SDS','warn'],conditional:['Condizionato allo scenario','warn'],mentioned:['Citato: da verificare','muted'],not_required:['Non richiesto dalla SDS','ok'],not_specified:['Non specificato','muted']
+    required:['Prescritto nella SDS','danger'],recommended:['Consigliato nella SDS','warn'],conditional:['Richiesto alle condizioni indicate','warn'],mentioned:['Citato: da verificare','muted'],not_required:['Non richiesto dalla SDS','ok'],not_specified:['Non specificato','muted']
   };
-  const dpiCards=categories.map(([key,label])=>{
-    const entries=rows.map(row=>{
-      const item=list(row.sdsEvidence?.dpi?.items).find(candidate=>candidate.category===key);
-      return {product:row.nome||row.file,status:'not_specified',sourceText:'Nessuna indicazione strutturata rilevata.',...(item||{})};
-    });
-    const entryRows=entries.map(item=>{
-      const [outcomeText,outcomeClass]=outcome[item.status]||outcome.mentioned;
-      const source=item.sourceText ? `${item.page?`pag. ${esc(item.page)} · `:''}${esc(item.sourceText.slice(0,360))}` : 'Nessuna indicazione strutturata rilevata.';
-      return `<tr><td><strong>${esc(item.product)}</strong></td><td>${badge(outcomeText,outcomeClass)}</td><td class="dpi-source">${source}</td></tr>`;
-    }).join('');
-    return `<div class="dpi-card"><h3>${esc(label)}</h3><div class="table-wrap"><table class="dpi-table"><thead><tr><th>Prodotto</th><th>Giudizio dalla SDS</th><th>Indicazione e pagina</th></tr></thead><tbody>${entryRows}</tbody></table></div></div>`;
+  const dpiEntries=rows.flatMap(row=>categories.map(([key,label])=>{
+    const item=list(row.sdsEvidence?.dpi?.items).find(candidate=>candidate.category===key);
+    return {product:row.nome||row.file,file:row.file,device:label,status:'not_specified',sourceText:'Nessuna indicazione strutturata rilevata.',...(item||{})};
+  }));
+  const dpiRows=dpiEntries.map(item=>{
+    const [outcomeText,outcomeClass]=outcome[item.status]||outcome.mentioned;
+    const summary=dpiSummary(item);
+    const page=item.page?`Sezione 8, pag. ${item.page}`:'Sezione 8, pagina non rilevata';
+    return `<tr><td><strong>${esc(item.product)}</strong><br><small>${esc(item.file)}</small></td><td>${esc(item.device)}</td><td>${badge(outcomeText,outcomeClass)}</td><td><span class="dpi-summary">${esc(summary)}</span><span class="dpi-ref">${esc(page)}</span></td></tr>`;
   }).join('');
 
   const interventions=[];
@@ -95,11 +142,89 @@
       <div class="metric"><span>Valutazioni confermate</span><strong>${confirmed}/${rows.length}</strong></div>
       <div class="metric"><span>Massimo rischio salute</span><strong>${fmt(maxHealth)}</strong>${badge(healthRisk.label,healthRisk.css)}</div>
       <div class="metric"><span>Massimo indice sicurezza</span><strong>${fmt(maxSafety)}</strong></div>
-    </div><p class="footer-note">Data: ${esc(new Date().toLocaleString('it-IT'))} · Professionista/i: ${esc(reviewers.join(', ')||'non indicato')} · Massimo complessivo registrato: ${fmt(maxOverall)}</p></section>
-    <section class="section"><h2>2. Riepilogo di tutti i prodotti</h2><div class="table-wrap"><table id="productsTable"><thead><tr><th>#</th><th>Prodotto</th><th>H salute (Sez. 2)</th><th>Score</th><th>R salute</th><th>H fisiche</th><th>IRC sicurezza</th><th>Complessivo</th></tr></thead><tbody>${productRows}</tbody></table></div></section>
-    <section class="section"><h2>3. Matrice DPI ricavata dalla Sezione 8</h2><div class="notice">La SDS indica o raccomanda i dispositivi, ma l’obbligatorietà finale deriva dalla valutazione professionale delle condizioni reali di lavoro. Le indicazioni condizionate non devono essere trasformate automaticamente in obblighi generalizzati.</div><div class="dpi-grid" style="margin-top:14px">${dpiCards}</div></section>
-    <section class="section"><h2>4. Misure e verifiche prioritarie</h2><ol class="interventions">${interventions.map(item=>`<li>${esc(item)}</li>`).join('')}</ol></section>
-    <section class="section"><h2>5. Validazione</h2><p>Il presente riepilogo integra ${rows.length} SDS. Le classificazioni del prodotto derivano dalla Sezione 2; la Sezione 16 resta informativa; i DPI sono estratti dalla Sezione 8 e devono essere confermati in relazione alle condizioni operative effettive.</p></section>`;
+    </div><p class="footer-note">Data: ${esc(generatedAt.toLocaleString('it-IT'))} · Professionista/i: ${esc(reviewers.join(', ')||'non indicato')} · Massimo complessivo registrato: ${fmt(maxOverall)}</p></section>
+    <section class="section"><h2>2. Riepilogo dei prodotti</h2><div class="table-wrap"><table id="productsTable"><thead><tr><th>#</th><th>Prodotto</th><th>H salute (Sez. 2)</th><th>Score</th><th>R salute</th><th>H fisiche</th><th>IRC sicurezza</th><th>Complessivo</th></tr></thead><tbody>${productRows}</tbody></table></div></section>
+    <section class="section"><h2>3. Frasi H considerate nella valutazione</h2><p class="section-lead">Descrizioni CLP associate alla classificazione del prodotto riportata nella Sezione 2 della relativa SDS.</p><div class="table-wrap"><table class="hazard-table" id="hazardStatementsTable"><thead><tr><th>Prodotto e SDS di riferimento</th><th>Frase H</th><th>Descrizione</th></tr></thead><tbody>${hazardRows}</tbody></table></div></section>
+    <section class="section"><h2>4. Dispositivi di protezione individuale</h2><div class="notice">Il prospetto sintetizza quanto indicato nella Sezione 8. Il carattere obbligatorio del DPI deve essere confermato dal professionista rispetto a esposizione reale, misure collettive e mansione.</div><div class="table-wrap" style="margin-top:14px"><table class="dpi-table" id="dpiSummaryTable"><thead><tr><th>Prodotto e SDS</th><th>Dispositivo</th><th>Indicazione SDS</th><th>Sintesi tecnica, condizioni e riferimento</th></tr></thead><tbody>${dpiRows}</tbody></table></div></section>
+    <section class="section"><h2>5. Misure e verifiche prioritarie</h2><ol class="interventions">${interventions.map(item=>`<li>${esc(item)}</li>`).join('')}</ol></section>
+    <section class="section"><h2>6. Validazione</h2><p>Il presente riepilogo integra ${rows.length} SDS. Le classificazioni del prodotto derivano dalla Sezione 2; la Sezione 16 resta informativa; i DPI sono ricavati dalla Sezione 8 e devono essere confermati in relazione alle condizioni operative effettive.</p></section>`;
+
+  function downloadBlob(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement('a');
+    anchor.href=url;anchor.download=filename;anchor.rel='noopener';anchor.style.display='none';
+    document.body.appendChild(anchor);anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+
+  function exportWord(){
+    if(!window.docx)throw new Error('Libreria Word non disponibile.');
+    const {Document,Paragraph,Table,TableRow,TableCell,TextRun,WidthType,AlignmentType,BorderStyle,ShadingType,VerticalAlign,HeadingLevel,Packer}=window.docx;
+    const navy='213A5A',blue='365F91',pale='EAF0F7',light='F5F7FA',line='B8C4D3',ink='172033',muted='526174',white='FFFFFF';
+    const borders={top:{style:BorderStyle.SINGLE,size:2,color:line},bottom:{style:BorderStyle.SINGLE,size:2,color:line},left:{style:BorderStyle.SINGLE,size:2,color:line},right:{style:BorderStyle.SINGLE,size:2,color:line},insideHorizontal:{style:BorderStyle.SINGLE,size:1,color:'D9E0E8'},insideVertical:{style:BorderStyle.SINGLE,size:1,color:'D9E0E8'}};
+    const para=(value,options={})=>{
+      const runs=[];
+      String(value==null?'':value).split(/\r?\n/).forEach((line,index)=>{
+        if(index)runs.push(new TextRun({break:1}));
+        runs.push(new TextRun({text:text(line),bold:Boolean(options.bold),color:options.color||ink,size:options.size||20,font:'Aptos'}));
+      });
+      return new Paragraph({alignment:options.alignment,spacing:{before:options.before||0,after:options.after==null?100:options.after,line:276},pageBreakBefore:Boolean(options.pageBreakBefore),keepNext:Boolean(options.keepNext),children:runs});
+    };
+    const heading=(value,level=1,pageBreakBefore=false)=>new Paragraph({heading:level===1?HeadingLevel.HEADING_1:HeadingLevel.HEADING_2,pageBreakBefore,keepNext:true,spacing:{before:level===1?260:180,after:120},children:[new TextRun({text:value,bold:true,color:navy,size:level===1?28:23,font:'Aptos Display'})]});
+    const cell=(value,options={})=>new TableCell({width:options.width?{size:options.width,type:WidthType.PERCENTAGE}:undefined,shading:options.fill?{fill:options.fill,type:ShadingType.CLEAR}:undefined,verticalAlign:VerticalAlign.CENTER,margins:{top:90,bottom:90,left:110,right:110},children:[para(value,{bold:options.bold,color:options.color||ink,size:options.size||18,after:0,alignment:options.alignment})]});
+    const table=(headers,body,widths)=>new Table({width:{size:100,type:WidthType.PERCENTAGE},borders,rows:[
+      new TableRow({tableHeader:true,cantSplit:true,children:headers.map((value,index)=>cell(value,{bold:true,fill:navy,color:white,size:17,width:widths[index]}))}),
+      ...body.map((values,rowIndex)=>new TableRow({cantSplit:true,children:values.map((value,index)=>cell(value,{fill:rowIndex%2?light:white,width:widths[index]}))}))
+    ]});
+    const spacer=()=>new Paragraph({spacing:{after:80},children:[]});
+    const metricTable=table(['Prodotti','Confermate','R salute massimo','IRC massimo'],[[String(rows.length),`${confirmed}/${rows.length}`,`${fmt(maxHealth)} - ${healthRisk.label}`,fmt(maxSafety)]],[18,18,36,28]);
+    const productTable=table(['Prodotto / SDS','H salute','Score','R salute','IRC'],rows.map(row=>[
+      `${row.nome||row.file}\nSDS: ${row.file||'non indicata'}`,list(row.hcodes).join(', ')||'—',fmt(row.SCORE),`${fmt(row.Rtot)} - ${risk(row.Rtot).label}`,`${fmt(row.IRC)} - ${row.mircText||row.mircLevel||'—'}`
+    ]),[30,24,10,18,18]);
+    const hazardTable=table(['Prodotto e SDS di riferimento','Frase H','Descrizione'],hazardEntries.map(item=>[`${item.product}\nSDS: ${item.file||'non indicata'}`,item.code,item.description]),[31,16,53]);
+    const dpiTable=table(['Prodotto e SDS','Dispositivo','Indicazione SDS','Sintesi tecnica e condizioni'],dpiEntries.map(item=>{
+      const status=(outcome[item.status]||outcome.mentioned)[0];
+      const reference=item.page?`Sezione 8, pag. ${item.page}`:'Sezione 8, pagina non rilevata';
+      return [`${item.product}\nSDS: ${item.file||'non indicata'}`,item.device,status,`${dpiSummary(item)}\n${reference}`];
+    }),[24,16,20,40]);
+    const children=[
+      para('MOVARISCH',{bold:true,color:blue,size:18,after:80}),
+      para('Scheda cumulativa del rischio chimico',{bold:true,color:navy,size:36,after:80}),
+      para('Riepilogo multi-prodotto delle valutazioni confermate',{color:muted,size:22,after:220}),
+      table(['Data di elaborazione','Professionista/i','Versione report'],[[generatedAt.toLocaleString('it-IT'),reviewers.join(', ')||'non indicato',`MOVARISCH ${reportVersion}`]],[33,42,25]),
+      heading('1. Quadro generale'),metricTable,
+      para(`Massimo complessivo registrato: ${fmt(maxOverall)}. Il dato sintetico non sostituisce la verifica delle condizioni operative e delle misure adottate.`,{color:muted,size:18,before:100,after:120}),
+      heading('2. Riepilogo dei prodotti'),productTable,
+      heading('3. Frasi H considerate nella valutazione',1,true),
+      para('Classificazione del prodotto riportata nella Sezione 2 della SDS. La tabella associa ogni codice alla relativa descrizione CLP.',{color:muted,size:18}),hazardTable,
+      heading('4. Dispositivi di protezione individuale',1,true),
+      para('Sintesi della Sezione 8. Lo stato indicato non sostituisce la decisione professionale sull’obbligatorietà del DPI nelle condizioni reali di lavoro.',{color:muted,size:18}),dpiTable,
+      heading('5. Misure e verifiche prioritarie',1,true),
+      ...interventions.map((item,index)=>new Paragraph({numbering:{reference:'priority-list',level:0},spacing:{after:90,line:276},children:[new TextRun({text:item,color:ink,size:20,font:'Aptos'})]})),
+      heading('6. Validazione'),
+      para(`Il presente riepilogo integra ${rows.length} SDS. Le classificazioni del prodotto derivano dalla Sezione 2; la Sezione 16 resta informativa; i DPI sono ricavati dalla Sezione 8 e devono essere confermati in relazione alle condizioni operative effettive.`,{after:160}),
+      spacer(),para('Firma del professionista: ____________________________________',{color:muted,size:18})
+    ];
+    const doc=new Document({
+      creator:'MOVARISCH',title:'Scheda cumulativa del rischio chimico',description:'Riepilogo cumulativo multi-prodotto',
+      styles:{default:{document:{run:{font:'Aptos',size:20,color:ink},paragraph:{spacing:{after:100,line:276}}}}},
+      numbering:{config:[{reference:'priority-list',levels:[{level:0,format:'decimal',text:'%1.',alignment:AlignmentType.START,style:{paragraph:{indent:{left:420,hanging:220}}}}]}]},
+      sections:[{properties:{page:{margin:{top:900,right:720,bottom:900,left:720}}},children}]
+    });
+    return Packer.toBlob(doc);
+  }
+
+  exportButton.addEventListener('click',async()=>{
+    exportButton.disabled=true;exportStatus.textContent='Generazione del documento Word in corso…';
+    try{
+      const blob=await exportWord();
+      downloadBlob(blob,'MOVARISCH_scheda_cumulativa.docx');
+      exportStatus.textContent='Documento Word generato correttamente.';
+    }catch(error){
+      console.error('Errore esportazione Word cumulativa',error);
+      exportStatus.textContent=`Errore durante la generazione Word: ${error?.message||error}`;
+    }finally{exportButton.disabled=false;}
+  });
 })();
 </script>
 </body>

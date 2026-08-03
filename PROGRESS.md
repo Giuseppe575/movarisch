@@ -330,3 +330,21 @@ Esegui con: `npm test`
 - Pubblicati `MOVARISCH-Setup-1.4.5.exe`, `latest.yml` e `MOVARISCH-Setup-1.4.5.exe.blockmap`.
 - Verificato tramite API GitHub che `releases/latest` restituisce `v1.4.5` e che tutti gli asset risultano caricati.
 - Le installazioni dotate di updater possono rilevare la 1.4.5; download e installazione richiedono la conferma dell'utente. La 1.1.0 richiede invece l'installazione manuale.
+
+---
+
+## Diario di avanzamento - revisione cumulativa v1.4.6
+
+- Aggiunto l’export della scheda cumulativa in Word modificabile.
+- Ridisegnato il DOCX come relazione tecnica sobria: testata, metadati, quadro generale, tabelle a righe alternate, misure, validazione e firma.
+- Aggiunta la tabella “Prodotto e SDS di riferimento / Frase H / Descrizione” per i pericoli del prodotto presenti in Sezione 2.
+- Aggiunto il repertorio italiano delle descrizioni CLP, con gestione distinta delle varianti H360/H361.
+- Eliminato il taglio fisso della fonte DPI; introdotta una sintesi che conserva norma, materiale, prestazioni e condizioni operative senza spezzare parole.
+- Compattata la matrice DPI in un’unica tabella con prodotto, file SDS, dispositivo, stato, sintesi tecnica e pagina.
+- Versione di lavoro portata a 1.4.6 perché la 1.4.5 è già pubblica.
+- Verifiche superate: 95/95 test, sintassi JavaScript e controllo differenze.
+- Collaudo browser completato con dati multiprodotto fittizi; schermata salvata in `output/playwright/cumulative-report.png`.
+- DOCX di prova aperto in Microsoft Word, convertito in PDF e controllato pagina per pagina: 4 pagine, 5 tabelle, nessun contenuto tagliato o sovrapposto.
+- Installer locale v1.4.6 creato e verificato: 101.174.260 byte, SHA-256 `113044FB5BC56153698716ED14CAB482A1305BB27972F35BAB1C6986599547F0`.
+- Release gate, artefatti e `latest.yml` superati; firma digitale assente come concordato.
+- La v1.4.6 non è ancora stata pubblicata: attendere il test e l’approvazione esplicita del professionista.
