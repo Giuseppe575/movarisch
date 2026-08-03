@@ -1,6 +1,6 @@
 {
   "name": "movarisch",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "private": true,
   "scripts": {
     "vendor:pdf": "esbuild src/lib/pdf-loader.js --bundle --format=iife --platform=browser --target=chrome120 --minify --define:process=undefined --log-override:empty-import-meta=silent --outfile=src/lib/pdf.bundle.js",

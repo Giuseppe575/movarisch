@@ -2467,7 +2467,8 @@ document.querySelector('#cumulativeBtn').addEventListener('click', ()=>{
     const dataToSave = {
       rows: state.rows,
       timestamp: new Date().toISOString(),
-      count: state.rows.length
+      count: state.rows.length,
+      version: window.electronAPI?.version || 'web'
     };
 
     // CANCELLA vecchi dati prima di salvare nuovi (evita contaminazione)

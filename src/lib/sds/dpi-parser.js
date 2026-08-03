@@ -30,6 +30,36 @@
     return 'mentioned';
   }
 
+  function truncateAtWord(text, maxLength) {
+    const value = normalize(text);
+    if (value.length <= maxLength) return value;
+    const shortened = value.slice(0, maxLength + 1).replace(/\s+\S*$/, '').replace(/[\s,;:.-]+$/, '');
+    return `${shortened || value.slice(0, maxLength)}…`;
+  }
+
+  function summarizeInstruction(text) {
+    let value = normalize(text)
+      .replace(/^(?:[:;,.\-–—]\s*)+/, '')
+      .replace(/\s+([,.;:])/g, '$1');
+    if (!value) return '';
+
+    // Le SDS spesso proseguono con spiegazioni generali sulla scelta finale del DPI.
+    // La sintesi conserva invece prescrizione, caratteristiche tecniche e condizioni.
+    const genericTail = /(?:l['’`]idoneità\s+e\s+la\s+stabilità|l['’`]idoneità\s+del|la\s+scelta\s+(?:del|dei|deve)|le\s+informazioni\s+fornite\s+dal\s+fabbricante|la\s+resistenza\s+dei\s+materiali\s+può)/i;
+    const tail = genericTail.exec(value);
+    if (tail && tail.index >= 45) value = value.slice(0, tail.index);
+
+    const parts = value.split(/(?<=[.;])\s+/).filter(Boolean);
+    let result = '';
+    for (const part of parts) {
+      const candidate = result ? `${result} ${part}` : part;
+      if (candidate.length > 280 && result) break;
+      result = candidate;
+      if (result.length >= 180) break;
+    }
+    return truncateAtWord(result || value, 280);
+  }
+
   function statusLabel(status) {
     return ({
       required: 'Indicato dalla SDS',
@@ -72,6 +102,7 @@
         status,
         statusLabel: statusLabel(status),
         sourceText,
+        technicalSummary: summarizeInstruction(sourceText),
         page: sourcePage(section, heading.index, text)
       };
     });
@@ -91,6 +122,7 @@
           status: 'not_specified',
           statusLabel: statusLabel('not_specified'),
           sourceText: '',
+          technicalSummary: '',
           page: section?.pageStart || null
         });
       }
@@ -104,5 +136,5 @@
     };
   }
 
-  return Object.freeze({ parseSection8Dpi, classifyInstruction, statusLabel });
+  return Object.freeze({ parseSection8Dpi, classifyInstruction, statusLabel, summarizeInstruction });
 });

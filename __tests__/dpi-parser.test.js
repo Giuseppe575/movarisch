@@ -1,12 +1,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseSection8Dpi, classifyInstruction } = require('../src/lib/sds/dpi-parser.js');
+const { parseSection8Dpi, classifyInstruction, summarizeInstruction } = require('../src/lib/sds/dpi-parser.js');
 
 test('classifica indicazioni DPI obbligatorie, consigliate e condizionate senza trasformarle tutte in obblighi', () => {
   assert.equal(classifyInstruction('Utilizzare guanti protettivi conformi alla EN 374.'), 'required');
   assert.equal(classifyInstruction('Si consiglia di indossare occhiali protettivi EN 166.'), 'recommended');
   assert.equal(classifyInstruction('In caso di superamento del valore limite indossare una maschera con filtro A.'), 'conditional');
   assert.equal(classifyInstruction('Protezione respiratoria non necessaria.'), 'not_required');
+});
+
+test('la sintesi DPI conserva i dati tecnici senza troncare parole', () => {
+  const source = 'Utilizzare guanti protettivi conformi alla norma UNI EN 374-3 di classe pari o superiore a 3 (PVC, neoprene o gomma), spessore 0,12 mm, AQL 1,5, tempo di permeazione 30 minuti. L’idoneità e la stabilità di un guanto dipendono dall’utilizzo e dalla frequenza di contatto.';
+  const summary = summarizeInstruction(source);
+  assert.match(summary, /UNI EN 374-3/);
+  assert.match(summary, /spessore 0,12 mm/);
+  assert.match(summary, /AQL 1,5/);
+  assert.match(summary, /permeazione 30 minuti/);
+  assert.doesNotMatch(summary, /L’idoneità/);
+  assert.doesNotMatch(summary, /\bdef$/);
 });
 
 test('estrae le quattro famiglie DPI dalla sezione 8 e conserva la pagina', () => {

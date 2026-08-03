@@ -4,6 +4,27 @@ Registro delle modifiche e miglioramenti al progetto MOVARISCH.
 
 ---
 
+## [v1.4.6] - 2026-08-03 - Scheda cumulativa Word e DPI sintetici
+
+### Scheda cumulativa
+
+- Aggiunto il pulsante per esportare la scheda cumulativa in formato Word modificabile.
+- Nuovo documento con stile sobrio da relazione tecnica, quadro generale, tabelle leggibili, misure prioritarie e spazio firma.
+- Aggiunta la tabella a tre colonne “Prodotto e SDS / Frase H / Descrizione”, basata sulla classificazione del prodotto in Sezione 2.
+- Inserite le descrizioni italiane delle indicazioni di pericolo CLP con fallback all’evidenza presente nella SDS.
+
+### DPI
+
+- Sostituito il testo sorgente esteso con una sintesi tecnica che conserva dispositivo, norma, materiale, prestazione e condizioni d’uso.
+- Eliminato il taglio rigido a 360 caratteri che poteva lasciare parole e frasi incomplete.
+- Unificata la matrice DPI in quattro colonne: prodotto/SDS, dispositivo, indicazione della SDS, sintesi tecnica e riferimento di pagina.
+- Distinti i casi prescritti, consigliati, condizionati, citati, non richiesti e non specificati, lasciando al professionista la decisione finale sull’obbligatorietà.
+
+### Verifica
+
+- Suite ampliata a 95 test automatici.
+- DOCX campione aperto con Microsoft Word e verificato visivamente dopo conversione in PDF: 4 pagine e 5 tabelle, senza tagli o sovrapposizioni.
+
 ## [v1.4.5] - 2026-08-03 - Revisione rapida SDS e cumulativa DPI
 
 ### Flusso di verifica
