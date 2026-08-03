@@ -320,4 +320,13 @@ Esegui con: `npm test`
 - Sostituito lo sfondo blu molto scuro con una palette blu ardesia più chiara, mantenendo contrasto e leggibilità.
 - Suite completa aggiornata e superata: 91/91 test; controllo sintattico e `git diff --check` superati.
 - Installer v1.4.5 rigenerato con la nuova palette: 101.168.388 byte, SHA-256 `6D1294F856E3D65B2850CD305218A9AF7EBE79CB70F6B823EA2F1D9DF93AAA13`.
-- Release gate e controllo degli artefatti superati; firma digitale assente come concordato e pubblicazione automatica ancora sospesa fino all'approvazione esplicita.
+- Release gate e controllo degli artefatti superati; firma digitale assente come concordato.
+
+### Pubblicazione finale v1.4.5
+
+- Pull request `#26` approvata dai controlli CI e integrata in `main` il 3 agosto 2026.
+- Tag pubblico `v1.4.5` creato sul commit di rilascio.
+- Release GitHub pubblicata come release stabile, non bozza e non prerelease.
+- Pubblicati `MOVARISCH-Setup-1.4.5.exe`, `latest.yml` e `MOVARISCH-Setup-1.4.5.exe.blockmap`.
+- Verificato tramite API GitHub che `releases/latest` restituisce `v1.4.5` e che tutti gli asset risultano caricati.
+- Le installazioni dotate di updater possono rilevare la 1.4.5; download e installazione richiedono la conferma dell'utente. La 1.1.0 richiede invece l'installazione manuale.
