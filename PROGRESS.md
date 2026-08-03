@@ -347,4 +347,7 @@ Esegui con: `npm test`
 - DOCX di prova aperto in Microsoft Word, convertito in PDF e controllato pagina per pagina: 4 pagine, 5 tabelle, nessun contenuto tagliato o sovrapposto.
 - Installer locale v1.4.6 creato e verificato: 101.174.260 byte, SHA-256 `113044FB5BC56153698716ED14CAB482A1305BB27972F35BAB1C6986599547F0`.
 - Release gate, artefatti e `latest.yml` superati; firma digitale assente come concordato.
-- La v1.4.6 non è ancora stata pubblicata: attendere il test e l’approvazione esplicita del professionista.
+- Pull request `#27` approvata dai controlli CI e integrata in `main` il 3 agosto 2026.
+- Tag e release stabile `v1.4.6` pubblicati con installer, `latest.yml` e blockmap.
+- Verificato tramite API GitHub che `releases/latest` restituisce `v1.4.6` e che tutti gli asset risultano caricati con digest coerente.
+- Aggiornamento automatico attivo per le installazioni dotate di updater; download e installazione richiedono la conferma dell’utente.
