@@ -38,3 +38,37 @@ test('il calcolo ordinario usa il massimo della sola sezione 2 e ignora la sezio
   assert.equal(output.ruleId, 'PRODUCT_SECTION_2_MAX_SCORE');
   assert.ok(output.warnings.includes('PRODUCT_NON_SECTION_2_IGNORED'));
 });
+
+test('pericoli fisici, ambientali ed EUH informativi non sospendono lo score salute', () => {
+  const output = evaluateHealthRisk({
+    productHazards: [
+      { code: 'H226', category: '3', section: 2 },
+      { code: 'H290', category: '1', section: 2 },
+      { code: 'H318', category: '1', section: 2 },
+      { code: 'H411', section: 2 },
+      { code: 'EUH210', section: 2 },
+    ],
+    ingredients: [],
+    isMixture: false,
+    productClassified: true,
+  });
+  assert.equal(output.status, 'calculated');
+  assert.equal(output.score, 4.50);
+  assert.equal(output.determiningHazard.code, 'H318');
+  assert.ok(output.warnings.includes('PRODUCT_NON_HEALTH_HAZARD_IGNORED:H226'));
+  assert.ok(output.warnings.includes('PRODUCT_NON_HEALTH_HAZARD_IGNORED:H411'));
+  assert.ok(output.warnings.includes('PRODUCT_NON_HEALTH_HAZARD_IGNORED:EUH210'));
+});
+
+test('una miscela classificata soltanto per pericoli non sanitari passa alle regole ingredienti', () => {
+  const output = evaluateHealthRisk({
+    productHazards: [{ code: 'H226', category: '3', section: 2 }],
+    ingredients: [],
+    isMixture: true,
+    productClassified: true,
+    compositionComplete: false,
+  });
+  assert.equal(output.status, 'needs_review');
+  assert.equal(output.ruleId, 'UNCLASSIFIED_MIXTURE_REQUIRES_STRUCTURED_INGREDIENT_DATA');
+  assert.ok(!output.warnings.some((warning) => warning.startsWith('PRODUCT_UNMAPPED_HAZARD:')));
+});

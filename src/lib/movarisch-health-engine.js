@@ -52,6 +52,20 @@
     }, extra || {});
   }
 
+  function isOutsideHealthModel(code) {
+    const normalized = String(code || '').toUpperCase();
+    // Le classi H2xx sono pericoli fisici; le H4xx sono ambientali. Non sono
+    // errori di classificazione e non devono sospendere il coefficiente P.
+    if (/^H[24]\d{2}[A-Z]{0,2}$/.test(normalized)) return true;
+    // Indicazioni supplementari senza coefficiente P (ad es. EUH210) restano
+    // documentate, ma non sono dati mancanti del modello salute.
+    if (/^EUH\d{3}[A-Z]?$/.test(normalized) &&
+        !healthData.HEALTH_SCORE_ROWS.some(function (row) {
+          return row.code.toUpperCase() === normalized;
+        })) return true;
+    return false;
+  }
+
   function resolveList(hazards, warnings, prefix) {
     const resolved = [];
     (Array.isArray(hazards) ? hazards : []).forEach(function (hazard) {
@@ -69,6 +83,9 @@
         return;
       }
       if (lookup.ambiguous) warnings.push(prefix + '_CATEGORY_REQUIRED:' + lookup.code);
+      else if (!lookup.found && isOutsideHealthModel(lookup.code)) {
+        warnings.push(prefix + '_NON_HEALTH_HAZARD_IGNORED:' + lookup.code);
+      }
       else if (!lookup.found) warnings.push(prefix + '_UNMAPPED_HAZARD:' + (lookup.code || 'INVALID'));
       else resolved.push({ input: hazard, lookup: lookup });
     });
@@ -492,9 +509,9 @@
     const hasBlockingProductWarning = warnings.some(function (warning) {
       return warning.startsWith('PRODUCT_CATEGORY_REQUIRED:') || warning.startsWith('PRODUCT_UNMAPPED_HAZARD:');
     });
-    const productClassified = typeof input.productClassified === 'boolean'
+    const productClassified = (typeof input.productClassified === 'boolean'
       ? input.productClassified
-      : productInput.length > 0;
+      : productInput.length > 0) && (productResolved.length > 0 || hasBlockingProductWarning);
 
     if (productClassified) {
       if (productResolved.length === 0 || hasBlockingProductWarning) {

@@ -16,7 +16,7 @@
   <div class="header-main">
     <div>
       <h1 data-i18n="header.title">MOVARISCH – Parser SDS da PDF</h1>
-      <p class="sub" data-i18n="header.subtitle">Carica le SDS/TDS in PDF → estrazione H/EUH → calcolo MOVARISCH → esporta Excel</p>
+      <p class="sub" data-i18n="header.subtitle">Carica le SDS in PDF → estrazione → revisione rapida → calcolo MOVARISCH → esporta Excel, Word o cumulativa</p>
     </div>
     <div class="lang-switch">
       <label for="langSelect" data-i18n="language.label">Lingua</label>
@@ -33,7 +33,7 @@
     <div class="row">
       <label class="btn">
         <input type="file" id="pdfInput" accept="application/pdf" multiple />
-        <span data-i18n="buttons.selectPdf">📄 Seleziona PDF SDS/TDS</span>
+        <span data-i18n="buttons.selectPdf">📄 Seleziona PDF SDS</span>
       </label>
       <button class="btn" id="parseBtn" disabled data-i18n="buttons.parse">🔍 Estrai & Calcola</button>
       <button class="btn" id="clearBtn" data-i18n="buttons.clear">♻️ Svuota</button>
@@ -46,7 +46,7 @@
       <div class="legend-grid">
         <div class="legend-item">
           <div class="legend-range" data-i18n="legend.items.irr.range">0,1 ≤ R &lt; 15</div>
-          <span class="badge b-irr" data-i18n="legend.items.irr.text">Irrilevante per la salute</span>
+          <span class="badge b-irr" data-i18n-html="legend.items.irr.text">Irrilevante per la salute<br/>Consultare comunque il medico competente.</span>
         </div>
         <div class="legend-item">
           <div class="legend-range" data-i18n="legend.items.unc.range">15 ≤ R &lt; 21</div>
@@ -65,7 +65,7 @@
           <span class="badge b-grave" data-i18n-html="legend.items.grave.text">Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione.</span>
         </div>
       </div>
-      <p class="mono default-note" data-i18n="legend.defaultNote">Default indici → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto "nessun contatto", distanza 1 – 3 m (d = 0,75)</p>
+      <p class="mono default-note" data-i18n="legend.defaultNote">P1 e P2 sono scenari precompilati per velocizzare l’inserimento: verificare sempre che corrispondano alle condizioni reali della mansione.</p>
     </div>
     <div id="alert"></div>
   </section>
@@ -113,6 +113,14 @@
         <p>Confronta i dati delle sezioni 2, 3 e 16. Il calcolo e gli export diventano definitivi soltanto dopo la conferma dell'esperto.</p>
       </div>
       <span class="review-global-status" id="reviewGlobalStatus">Da confermare</span>
+    </div>
+    <div class="review-batch" id="reviewBatchControls">
+      <label>Professionista incaricato
+        <input type="text" id="reviewBatchReviewer" placeholder="Nome e cognome" autocomplete="name">
+      </label>
+      <label class="review-batch-accept"><input type="checkbox" id="reviewBatchAccept"> Ho verificato il riepilogo delle SDS e confermo le estrazioni senza criticità bloccanti.</label>
+      <button type="button" class="btn primary" id="reviewBatchConfirm">Conferma le schede pronte</button>
+      <div class="review-inline-error" id="reviewBatchError" role="alert" hidden></div>
     </div>
     <div id="sdsReviewList" class="review-list"></div>
   </section>
@@ -180,9 +188,10 @@
 <script src="src/lib/sds/section-parser.js"></script>
 <script src="src/lib/sds/hazard-parser.js"></script>
 <script src="src/lib/sds/ingredient-parser.js"></script>
+<script src="src/lib/sds/dpi-parser.js"></script>
 <script src="src/lib/sds/review-workflow.js"></script>
 <script src="src/data/movarisch-health-2026.js"></script>
-<script src="src/lib/movarisch-health-engine.js"></script>
+<script src="src/lib/movarisch-health-engine.js?v=1.4.5-2"></script>
 <script src="app.js"></script>
 <script src="src/support.js"></script>
 </body>

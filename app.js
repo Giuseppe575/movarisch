@@ -316,7 +316,7 @@ const RISK_CLASSES = [
 ];
 
 // =================== STATE ===================
-const state = { files:[], rows:[] };
+const state = { files:[], rows:[], batchReviewer:'' };
 const $ = s => document.querySelector(s);
 
 // Il worker PDF è distribuito insieme all'app e non richiede accesso alla rete.
@@ -441,6 +441,7 @@ function analyzeSdsDocument(document){
   const parsed = parser.parseSdsSections(document);
   const section2 = parsed.sections['2'];
   const section3 = parsed.sections['3'];
+  const section8 = parsed.sections['8'];
   const section9 = parsed.sections['9'];
   const section16 = parsed.sections['16'];
   const productHazards = dedupeHazardsPreferCategory(
@@ -469,6 +470,9 @@ function analyzeSdsDocument(document){
         }]
       : [];
   const mixturePhase = detectSdsPhysicalPhase(section9);
+  const dpi = parser.parseSection8Dpi
+    ? parser.parseSection8Dpi(section8)
+    : { sectionFound: Boolean(section8), items: [], summary: '' };
   const health = engine.evaluateHealthRisk({
     productHazards,
     ingredients,
@@ -490,6 +494,7 @@ function analyzeSdsDocument(document){
     referenceHazards,
     isMixture,
     mixturePhase,
+    dpi,
     health,
     warnings: [
       ...parsed.warnings.filter(warning => warning.code !== 'DUPLICATE_SECTION'),
@@ -538,38 +543,6 @@ function ingredientSummary(ingredients){
 
 function reviewAuditText(review){
   return (review?.audit || []).map(item => `${item.timestamp} - ${item.field}: "${item.before}" -> "${item.after}"`).join('\n');
-}
-
-function reportRuleDescription(ruleId){
-  const descriptions = {
-    PRODUCT_SECTION_2_MAX_SCORE: 'Punteggio massimo della classificazione del prodotto riportata nella Sezione 2 della SDS.',
-    CLASSIFIED_MIXTURE_PRODUCT_LT4_INGREDIENT_GE8: 'Punteggio generico per miscela classificata con controllo degli ingredienti previsto dal metodo MoVaRisCh.',
-    PRODUCT_CMR_CATEGORY_1_TITLE_IX_CAPO_II: 'Prodotto CMR categoria 1A/1B: valutazione da effettuare secondo il Titolo IX, Capo II.',
-    PROFESSIONAL_MANUAL_OVERRIDE: 'Punteggio definito e motivato dal professionista a seguito della revisione dei dati SDS.'
-  };
-  if(descriptions[ruleId]) return descriptions[ruleId];
-  if(/^UNCLASSIFIED_MIXTURE_/.test(String(ruleId || ''))){
-    return 'Punteggio generico per miscela non classificata, determinato applicando le regole MoVaRisCh agli ingredienti pertinenti.';
-  }
-  return 'Regola MoVaRisCh verificata dal professionista durante la revisione tecnica.';
-}
-
-function reportSection3Summary(row){
-  const rule = String(row.healthRuleId || '');
-  if(/INGREDIENT|UNCLASSIFIED_MIXTURE/.test(rule)){
-    return 'Sezione 3 esaminata dal professionista e utilizzata esclusivamente secondo la specifica regola MoVaRisCh applicabile alla miscela.';
-  }
-  return 'Sezione 3 esaminata dal professionista. Le classificazioni dei singoli ingredienti non sono state trasferite automaticamente alla miscela e non hanno determinato lo score.';
-}
-
-function reportWarningSummary(row){
-  if(row.healthAssessmentStatus === 'manual_override'){
-    return 'Le incertezze di estrazione sono state risolte mediante valutazione professionale motivata.';
-  }
-  if(row.healthAssessmentStatus === 'excluded_cmr'){
-    return 'Classificazione CMR del prodotto verificata: applicare il percorso del Titolo IX, Capo II.';
-  }
-  return 'Nessuna avvertenza bloccante per il risultato. Le segnalazioni tecniche del parser sono state esaminate dal professionista in fase di revisione.';
 }
 
 function recomputeReviewedHealth(row){
@@ -1309,9 +1282,33 @@ function evidenceList(hazards){
 }
 
 function warningLabel(warning){
+  const raw = typeof warning === 'string' ? warning : warning?.code;
+  const friendly = {
+    INGREDIENT_NEEDS_REVIEW: 'Alcuni dati degli ingredienti richiedono verifica.',
+    INGREDIENT_DATA_MISSING_FOR_LOW_SCORE_MIXTURE_CHECK: 'Per questa miscela servono i dati degli ingredienti della Sezione 3.',
+    UNCLASSIFIED_MIXTURE_DATA_INSUFFICIENT_FOR_GENERIC_SCORE: 'I dati estratti non bastano per attribuire automaticamente il punteggio della miscela.',
+    NO_SECTION_HEADINGS: 'Le intestazioni della SDS non sono state riconosciute.',
+    MISSING_RELEVANT_SECTION: 'Una sezione necessaria della SDS non è stata riconosciuta.'
+  };
+  const normalized = String(raw || '').split(':')[0];
+  if(friendly[normalized]) return friendly[normalized];
   if(typeof warning === 'string') return warning;
   if(!warning || typeof warning !== 'object') return String(warning || '');
   return [warning.code, warning.message, warning.section ? `sezione ${warning.section}` : ''].filter(Boolean).join(' - ');
+}
+
+function reviewIssueDescription(row){
+  const rule = String(row?.healthRuleId || '');
+  if(rule === 'UNCLASSIFIED_MIXTURE_REQUIRES_STRUCTURED_INGREDIENT_DATA'){
+    return 'La Sezione 2 non classifica il prodotto per pericoli per la salute. Verifica la composizione in Sezione 3 e indica il punteggio professionale applicabile.';
+  }
+  if(rule === 'LOW_SCORE_MIXTURE_REQUIRES_INGREDIENT_REVIEW'){
+    return 'Il punteggio della Sezione 2 è basso e il metodo richiede un rapido controllo degli ingredienti rilevanti.';
+  }
+  if(rule === 'PRODUCT_CLASSIFICATION_INCOMPLETE'){
+    return 'La classificazione sanitaria del prodotto non è stata letta in modo completo. Controlla la Sezione 2 oppure indica il punteggio professionale.';
+  }
+  return 'Il calcolo automatico non è definitivo. Controlla soltanto i dati segnalati e completa il punteggio professionale.';
 }
 
 function ingredientReviewHtml(ingredient, rowIndex, ingredientIndex){
@@ -1335,6 +1332,34 @@ function ingredientReviewHtml(ingredient, rowIndex, ingredientIndex){
   </div>${reasons.length ? `<div class="review-warnings">${escapeHtml(reasons.join('\n'))}</div>` : ''}${evidence}</div></details>`;
 }
 
+function reviewRequiresAttention(row){
+  if(!row) return true;
+  if(row.healthAssessmentStatus === 'needs_review') return true;
+  if(row.healthAssessmentStatus !== 'excluded_cmr' && !(Number.isFinite(row.SCORE) && row.SCORE > 0)) return true;
+  return (row.analysisWarnings || []).some(warning => {
+    const code = typeof warning === 'string' ? warning : warning?.code;
+    return code === 'NO_SECTION_HEADINGS' || (code === 'MISSING_RELEVANT_SECTION' && String(warning?.section) === '2');
+  });
+}
+
+function dpiReviewSummary(row){
+  const items = row?.sdsEvidence?.dpi?.items || [];
+  const active = items.filter(item => !['not_specified', 'not_required'].includes(item.status));
+  return active.length ? `${active.length} famiglie DPI rilevate in Sezione 8` : 'DPI non determinati automaticamente';
+}
+
+function confirmationSnapshot(row){
+  return {
+    productHazards: row.sdsEvidence.productHazards,
+    ingredients: row.sdsEvidence.ingredients,
+    referenceHazards: row.sdsEvidence.referenceHazards,
+    dpi: row.sdsEvidence.dpi,
+    ruleId: row.healthRuleId,
+    score: row.SCORE,
+    methodologyId: row.methodologyId
+  };
+}
+
 function renderSdsReviews(){
   const section = document.querySelector('#sdsReviewSection');
   const list = document.querySelector('#sdsReviewList');
@@ -1348,23 +1373,52 @@ function renderSdsReviews(){
 
   section.hidden = false;
   const allConfirmed = window.MovarischReviewWorkflow.allConfirmed(state.rows);
-  globalStatus.textContent = allConfirmed ? 'Tutte le estrazioni confermate' : 'Conferma richiesta';
+  const pendingRows = state.rows.filter(row => row.review?.status !== 'confirmed');
+  const attentionRows = pendingRows.filter(reviewRequiresAttention);
+  const readyRows = pendingRows.filter(row => !reviewRequiresAttention(row));
+  globalStatus.textContent = allConfirmed
+    ? 'Tutte le estrazioni confermate'
+    : `${readyRows.length} pronte · ${attentionRows.length} da approfondire`;
   globalStatus.classList.toggle('confirmed', allConfirmed);
+
+  const batchReviewer = document.querySelector('#reviewBatchReviewer');
+  const batchAccept = document.querySelector('#reviewBatchAccept');
+  const batchConfirm = document.querySelector('#reviewBatchConfirm');
+  const batchError = document.querySelector('#reviewBatchError');
+  if(batchReviewer && document.activeElement !== batchReviewer){
+    batchReviewer.value = state.batchReviewer || state.rows.find(row => row.review?.reviewer)?.review?.reviewer || '';
+  }
+  if(batchConfirm){
+    batchConfirm.textContent = readyRows.length ? `Conferma ${readyRows.length} schede pronte` : (allConfirmed ? 'Verifica completata' : 'Nessuna scheda pronta');
+    batchConfirm.disabled = readyRows.length === 0;
+  }
 
   list.innerHTML = state.rows.map((row, rowIndex) => {
     const evidence = row.sdsEvidence || {};
     const review = row.review || window.MovarischReviewWorkflow.createReviewState();
     row.review = review;
     const confirmed = review.status === 'confirmed';
+    const needsAttention = reviewRequiresAttention(row);
     const ingredients = evidence.ingredients || [];
     const warnings = Array.from(new Set((row.analysisWarnings || []).map(warningLabel).filter(Boolean)));
     const audit = review.audit || [];
-    return `<article class="review-card" data-review-card="${rowIndex}">
-      <div class="review-card-head">
-        <h3>${escapeHtml(row.nome || row.file)} <small>(${escapeHtml(row.file)})</small></h3>
+    return `<details class="review-card${needsAttention ? ' attention' : ''}${confirmed ? ' confirmed' : ''}" data-review-card="${rowIndex}"${needsAttention && !confirmed ? ' open' : ''}>
+      <summary>
+        <div class="review-card-summary-main"><h3>${escapeHtml(row.nome || row.file)} <small>(${escapeHtml(row.file)})</small></h3>
+        <div class="review-card-summary-line"><span><strong>Sezione 2:</strong> ${escapeHtml(reviewHazardText(evidence.productHazards) || 'nessuna frase H')}</span><span><strong>Score:</strong> ${row.healthAssessmentStatus === 'excluded_cmr' ? 'Capo II' : escapeHtml(fmt(row.SCORE))}</span><span>${escapeHtml(dpiReviewSummary(row))}</span></div></div>
         <span class="review-status${confirmed ? ' confirmed' : ''}">${confirmed ? `Confermato il ${escapeHtml(new Date(review.confirmedAt).toLocaleString('it-IT'))}` : 'Da confermare'}</span>
-      </div>
-      <div class="review-panels">
+      </summary><div class="review-card-body">
+      ${needsAttention ? `<section class="review-exception" aria-label="Azione richiesta">
+        <div><strong>Serve una decisione professionale</strong><p>${escapeHtml(reviewIssueDescription(row))}</p></div>
+        <span class="review-exception-badge">Eccezione</span>
+      </section>
+      <div class="review-controls review-controls-fast">
+        <label>Punteggio professionale<input type="text" inputmode="decimal" value="${review.manualScore ?? ''}" data-review-score data-row="${rowIndex}" placeholder="es. 5,5"></label>
+        <label>Motivazione sintetica<textarea data-review-reason data-row="${rowIndex}" placeholder="Viene proposta automaticamente quando inserisci il punteggio">${escapeHtml(review.correctionReason || '')}</textarea></label>
+      </div>` : ''}
+      <details class="review-technical">
+      <summary>Apri dati tecnici estratti (Sezioni 2, 3 e 16)</summary>
+      <div class="review-technical-body"><div class="review-panels">
         <section class="review-panel">
           <h4>Sezione 2 - classificazione del prodotto</h4>
           <textarea data-review-product data-row="${rowIndex}" aria-label="Frasi H sezione 2">${escapeHtml(reviewHazardText(evidence.productHazards))}</textarea>
@@ -1385,23 +1439,19 @@ function renderSdsReviews(){
         </section>
       </div>
       <div class="review-rule">
-        <span><strong>Regola:</strong> ${escapeHtml(row.healthRuleId || 'non determinata')}</span>
+        <span><strong>Regola tecnica:</strong> ${escapeHtml(row.healthRuleId || 'non determinata')}</span>
         <span><strong>Score provvisorio:</strong> ${row.healthAssessmentStatus === 'excluded_cmr' ? 'non applicabile - Capo II' : escapeHtml(fmt(row.SCORE))}</span>
         <span><strong>Stato parser ingredienti:</strong> ${escapeHtml(evidence.ingredientParsingStatus || 'non disponibile')}</span>
       </div>
       ${warnings.length ? `<div class="review-warnings"><strong>Avvertenze da verificare</strong>\n${escapeHtml(warnings.join('\n'))}</div>` : ''}
-      <div class="review-controls">
-        <label>Nominativo del professionista <strong>(obbligatorio)</strong><input type="text" value="${escapeHtml(review.reviewer || '')}" data-reviewer data-row="${rowIndex}" placeholder="Nome e cognome" required aria-describedby="review-error-${rowIndex}"></label>
-        <label>Motivazione delle eventuali correzioni<textarea data-review-reason data-row="${rowIndex}" placeholder="Obbligatoria se sono stati modificati dati estratti">${escapeHtml(review.correctionReason || '')}</textarea></label>
-        <label>Punteggio professionale manuale (solo per risultato sospeso)<input type="text" value="${review.manualScore ?? ''}" data-review-score data-row="${rowIndex}" placeholder="es. 5,5"></label>
-      </div>
+      </div></details>
       <div class="review-confirm">
-        <label><input type="checkbox" data-review-accept data-row="${rowIndex}"${review.accepted ? ' checked' : ''} aria-describedby="review-error-${rowIndex}"> Confermo di aver verificato la classificazione del prodotto, gli ingredienti rilevanti, le avvertenze e la regola applicata.</label>
-        <button type="button" class="btn primary" data-review-confirm data-row="${rowIndex}">${confirmed ? 'Riconferma revisione' : 'Conferma e calcola'}</button>
+        <span class="review-note">Usa il nominativo e la conferma unica indicati sopra.</span>
+        <button type="button" class="btn primary" data-review-confirm data-row="${rowIndex}">${confirmed ? 'Riconferma' : (needsAttention ? 'Conferma dopo il controllo' : 'Conferma questa scheda')}</button>
       </div>
       <div class="review-inline-error" id="review-error-${rowIndex}" data-review-error role="alert" hidden></div>
       <div class="review-audit"><strong>Registro modifiche:</strong> ${audit.length ? audit.map(item => `${escapeHtml(new Date(item.timestamp).toLocaleString('it-IT'))} - ${escapeHtml(item.field)}: “${escapeHtml(item.before)}” → “${escapeHtml(item.after)}”`).join('<br>') : 'nessuna correzione manuale'}</div>
-    </article>`;
+      </div></details>`;
   }).join('');
 
   const clearInlineError = target => {
@@ -1411,16 +1461,47 @@ function renderSdsReviews(){
     card?.querySelectorAll('[aria-invalid="true"]').forEach(element => element.removeAttribute('aria-invalid'));
   };
 
-  list.querySelectorAll('[data-reviewer]').forEach(input => input.addEventListener('input', event => {
-    state.rows[Number(event.target.dataset.row)].review.reviewer = event.target.value;
-    clearInlineError(event.target);
-  }));
+  if(batchReviewer) batchReviewer.oninput = event => {
+    state.batchReviewer = event.target.value;
+    if(batchError){ batchError.hidden = true; batchError.textContent = ''; }
+  };
+  if(batchAccept) batchAccept.onchange = () => {
+    if(batchError){ batchError.hidden = true; batchError.textContent = ''; }
+  };
+  if(batchConfirm) batchConfirm.onclick = () => {
+    const reviewer = String(batchReviewer?.value || state.batchReviewer || '').trim();
+    if(reviewer.length < 2 || batchAccept?.checked !== true){
+      const message = reviewer.length < 2
+        ? 'Inserisci una sola volta il nominativo del professionista.'
+        : 'Seleziona la conferma unica prima di proseguire.';
+      if(batchError){ batchError.textContent = message; batchError.hidden = false; }
+      const target = reviewer.length < 2 ? batchReviewer : batchAccept;
+      target?.setAttribute('aria-invalid', 'true');
+      target?.focus();
+      return;
+    }
+    state.batchReviewer = reviewer;
+    let confirmedCount = 0;
+    for(const row of state.rows.filter(candidate => candidate.review?.status !== 'confirmed' && !reviewRequiresAttention(candidate))){
+      row.review.reviewer = reviewer;
+      row.review.accepted = true;
+      recomputeReviewedHealth(row);
+      const confirmation = window.MovarischReviewWorkflow.confirm(row.review, {
+        healthStatus: row.healthAssessmentStatus,
+        score: row.healthAssessmentStatus === 'excluded_cmr' ? null : row.SCORE,
+        snapshot: confirmationSnapshot(row)
+      });
+      if(confirmation.ok) confirmedCount += 1;
+    }
+    if(!confirmedCount){
+      if(batchError){ batchError.textContent = 'Le schede rimaste richiedono un controllo puntuale prima della conferma.'; batchError.hidden = false; }
+      return;
+    }
+    clearAlert();
+    render();
+  };
   list.querySelectorAll('[data-review-reason]').forEach(input => input.addEventListener('input', event => {
     state.rows[Number(event.target.dataset.row)].review.correctionReason = event.target.value;
-    clearInlineError(event.target);
-  }));
-  list.querySelectorAll('[data-review-accept]').forEach(input => input.addEventListener('change', event => {
-    state.rows[Number(event.target.dataset.row)].review.accepted = event.target.checked;
     clearInlineError(event.target);
   }));
   list.querySelectorAll('[data-review-product]').forEach(input => input.addEventListener('change', event => {
@@ -1443,6 +1524,11 @@ function renderSdsReviews(){
     const parsed = parseNumeric(event.target.value);
     row.review.manualScore = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     recordReviewChange(row, 'health.manualScore', before, row.review.manualScore ?? '');
+    if(row.review.manualScore && !String(row.review.correctionReason || '').trim()){
+      const reason = 'Punteggio definito dal professionista dopo verifica della composizione riportata nella Sezione 3 della SDS.';
+      row.review.correctionReason = reason;
+      recordReviewChange(row, 'review.correctionReason', '', reason);
+    }
     render();
   }));
   list.querySelectorAll('[data-ingredient-row]').forEach(container => {
@@ -1466,31 +1552,29 @@ function renderSdsReviews(){
   });
   list.querySelectorAll('[data-review-confirm]').forEach(button => button.addEventListener('click', event => {
     const row = state.rows[Number(event.target.dataset.row)];
+    row.review.reviewer = String(batchReviewer?.value || state.batchReviewer || '').trim();
+    row.review.accepted = batchAccept?.checked === true;
     recomputeReviewedHealth(row);
     const workflow = window.MovarischReviewWorkflow;
     const confirmation = workflow.confirm(row.review, {
       healthStatus: row.healthAssessmentStatus,
       score: row.healthAssessmentStatus === 'excluded_cmr' ? null : (Number.isFinite(row.SCORE) && row.SCORE > 0 ? row.SCORE : null),
-      snapshot: {
-        productHazards: row.sdsEvidence.productHazards,
-        ingredients: row.sdsEvidence.ingredients,
-        referenceHazards: row.sdsEvidence.referenceHazards,
-        ruleId: row.healthRuleId,
-        score: row.SCORE,
-        methodologyId: row.methodologyId
-      }
+      snapshot: confirmationSnapshot(row)
     });
     if(!confirmation.ok){
       const message = reviewErrorMessage(confirmation.error);
       const card = event.target.closest('[data-review-card]');
       const inlineError = card?.querySelector('[data-review-error]');
       const selector = ({
-        REVIEWER_REQUIRED: '[data-reviewer]',
-        ACCEPTANCE_REQUIRED: '[data-review-accept]',
         CORRECTION_REASON_REQUIRED: '[data-review-reason]',
         UNRESOLVED_HEALTH_RESULT: '[data-review-score]'
       })[confirmation.error];
       const invalidField = selector ? card?.querySelector(selector) : null;
+      if(confirmation.error === 'REVIEWER_REQUIRED' || confirmation.error === 'ACCEPTANCE_REQUIRED'){
+        const globalField = confirmation.error === 'REVIEWER_REQUIRED' ? batchReviewer : batchAccept;
+        globalField?.setAttribute('aria-invalid', 'true');
+        globalField?.focus();
+      }
       if(inlineError){
         inlineError.textContent = message;
         inlineError.hidden = false;
@@ -2108,43 +2192,7 @@ async function exportWord(){
         );
       }
 
-      const validationText = r.review?.status === 'confirmed'
-        ? `Confermata da ${r.review?.reviewer || 'professionista'} il ${r.review?.confirmedAt ? new Date(r.review.confirmedAt).toLocaleString('it-IT') : ''}.`
-        : 'Non confermata.';
-      const methodData = [
-        ['Sezione 2 - classificazione del prodotto', 'Fonte utilizzata per determinare le indicazioni di pericolo del prodotto e lo score riportato nella scheda di valutazione.'],
-        ['Sezione 3 - composizione/informazioni sugli ingredienti', reportSection3Summary(r)],
-        ['Sezione 16 - altre informazioni', 'Consultata esclusivamente come riferimento informativo. Le frasi H richiamate in questa sezione non sono state utilizzate direttamente per determinare lo score.'],
-        ['Criterio applicato', reportRuleDescription(r.healthRuleId)],
-        ['Controllo dei dati', reportWarningSummary(r)],
-        ['Validazione professionale', validationText],
-        ['Correzioni manuali', r.review?.audit?.length ? `Presenti e motivate: ${r.review?.correctionReason || 'motivazione registrata dal professionista'}.` : 'Nessuna.']
-      ];
-      const methodRows = methodData.map(([label, value]) => new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: label, bold: true })] })],
-            width: { size: 38, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: value })] })],
-            width: { size: 62, type: WidthType.PERCENTAGE },
-            verticalAlign: VerticalAlign.CENTER
-          })
-        ]
-      }));
-      const methodTable = new Table({ rows: methodRows, width: { size: 100, type: WidthType.PERCENTAGE } });
-
-      children.push(
-        table,
-        new Paragraph({
-          pageBreakBefore: true,
-          children: [new TextRun({ text: 'Nota metodologica sull\'uso delle sezioni SDS', bold: true, size: 22 })],
-          spacing: { after: 120 }
-        }),
-        methodTable
-      );
+      children.push(table);
 
       // Aggiungi page break tra le sezioni (tranne l'ultima)
       if(index < state.rows.length - 1){
@@ -2348,7 +2396,8 @@ parseBtn.addEventListener('click', async ()=>{
           ingredientParsingStatus: sdsAnalysis.ingredientParsingStatus,
           referenceHazards: sdsAnalysis.referenceHazards,
           isMixture: sdsAnalysis.isMixture,
-          mixturePhase: sdsAnalysis.mixturePhase
+          mixturePhase: sdsAnalysis.mixturePhase,
+          dpi: sdsAnalysis.dpi
         },
         review: window.MovarischReviewWorkflow.createReviewState(),
         activePreset: 'preset1', // Preset attivo (default = Preset 1 = Laboratorio)

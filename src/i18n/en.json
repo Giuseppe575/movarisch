@@ -4,7 +4,7 @@
   },
   "header": {
     "title": "MOVARISCH – SDS Parser",
-    "subtitle": "Upload SDS/TDS PDFs → extract H/EUH codes → run MOVARISCH risk model → export Excel"
+    "subtitle": "Upload SDS PDFs → extract → quick review → run MOVARISCH → export Excel, Word or cumulative report"
   },
   "language": {
     "label": "Language",
@@ -12,7 +12,7 @@
     "en": "English"
   },
   "buttons": {
-    "selectPdf": "📄 Select SDS/TDS PDFs",
+    "selectPdf": "📄 Select SDS PDFs",
     "parse": "🔍 Extract & Calculate",
     "clear": "♻️ Clear",
     "test": "🧪 Library test",
@@ -25,7 +25,7 @@
     "items": {
       "irr": {
         "range": "0.1 ≤ R < 15",
-        "text": "Negligible for health"
+        "text": "Negligible for health<br/>The occupational physician should still be consulted."
       },
       "unc": {
         "range": "15 ≤ R < 21",
@@ -44,7 +44,7 @@
         "text": "Severe risk<br/>Reassess the prevention and protection measures and enhance surveillance, monitoring of chemical agents and maintenance frequency."
       }
     },
-    "defaultNote": "Default factors → Controlled use, local exhaust ventilation, 15 min – 2 h exposure, quantity 1 – 10 kg, contact level \"no contact\", distance 1 – 3 m (d = 0.75)"
+    "defaultNote": "P1 (Laboratory) and P2 (Rapid production) are pre-filled scenarios, not regulatory values: always verify quantity, duration, control, contact and distance against the actual task."
   },
   "table": {
     "headers": {
@@ -106,11 +106,11 @@
   "tutorial": {
     "title": "How to use the MOVARISCH parser",
     "steps": [
-      "Upload one or more SDS/TDS safety sheets in PDF format from your device.",
-      "Click \"Extract & Calculate\" to automatically compute the risk indices.",
-      "Review the extracted information and adjust fields or parameters if needed.",
-      "Use the legend to interpret the risk judgement assigned to each substance.",
-      "Export the outcomes to Excel or Word for internal reporting."
+      "Upload one or more safety data sheets (SDS) in PDF format from your device.",
+      "Click \"Extract & Calculate\" to extract the data and obtain a preliminary calculation.",
+      "Enter the reviewer once and confirm all SDS without blocking issues together; inspect only the flagged exceptions.",
+      "Verify that operating parameters and presets match the actual task, then review the risk judgement.",
+      "After confirmation, export Excel, Word or the cumulative report."
     ]
   },
   "support": {

@@ -10,13 +10,14 @@ test('il Word non esporta la tabella analitica degli ingredienti', () => {
   assert.doesNotMatch(app, /const ingredientHeader = new TableRow/);
 });
 
-test('le sezioni SDS sono spiegate in una nota metodologica separata', () => {
-  assert.match(app, /Nota metodologica sull\\'uso delle sezioni SDS/);
-  assert.match(app, /Sezione 16 - altre informazioni/);
-  assert.match(app, /non sono state utilizzate direttamente per determinare lo score/);
+test('il Word non esporta la nota tecnica interna sulle sezioni SDS', () => {
+  assert.doesNotMatch(app, /Nota metodologica sull\\'uso delle sezioni SDS/);
+  assert.doesNotMatch(app, /Sezione 16 - altre informazioni/);
+  assert.doesNotMatch(app, /Validazione professionale/);
+  assert.doesNotMatch(app, /Correzioni manuali/);
 });
 
-test('il report esterno usa descrizioni comprensibili e non codici di warning del parser', () => {
-  assert.match(app, /reportWarningSummary\(r\)/);
+test('il report esterno non esporta i warning tecnici del parser', () => {
+  assert.doesNotMatch(app, /reportWarningSummary\(r\)/);
   assert.doesNotMatch(app, /\['Avvertenze verificate', Array\.from/);
 });

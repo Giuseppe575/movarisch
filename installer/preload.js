@@ -9,6 +9,7 @@
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
+const { version } = require('./package.json');
 
 /**
  * Espone API sicure al renderer process
@@ -16,7 +17,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // Informazioni sull'app
   platform: process.platform,
-  version: '1.4.0',
+  version,
 
   // Flag per indicare che siamo in Electron
   isElectron: true,
