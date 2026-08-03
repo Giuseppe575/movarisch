@@ -200,3 +200,124 @@ Esegui con: `npm test`
 3. `a044b41` - feat: Sistema aggiornamenti automatici con electron-updater
 4. `1441a43` - feat: Aggiunti strumenti di supporto per build Windows
 5. `b270832` - feat: Aggiunta icona MOVARISCH professionale
+
+---
+
+## Diario di ripresa — 31 luglio 2026
+
+### Obiettivo della revisione in corso
+
+- Rendere la verifica delle SDS molto più rapida per l'operatore.
+- Conservare il controllo professionale, concentrandolo soltanto sulle vere eccezioni.
+- Revisionare integralmente la scheda cumulativa per più prodotti.
+- Estrarre i DPI dalla Sezione 8 delle SDS e distinguere indicazioni, consigli e condizioni d'uso senza inventare obblighi.
+- Collaudare il flusso con le 8 SDS reali presenti in `__tests__/schede test`.
+
+### Modifiche implementate ma non ancora pubblicate
+
+- Nuova conferma rapida di gruppo con un solo nominativo e una sola dichiarazione di verifica.
+- Le schede calcolabili restano chiuse e sintetiche; si aprono automaticamente soltanto quelle da approfondire.
+- Il dettaglio di Sezione 3 e Sezione 16 resta disponibile come controllo tecnico, ma non appesantisce il flusso ordinario.
+- Nuovo parser DPI in `src/lib/sds/dpi-parser.js`, basato sulla Sezione 8.
+- Classificazione DPI: indicato dalla SDS, consigliato, condizionato allo scenario, non richiesto/non determinato.
+- Nuova scheda cumulativa multiprodotto: usa tutte le righe e non più soltanto la prima SDS.
+- La cumulativa contiene riepilogo prodotti, matrice DPI, riferimenti a prodotto/pagina e interventi; non genera obblighi DPI fittizi dallo score.
+- Corretto il motore salute: H2xx, H4xx ed EUH informative non sospendono il coefficiente P come se fossero errori del modello salute.
+- Aggiunto versionamento alla risorsa del motore nell'HTML per evitare che una vecchia copia in cache annulli la correzione.
+- Evitata la duplicazione degli eventi della conferma rapida durante i rerender.
+
+### Esito del collaudo reale con 8 SDS
+
+- 8 file caricati ed elaborati insieme senza errore.
+- 6 schede risultano pronte e sono state confermate correttamente con un'unica operazione di prova.
+- 2 schede restano correttamente da approfondire:
+  - `MULTIGIENIC (SS).pdf`
+  - `SPEED (SS).pdf`
+- Per entrambe la regola è `UNCLASSIFIED_MIXTURE_REQUIRES_STRUCTURED_INGREDIENT_DATA`: la Sezione 2 riporta soltanto pericoli non sanitari, quindi il metodo richiede dati ingredienti strutturati prima di attribuire P.
+- DPI rilevati: 3–4 famiglie per quasi tutti i prodotti; MULTIGIENIC ne rileva 1.
+- Gli score corretti verificati nel test includono: AQUA SC 4,50; IDRO PROFUMATO 6,25; KALC 5,75; SCRUB SC 5,75; SUPRACID 5,75; XTRA-CALC PLUS 4,50.
+
+### Test automatici
+
+- Suite completa superata: 85 test su 85.
+- Nuovi test dedicati a DPI, cumulativa multiprodotto, conferma rapida e pericoli non sanitari.
+- `node --check app.js` superato.
+- `git diff --check` superato prima dell'ultimo piccolo aggiornamento; da ripetere alla ripresa.
+
+### Stato di rilascio
+
+- Versione pubblica precedente: v1.4.4.
+- Questa revisione non è stata ancora versionata, compilata, installata, committata o pubblicata.
+- Nessun aggiornamento automatico è stato inviato agli utenti.
+
+### Da riprendere domani, in ordine
+
+1. Migliorare il testo visibile delle due eccezioni, sostituendo il codice tecnico della regola con una spiegazione semplice.
+2. Decidere e implementare il flusso più rapido per correggere i dati ingredienti di MULTIGIENIC e SPEED senza chiedere controlli inutili.
+3. Completare il test della scheda cumulativa con tutte e 8 le SDS confermate in una sessione di collaudo.
+4. Verificare visivamente layout, stampa/PDF e matrice DPI della cumulativa.
+5. Ripetere l'intera suite automatica e il controllo delle differenze.
+6. Portare la versione a v1.4.5 e creare un installer locale di prova.
+7. Consegnare l'installer al professionista per il test; pubblicare l'aggiornamento automatico soltanto dopo approvazione esplicita.
+
+### File principali modificati nella revisione
+
+- `app.js`
+- `index.html`
+- `style.css`
+- `cumulative-report.html`
+- `src/lib/movarisch-health-engine.js`
+- `src/lib/sds/dpi-parser.js`
+- `__tests__/health-score-2026.test.js`
+- `__tests__/offline-assets.test.js`
+- `__tests__/ui-table-layout.test.js`
+- `__tests__/dpi-parser.test.js`
+- `__tests__/cumulative-multi-sds.test.js`
+
+---
+
+## Diario di avanzamento — 3 agosto 2026
+
+### Completato
+
+- Sostituiti i codici tecnici delle eccezioni con spiegazioni operative comprensibili.
+- Ridotta la gestione delle eccezioni a punteggio professionale e motivazione sintetica; la motivazione standard viene proposta automaticamente ed è modificabile.
+- Spostati i dettagli delle Sezioni 2, 3 e 16 in un pannello tecnico chiuso per impostazione predefinita.
+- Collaudo reale ripetuto: 6 SDS confermate con una sola operazione; MULTIGIENIC e SPEED restano le sole eccezioni corrette.
+- Completata la scheda cumulativa con 8 prodotti e 4 famiglie DPI.
+- Il giudizio DPI ora è distinto prodotto per prodotto e non usa più un unico esito cumulativo ambiguo.
+- Verificata visivamente la cumulativa completa: prodotto, giudizio SDS, pagina e testo sorgente sono leggibili.
+- Versione portata a v1.4.5; versione del preload ricavata automaticamente dal package anziché mantenuta come valore statico.
+
+### Verifiche superate
+
+- Test applicazione: 87/87.
+- Test installer/updater: 3/3.
+- Release gate configurazione: superato.
+- Build Windows NSIS: completato.
+- Controllo artefatti e `latest.yml`: superato.
+
+### Installer locale di prova
+
+- File: `installer/dist/MOVARISCH-Setup-1.4.5.exe`
+- Dimensione: 101.168.113 byte.
+- SHA-256: `6D62E1C671195C91E61C449C10E2F7BED0AA79124DCE2B6F52E7C9597393ECC0`
+- Firma digitale: assente, come concordato per questa fase.
+- Aggiornamento automatico: non pubblicato; attendere il test e l'approvazione del professionista.
+
+### Nota sul collaudo
+
+- I valori 1,00 inseriti temporaneamente per MULTIGIENIC e SPEED servivano esclusivamente ad aprire e verificare la cumulativa; non rappresentano una valutazione professionale e non sono stati salvati nell'app o nell'installer.
+- Build rigenerata dopo la richiesta del professionista: la nota metodologica sulle Sezioni SDS, la validazione, le correzioni e i warning tecnici non compaiono più nel Word esportato.
+
+### Controllo finale dell'interfaccia prima della pubblicazione
+
+- Verificata la legenda del rischio rispetto alla matrice MoVaRisCh 2026 ufficiale; soglie, giudizi e gestione dei valori di confine sono coerenti con il motore di calcolo.
+- Aggiunto al giudizio di rischio irrilevante il richiamo a consultare comunque il medico competente.
+- Precisato che i preset P1/P2 sono scenari precompilati di praticità e devono essere verificati rispetto alla mansione reale; non sono valori normativi.
+- Aggiornato il tutorial al flusso attuale: caricamento SDS, estrazione preliminare, conferma rapida di gruppo, gestione delle sole eccezioni ed esportazione Excel/Word/cumulativa.
+- Verificati i quattro collegamenti locali di supporto: knowledge base, documentazione tecnica, ticket e licenza d'uso.
+- Sostituito lo sfondo blu molto scuro con una palette blu ardesia più chiara, mantenendo contrasto e leggibilità.
+- Suite completa aggiornata e superata: 91/91 test; controllo sintattico e `git diff --check` superati.
+- Installer v1.4.5 rigenerato con la nuova palette: 101.168.388 byte, SHA-256 `6D1294F856E3D65B2850CD305218A9AF7EBE79CB70F6B823EA2F1D9DF93AAA13`.
+- Release gate e controllo degli artefatti superati; firma digitale assente come concordato e pubblicazione automatica ancora sospesa fino all'approvazione esplicita.

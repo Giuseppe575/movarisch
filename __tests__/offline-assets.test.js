@@ -48,5 +48,5 @@ test('i dati SDS non vengono scritti nei log e il passaggio cumulativo è monous
   assert.doesNotMatch(appSource, /console\.log\s*\(/);
   assert.doesNotMatch(reportSource, /console\.log\s*\(/);
   assert.match(reportSource, /localStorage\.removeItem\('movarisch_cumulative_data'\)/);
-  assert.match(reportSource, /ageMinutes\s*>\s*5/);
+  assert.match(reportSource, /age\s*>\s*300000/);
 });

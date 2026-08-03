@@ -4,7 +4,7 @@
   },
   "header": {
     "title": "MOVARISCH – Parser SDS da PDF",
-    "subtitle": "Carica le SDS/TDS in PDF → estrazione H/EUH → calcolo MOVARISCH → esporta Excel"
+    "subtitle": "Carica le SDS in PDF → estrazione → revisione rapida → calcolo MOVARISCH → esporta Excel, Word o cumulativa"
   },
   "language": {
     "label": "Lingua",
@@ -12,7 +12,7 @@
     "en": "Inglese"
   },
   "buttons": {
-    "selectPdf": "📄 Seleziona PDF SDS/TDS",
+    "selectPdf": "📄 Seleziona PDF SDS",
     "parse": "🔍 Estrai & Calcola",
     "clear": "♻️ Svuota",
     "test": "🧪 Test libreria",
@@ -25,7 +25,7 @@
     "items": {
       "irr": {
         "range": "0,1 ≤ R < 15",
-        "text": "Irrilevante per la salute"
+        "text": "Irrilevante per la salute<br/>Consultare comunque il medico competente."
       },
       "unc": {
         "range": "15 ≤ R < 21",
@@ -44,7 +44,7 @@
         "text": "Rischio grave<br/>Riconsiderare il percorso dell’identificazione delle misure di prevenzione e protezione ai fini di una loro eventuale implementazione. Intensificare i controlli quali la sorveglianza sanitaria, la misurazione degli agenti chimici e la periodicità della manutenzione."
       }
     },
-    "defaultNote": "Preset 1 (Laboratorio) → Uso controllato, ventilazione localizzata, esposizione 15 min – 2 h, quantità 1 – 10 kg, livello di contatto \"nessun contatto\", distanza 1 – 3 m (d = 0,75). • Preset 2 (Produzione rapida) → Uso controllato, ventilazione generale, esposizione < 15 min, quantità 1 – 10 kg, livello di contatto \"accidentale\", distanza 1 – 3 m (d = 0,75). Applica i preset con i bottoni P1 / P2 in tabella.",
+    "defaultNote": "P1 (Laboratorio) e P2 (Produzione rapida) sono scenari precompilati per velocizzare l’inserimento, non valori normativi: verificare sempre che quantità, durata, controllo, contatto e distanza corrispondano alle condizioni reali della mansione.",
     "defaultNote2": "Preset rapido → Uso controllato, ventilazione generale, esposizione < 15 min, quantità 1 – 10 kg, livello di contatto \"accidentale\", distanza 1 – 3 m (d = 0,75)",
     "normNote": "Conforme a MoVaRisCh 2026 (28/02/2026) e D.Lgs. 135/2024. Le sostanze classificate H340, H350/H350i, H360 e varianti (cat. 1A/1B) NON entrano nel calcolo P MoVaRisCh ma devono essere valutate separatamente ex Titolo IX Capo II D.Lgs. 81/08."
   },
@@ -120,11 +120,11 @@
   "tutorial": {
     "title": "Come utilizzare il parser MOVARISCH",
     "steps": [
-      "Carica uno o più PDF delle schede di sicurezza (SDS/TDS) dal tuo dispositivo.",
-      "Premi \"Estrai & Calcola\" per generare automaticamente gli indici di rischio.",
-      "Rivedi le informazioni estratte, aggiornando manualmente campi e parametri se necessario.",
-      "Consulta la legenda per interpretare il giudizio di rischio assegnato a ciascuna sostanza.",
-      "Esporta i risultati in Excel o Word per la reportistica interna."
+      "Carica uno o più PDF delle schede di sicurezza (SDS) dal tuo dispositivo.",
+      "Premi \"Estrai & Calcola\" per estrarre i dati e ottenere il calcolo preliminare.",
+      "Inserisci una sola volta il nominativo e conferma insieme le SDS senza criticità; controlla soltanto le eccezioni segnalate.",
+      "Verifica che parametri operativi e preset corrispondano alla mansione reale, quindi consulta il giudizio di rischio.",
+      "Dopo la conferma esporta Excel, Word oppure la scheda cumulativa."
     ]
   },
   "support": {

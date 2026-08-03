@@ -4,6 +4,36 @@ Registro delle modifiche e miglioramenti al progetto MOVARISCH.
 
 ---
 
+## [v1.4.5] - 2026-08-03 - Revisione rapida SDS e cumulativa DPI
+
+### Flusso di verifica
+
+- Conferma unica per tutte le SDS calcolabili senza criticità bloccanti.
+- Schede sintetiche richiuse; apertura automatica soltanto delle eccezioni reali.
+- Eccezioni risolvibili con punteggio professionale e motivazione standard modificabile.
+- Dettagli delle Sezioni 2, 3 e 16 raccolti in un pannello tecnico espandibile.
+- Tutorial e intestazione aggiornati al nuovo flusso; P1/P2 identificati esplicitamente come scenari precompilati da validare sulla mansione reale.
+- Palette dell'app schiarita con uno sfondo blu ardesia meno intenso.
+
+### Calcolo e miscele
+
+- I pericoli fisici H2xx, ambientali H4xx e le EUH informative non sospendono più il coefficiente P come se fossero classificazioni sanitarie mancanti.
+- Le miscele prive di classificazione sanitaria vengono instradate alle regole MoVaRisCh basate sugli ingredienti.
+- La Sezione 16 resta informativa e non determina direttamente lo score.
+
+### Scheda cumulativa e DPI
+
+- La cumulativa gestisce tutti i prodotti caricati, non soltanto la prima SDS.
+- DPI estratti dalla Sezione 8 con prodotto, pagina e testo sorgente.
+- Giudizio DPI distinto per ogni prodotto: indicato, consigliato, condizionato, citato, non richiesto o non specificato.
+- Nessun obbligo DPI viene dedotto automaticamente dal solo score.
+- Rimossa dal Word la tabella tecnica interna sull'uso delle Sezioni 2, 3 e 16, sulla validazione e sulle correzioni del parser.
+
+### Collaudo
+
+- Test automatici ampliati per motore salute, revisione rapida, DPI e cumulativa multiprodotto.
+- Collaudo con 8 SDS reali caricate contemporaneamente.
+
 ## [v1.2.1] - 2026-04-14 - Hotfix: Scheda Cumulativa e Sezione Supporto
 
 ### 🐛 Bug Critici Risolti

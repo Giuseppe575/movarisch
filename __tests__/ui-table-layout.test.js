@@ -30,10 +30,16 @@ test('la schermata carica il workflow e i tre pannelli di revisione SDS', () => 
   assert.match(css, /\.review-panels\s*\{/);
 });
 
-test('gli errori di conferma sono mostrati localmente e i campi obbligatori sono evidenziati', () => {
+test('la revisione rapida usa un solo nominativo e mantiene gli errori puntuali per le eccezioni', () => {
   const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  assert.match(html, /id="reviewBatchReviewer"/);
+  assert.match(html, /id="reviewBatchAccept"/);
+  assert.match(html, /id="reviewBatchConfirm"/);
   assert.match(app, /data-review-error role="alert"/);
-  assert.match(app, /Nominativo del professionista <strong>\(obbligatorio\)<\/strong>/);
+  assert.match(app, /Conferma \$\{readyRows\.length\} schede pronte/);
+  assert.match(app, /Serve una decisione professionale/);
+  assert.match(app, /Apri dati tecnici estratti/);
+  assert.match(app, /Punteggio definito dal professionista dopo verifica della composizione/);
   assert.match(app, /invalidField\.focus\(\{ preventScroll: true \}\)/);
   assert.match(css, /\[aria-invalid="true"\]/);
 });
